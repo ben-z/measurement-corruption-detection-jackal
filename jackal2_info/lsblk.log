@@ -1,0 +1,6 @@
+NAME   MODEL            SERIAL            SIZE STATE
+sda    Samsung SSD 860  S3YJNX0K423407K 232.9G running
+|-sda1                                     94M 
+|-sda2                                      1K 
+|-sda5                                      1M 
+`-sda6                                  232.8G 

@@ -1,0 +1,13 @@
++ hostname
++ uname -a
++ sudo lshw
++ lsblk -o NAME,MODEL,SERIAL,SIZE,STATE
++ df -h
++ ip a
++ sudo lscpu
++ sudo dmidecode -t memory
++ rosversion -d
++ rostopic list
++ rosnode list
++ echo 'Done!'
+Done!
