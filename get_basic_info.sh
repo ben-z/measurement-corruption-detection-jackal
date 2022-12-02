@@ -18,4 +18,7 @@ rosversion -d > rosversion.log
 rostopic list > rostopic-list.log
 rosnode list > rosnode-list.log
 
+mkdir -p rootfs/etc/
+sudo cp -r /etc/ros rootfs/etc/
+
 echo "Done!"
