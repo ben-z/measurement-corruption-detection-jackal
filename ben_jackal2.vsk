@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<KinematicModel VERSION="3.2">
+	<Parameters>
+		<Parameter NAME="ben-jackal2_ben-jackal21_x" VALUE="-58.158878326416016" PRIOR="-58.158878326416016" HIDDEN="true"/>
+		<Parameter NAME="ben-jackal2_ben-jackal21_y" VALUE="63.106193542480469" PRIOR="63.106193542480469" HIDDEN="true"/>
+		<Parameter NAME="ben-jackal2_ben-jackal21_z" VALUE="-1.7506810426712036" PRIOR="-1.7506810426712036" HIDDEN="true"/>
+		<Parameter NAME="ben-jackal2_ben-jackal22_x" VALUE="-70.097206115722656" PRIOR="-70.097206115722656" HIDDEN="true"/>
+		<Parameter NAME="ben-jackal2_ben-jackal22_y" VALUE="-129.40155029296875" PRIOR="-129.40155029296875" HIDDEN="true"/>
+		<Parameter NAME="ben-jackal2_ben-jackal22_z" VALUE="-17.874774932861328" PRIOR="-17.874774932861328" HIDDEN="true"/>
+		<Parameter NAME="ben-jackal2_ben-jackal23_x" VALUE="239.45147705078125" PRIOR="239.45147705078125" HIDDEN="true"/>
+		<Parameter NAME="ben-jackal2_ben-jackal23_y" VALUE="-0.00012182446516817436" PRIOR="-0.00012182446516817436" HIDDEN="true"/>
+		<Parameter NAME="ben-jackal2_ben-jackal23_z" VALUE="166.50802612304688" PRIOR="166.50802612304688" HIDDEN="true"/>
+		<Parameter NAME="ben-jackal2_ben-jackal24_x" VALUE="56.628219604492188" PRIOR="56.628219604492188" HIDDEN="true"/>
+		<Parameter NAME="ben-jackal2_ben-jackal24_y" VALUE="-59.549537658691406" PRIOR="-59.549537658691406" HIDDEN="true"/>
+		<Parameter NAME="ben-jackal2_ben-jackal24_z" VALUE="0.014756839722394943" PRIOR="0.014756839722394943" HIDDEN="true"/>
+		<Parameter NAME="ben-jackal2_ben-jackal25_x" VALUE="99.456199645996094" PRIOR="99.456199645996094" HIDDEN="true"/>
+		<Parameter NAME="ben-jackal2_ben-jackal25_y" VALUE="74.980072021484375" PRIOR="74.980072021484375" HIDDEN="true"/>
+		<Parameter NAME="ben-jackal2_ben-jackal25_z" VALUE="-17.447980880737305" PRIOR="-17.447980880737305" HIDDEN="true"/>
+		<Parameter NAME="ben-jackal2_ben-jackal26_x" VALUE="-62.191970825195313" PRIOR="-62.191970825195313" HIDDEN="true"/>
+		<Parameter NAME="ben-jackal2_ben-jackal26_y" VALUE="-57.373363494873047" PRIOR="-57.373363494873047" HIDDEN="true"/>
+		<Parameter NAME="ben-jackal2_ben-jackal26_z" VALUE="-0.30096435546875" PRIOR="-0.30096435546875" HIDDEN="true"/>
+		<Parameter NAME="ben-jackal2_ben-jackal27_x" VALUE="295.6717529296875" PRIOR="295.6717529296875" HIDDEN="true"/>
+		<Parameter NAME="ben-jackal2_ben-jackal27_y" VALUE="129.58432006835938" PRIOR="129.58432006835938" HIDDEN="true"/>
+		<Parameter NAME="ben-jackal2_ben-jackal27_z" VALUE="-18.742938995361328" PRIOR="-18.742938995361328" HIDDEN="true"/>
+	</Parameters>
+	<Skeleton>
+		<Segment NAME="ben_jackal2" OPACITY="255" BOUNDS="-50 -50 -50 50 50 50" MASS="0" MASS-CENTRE="0 0 0" INERTIA="0 0 0" RGB="255 164 0" HIDDEN="false" DRAW-END-RATIO="1" DRAW-HEIGHT="0.5" DRAW-TWIST="0" DRAW-WIDTH="0.5" DRAW-STYLE="box" DRAW-SHADING="shaded-smooth">
+			<JointFree NAME="World_ben-jackal2" PRE-ORIENTATION="0 0 0" PRE-POSITION="0 0 0" INVERSE-POST-ORIENTATION="0 0 0" INVERSE-POST-POSITION="0 0 0" MEAN="0 0 0 0 0 0" COVARIANCE="2.464900016784668 0 0 0 0 0 0 2.464900016784668 0 0 0 0 0 0 246.49000549316406 0 0 0 0 0 0 1000000 0 0 0 0 0 0 1000000 0 0 0 0 0 0 1000000" T="* * * * * *" SIGNS="+ + + + + +" RANGE-CENTRING-STATE="0 0 0 0 0 0" RANGE-MATRIX="29.60881233215332 0 0 0 0 0 0 29.60881233215332 0 0 0 0 0 0 29.60881233215332 0 0 0 0 0 0 100000000 0 0 0 0 0 0 100000000 0 0 0 0 0 0 100000000">
+				<JointTemplate MEAN="0 0 0 0 0 0" COVARIANCE="2.464900016784668 0 0 0 0 0 0 2.464900016784668 0 0 0 0 0 0 246.49000549316406 0 0 0 0 0 0 1000000 0 0 0 0 0 0 1000000 0 0 0 0 0 0 1000000" TPOSE-MEAN="0 0 0 0 0 0" TPOSE-COVARIANCE="0.10000000149011612 0 0 0 0 0 0 0.10000000149011612 0 0 0 0 0 0 0.10000000149011612 0 0 0 0 0 0 0.10000000149011612 0 0 0 0 0 0 0.10000000149011612 0 0 0 0 0 0 0.10000000149011612" PRE-ORIENTATION="0 0 0" PRE-POSITION="0 0 0" INVERSE-POST-ORIENTATION="0 0 0" INVERSE-POST-POSITION="0 0 0"/>
+			</JointFree>
+		</Segment>
+	</Skeleton>
+	<MarkerSet>
+		<Markers>
+			<Marker NAME="ben-jackal21" RADIUS="5.5" RGB="255 164 0" STATUS="required" VIEW-ANGLE="0"/>
+			<Marker NAME="ben-jackal22" RADIUS="2.5" RGB="255 164 0" STATUS="optional" VIEW-ANGLE="0"/>
+			<Marker NAME="ben-jackal23" RADIUS="13" RGB="255 164 0" STATUS="optional" VIEW-ANGLE="0"/>
+			<Marker NAME="ben-jackal24" RADIUS="5.5" RGB="255 164 0" STATUS="optional" VIEW-ANGLE="0"/>
+			<Marker NAME="ben-jackal25" RADIUS="2.5" RGB="255 164 0" STATUS="optional" VIEW-ANGLE="0"/>
+			<Marker NAME="ben-jackal26" RADIUS="5.5" RGB="255 164 0" STATUS="optional" VIEW-ANGLE="0"/>
+			<Marker NAME="ben-jackal27" RADIUS="2.5" RGB="255 164 0" STATUS="optional" VIEW-ANGLE="0"/>
+		</Markers>
+		<Sticks>
+			<Stick MARKER1="ben-jackal21" MARKER2="ben-jackal22" RGB1="255 164 0" RGB2="255 164 0"/>
+			<Stick MARKER1="ben-jackal21" MARKER2="ben-jackal23" RGB1="255 164 0" RGB2="255 164 0"/>
+			<Stick MARKER1="ben-jackal21" MARKER2="ben-jackal24" RGB1="255 164 0" RGB2="255 164 0"/>
+			<Stick MARKER1="ben-jackal21" MARKER2="ben-jackal25" RGB1="255 164 0" RGB2="255 164 0"/>
+			<Stick MARKER1="ben-jackal21" MARKER2="ben-jackal26" RGB1="255 164 0" RGB2="255 164 0"/>
+			<Stick MARKER1="ben-jackal21" MARKER2="ben-jackal27" RGB1="255 164 0" RGB2="255 164 0"/>
+			<Stick MARKER1="ben-jackal22" MARKER2="ben-jackal23" RGB1="255 164 0" RGB2="255 164 0"/>
+			<Stick MARKER1="ben-jackal22" MARKER2="ben-jackal24" RGB1="255 164 0" RGB2="255 164 0"/>
+			<Stick MARKER1="ben-jackal22" MARKER2="ben-jackal25" RGB1="255 164 0" RGB2="255 164 0"/>
+			<Stick MARKER1="ben-jackal22" MARKER2="ben-jackal26" RGB1="255 164 0" RGB2="255 164 0"/>
+			<Stick MARKER1="ben-jackal22" MARKER2="ben-jackal27" RGB1="255 164 0" RGB2="255 164 0"/>
+			<Stick MARKER1="ben-jackal23" MARKER2="ben-jackal24" RGB1="255 164 0" RGB2="255 164 0"/>
+			<Stick MARKER1="ben-jackal23" MARKER2="ben-jackal25" RGB1="255 164 0" RGB2="255 164 0"/>
+			<Stick MARKER1="ben-jackal23" MARKER2="ben-jackal26" RGB1="255 164 0" RGB2="255 164 0"/>
+			<Stick MARKER1="ben-jackal23" MARKER2="ben-jackal27" RGB1="255 164 0" RGB2="255 164 0"/>
+			<Stick MARKER1="ben-jackal24" MARKER2="ben-jackal25" RGB1="255 164 0" RGB2="255 164 0"/>
+			<Stick MARKER1="ben-jackal24" MARKER2="ben-jackal26" RGB1="255 164 0" RGB2="255 164 0"/>
+			<Stick MARKER1="ben-jackal24" MARKER2="ben-jackal27" RGB1="255 164 0" RGB2="255 164 0"/>
+			<Stick MARKER1="ben-jackal25" MARKER2="ben-jackal26" RGB1="255 164 0" RGB2="255 164 0"/>
+			<Stick MARKER1="ben-jackal25" MARKER2="ben-jackal27" RGB1="255 164 0" RGB2="255 164 0"/>
+			<Stick MARKER1="ben-jackal26" MARKER2="ben-jackal27" RGB1="255 164 0" RGB2="255 164 0"/>
+		</Sticks>
+	</MarkerSet>
+	<TargetSet>
+		<Targets>
+			<TargetLocalPointToWorldPoint COVARIANCE="1 0 0 0 1 0 0 0 1" FILL-GAPS="false" GAUSSIAN="true" HIDDEN="false" MARKER="ben-jackal21" OPACITY="255" POSITION="'ben-jackal2_ben-jackal21_x' 'ben-jackal2_ben-jackal21_y' 'ben-jackal2_ben-jackal21_z'" RGB="93 93 93" SEGMENT="ben_jackal2" WEIGHT="1" DRAW-STYLE="None">
+				<TargetLocalPointToWorldPointTemplate COVARIANCE="1 0 0 0 1 0 0 0 1"/>
+			</TargetLocalPointToWorldPoint>
+			<TargetLocalPointToWorldPoint COVARIANCE="1 0 0 0 1 0 0 0 1" FILL-GAPS="false" GAUSSIAN="true" HIDDEN="false" MARKER="ben-jackal22" OPACITY="255" POSITION="'ben-jackal2_ben-jackal22_x' 'ben-jackal2_ben-jackal22_y' 'ben-jackal2_ben-jackal22_z'" RGB="93 93 93" SEGMENT="ben_jackal2" WEIGHT="1" DRAW-STYLE="None">
+				<TargetLocalPointToWorldPointTemplate COVARIANCE="1 0 0 0 1 0 0 0 1"/>
+			</TargetLocalPointToWorldPoint>
+			<TargetLocalPointToWorldPoint COVARIANCE="1 0 0 0 1 0 0 0 1" FILL-GAPS="false" GAUSSIAN="true" HIDDEN="false" MARKER="ben-jackal23" OPACITY="255" POSITION="'ben-jackal2_ben-jackal23_x' 'ben-jackal2_ben-jackal23_y' 'ben-jackal2_ben-jackal23_z'" RGB="93 93 93" SEGMENT="ben_jackal2" WEIGHT="1" DRAW-STYLE="None">
+				<TargetLocalPointToWorldPointTemplate COVARIANCE="1 0 0 0 1 0 0 0 1"/>
+			</TargetLocalPointToWorldPoint>
+			<TargetLocalPointToWorldPoint COVARIANCE="1 0 0 0 1 0 0 0 1" FILL-GAPS="false" GAUSSIAN="true" HIDDEN="false" MARKER="ben-jackal24" OPACITY="255" POSITION="'ben-jackal2_ben-jackal24_x' 'ben-jackal2_ben-jackal24_y' 'ben-jackal2_ben-jackal24_z'" RGB="93 93 93" SEGMENT="ben_jackal2" WEIGHT="1" DRAW-STYLE="None">
+				<TargetLocalPointToWorldPointTemplate COVARIANCE="1 0 0 0 1 0 0 0 1"/>
+			</TargetLocalPointToWorldPoint>
+			<TargetLocalPointToWorldPoint COVARIANCE="1 0 0 0 1 0 0 0 1" FILL-GAPS="false" GAUSSIAN="true" HIDDEN="false" MARKER="ben-jackal25" OPACITY="255" POSITION="'ben-jackal2_ben-jackal25_x' 'ben-jackal2_ben-jackal25_y' 'ben-jackal2_ben-jackal25_z'" RGB="93 93 93" SEGMENT="ben_jackal2" WEIGHT="1" DRAW-STYLE="None">
+				<TargetLocalPointToWorldPointTemplate COVARIANCE="1 0 0 0 1 0 0 0 1"/>
+			</TargetLocalPointToWorldPoint>
+			<TargetLocalPointToWorldPoint COVARIANCE="1 0 0 0 1 0 0 0 1" FILL-GAPS="false" GAUSSIAN="true" HIDDEN="false" MARKER="ben-jackal26" OPACITY="255" POSITION="'ben-jackal2_ben-jackal26_x' 'ben-jackal2_ben-jackal26_y' 'ben-jackal2_ben-jackal26_z'" RGB="93 93 93" SEGMENT="ben_jackal2" WEIGHT="1" DRAW-STYLE="None">
+				<TargetLocalPointToWorldPointTemplate COVARIANCE="1 0 0 0 1 0 0 0 1"/>
+			</TargetLocalPointToWorldPoint>
+			<TargetLocalPointToWorldPoint COVARIANCE="1 0 0 0 1 0 0 0 1" FILL-GAPS="false" GAUSSIAN="true" HIDDEN="false" MARKER="ben-jackal27" OPACITY="255" POSITION="'ben-jackal2_ben-jackal27_x' 'ben-jackal2_ben-jackal27_y' 'ben-jackal2_ben-jackal27_z'" RGB="93 93 93" SEGMENT="ben_jackal2" WEIGHT="1" DRAW-STYLE="None">
+				<TargetLocalPointToWorldPointTemplate COVARIANCE="1 0 0 0 1 0 0 0 1"/>
+			</TargetLocalPointToWorldPoint>
+		</Targets>
+	</TargetSet>
+</KinematicModel>
+
