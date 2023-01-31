@@ -1,0 +1,21 @@
+<?xml version="1.0"?>
+<launch>
+
+<node pkg="um7" type="um7_driver" name="um7_driver">
+<param name="port" type="string" value="/dev/clearpath/um7"/>
+<param name="mag_updates" type="bool" value="false"/>
+<param name="frame_id" value="um7_imu_link"/>
+<param name="tf_ned_to_enu" value="true"/>
+<remap from="imu/data" to="imu_um7/data_raw"/>
+</node>
+
+<node pkg="imu_filter_madgwick" type="imu_filter_node" name="um7_magwick">
+<param name="use_mag" type="bool" value="false"/>
+<param name="publish_tf" type="bool" value="false"/>
+<remap from="imu" to="imu_um7"/>
+</node>
+
+<!-- set transformations to UM7 with reference to jackal base link (centre bottom), X Y Z Yaw Pitch Roll-->
+<node pkg="tf" type="static_transform_publisher" name="um7_broadcaster" args="0 0 0 0 0 3.141592 um7 um7_imu_link 100" />
+
+</launch>
