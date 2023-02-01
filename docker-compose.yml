@@ -1,0 +1,6 @@
+version: "3.9"
+services:
+  dev:
+    build: .
+    ports:
+      - "15900:5900" # VMC
