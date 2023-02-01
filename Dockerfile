@@ -43,9 +43,15 @@ RUN curl -s https://packages.clearpathrobotics.com/public.key | apt-key add - \
 RUN apt-get update && apt-get install -y --no-install-recommends \
     ros-noetic-jackal-simulator ros-noetic-jackal-navigation ros-noetic-jackal-desktop
 
+# Install velodyne packages
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    ros-noetic-velodyne-simulator ros-noetic-velodyne-description
+
 USER docker
 
 RUN echo "source /opt/ros/noetic/setup.bash" >> ~/.bashrc
+
+WORKDIR /workspace
 
 ENTRYPOINT ["/usr/local/bin/fixuid"]
 CMD ["supervisord"]

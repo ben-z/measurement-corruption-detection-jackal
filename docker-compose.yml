@@ -2,5 +2,8 @@ version: "3.9"
 services:
   dev:
     build: .
+    user: "${FIXUID:?}:${FIXGID:?}"
+    volumes:
+      - .:/workspace
     ports:
       - "15900:5900" # VMC
