@@ -47,6 +47,13 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 RUN apt-get update && apt-get install -y --no-install-recommends \
     ros-noetic-velodyne-simulator ros-noetic-velodyne-description
 
+# Install development tools
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    python3-catkin-tools python3-rosdep
+
+RUN sudo rosdep init && \
+    rosdep update
+
 USER docker
 
 RUN echo "source /opt/ros/noetic/setup.bash" >> ~/.bashrc

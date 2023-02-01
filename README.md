@@ -38,3 +38,11 @@ export JACKAL_LASER_3D=1 # Enable 3D laser
 DISPLAY=:1.0 roslaunch jackal_gazebo jackal_world.launch world_name:=/workspace/gazebo-worlds/empty.world
 DISPLAY=:1.0 roslaunch jackal_viz view_robot.launch
 ```
+
+Development:
+
+```bash
+cd /workspace/catkin_ws
+catkin build
+source devel/setup.bash
+```
