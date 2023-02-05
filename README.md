@@ -46,3 +46,8 @@ cd /workspace/catkin_ws
 catkin build
 source devel/setup.bash
 ```
+
+## Development notes
+
+`cmd_vel` is the topic for sending velocity commands to the robot. The message type is `geometry_msgs/Twist`.
+
