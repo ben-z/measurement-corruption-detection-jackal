@@ -52,6 +52,7 @@ def tick_controller(cmd_vel_pub):
         rospy.logwarn(f"Odometry message is too old! Age: {odom_msg_age.to_sec()}s")
         return
 
+    # Get the current position and heading estimates of the robot
     x = odom_msg.pose.pose.position.x
     y = odom_msg.pose.pose.position.y
     heading = math.atan2(y, x)

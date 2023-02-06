@@ -65,52 +65,70 @@ class Path:
         """
         closest = None
         for i in range(len(self.path) - 1):
-            p = self.get_closest_point_on_segment(point, self.path[i], self.path[i + 1])
+            p = get_closest_point_on_segment(point, self.path[i], self.path[i + 1])
             if closest is None or p['dist'] < closest['dist']:
                 closest = p
                 closest['idx'] = i
         if self.closed:
-            p = self.get_closest_point_on_segment(point, self.path[-1], self.path[0])
+            p = get_closest_point_on_segment(point, self.path[-1], self.path[0])
             if closest is None or p['dist'] < closest['dist']:
                 closest = p
                 closest['idx'] = len(self.path) - 1
         return closest
     
-    def get_closest_point_on_segment(self, point, p1, p2):
-        """
-        Returns the closest point on the segment to the given point.
+    
+def get_closest_point_on_segment(point, p1, p2):
+    """
+    Returns the closest point on the line segment to the given point.
 
-        Arguments:
-            point: The point to which the closest point on the segment should be found.
-            p1: The first point of the segment.
-            p2: The second point of the segment.
-        Returns a dictionary with the following keys:
-            point: The closest point on the segment
-            dist: The distance between the closest point on the segment and the given point
-            progress_m: The distance along the segment to the closest point on the segment
-        """
-        p = np.array(point)
-        p1 = np.array(p1)
-        p2 = np.array(p2)
-        v = p2 - p1
-        v_length_m = np.linalg.norm(v)
-        v_normalized = v / v_length_m
-        p1_to_p = p - p1
-        progress_m = np.dot(p1_to_p, v_normalized)
-        if progress_m < 0:
-            progress_m = 0
-        elif progress_m > v_length_m:
-            progress_m = v_length_m
-        closest = p1 + v_normalized * progress_m
-        return {
-            'point': closest,
-            'dist': np.linalg.norm(closest - p),
-            'progress_m': progress_m
-        }
+    Arguments:
+        point: The point to which the closest point on the segment should be found.
+        p1: The first point of the segment.
+        p2: The second point of the segment.
+    Returns a dictionary with the following keys:
+        point: The closest point on the segment
+        dist: The distance between the closest point on the segment and the given point
+        progress_m: The distance along the segment to the closest point on the segment
+    """
+    p = np.array(point)
+    p1 = np.array(p1)
+    p2 = np.array(p2)
+    v = p2 - p1
+    v_length_m = np.linalg.norm(v)
+    v_normalized = v / v_length_m
+    p1_to_p = p - p1
+    progress_m = np.dot(p1_to_p, v_normalized)
+    if progress_m < 0:
+        progress_m = 0
+    elif progress_m > v_length_m:
+        progress_m = v_length_m
+    closest = p1 + v_normalized * progress_m
+    return {
+        'point': closest,
+        'dist': np.linalg.norm(closest - p),
+        'progress_m': progress_m
+    }
+
+# class PathWalker:
+#     """
+#     Takes in a path and a starting position (segment, progress along segment) and implements a walk(distance) function that returns the new position (segment, progress along segment) after walking the given distance along the path. If the path is closed, the robot will return to the start point when it reaches the end point. If the path is not closed, the robot will stop at the end point when it reaches the end point. The return value will signal whether the robot has reached the end point.
+#     """
 
 # Remaining functions:
 
 # PathWalker - takes in a path and a starting position (segment, progress along segment) and implements a walk(distance) function that returns the new position (segment, progress along segment) after walking the given distance along the path. If the path is closed, the robot will return to the start point when it reaches the end point. If the path is not closed, the robot will stop at the end point when it reaches the end point. The return value will signal whether the robot has reached the end point.
+# What if the path updates?
+
+# The control loop:
+# - Get the current position and heading of the robot (from estimate)
+# - Get the closest point on the path to the robot (initialize along a path, then do local search)
+# - Look ahead X meters along the path, set this as the target point (or the end point if the path is not closed, this can be done using the PathWalker)
+# - Based on the angle difference and the distance to the target point, calculate the desired angular velocity
+
+
+
+
+
 
 # local_get_closest_point_on_path(path, point, idx, progress_m) - returns the closest point on the path to the given point. The return value is a dictionary with the following keys:
 #     idx: The index of the closest path segment on the path
