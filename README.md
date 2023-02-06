@@ -1,4 +1,26 @@
-# Jackal2 Configuration
+# Jackal Research
+
+## Workspace setup
+
+Please use `Dockerfile` as the source of truth for required packages. The following instructions are for quick reference only.
+
+### ROS
+
+1. Install ROS Noetic.
+1. Install catkin_tools: `pip install catkin_tools`
+1. Install Jackal packages: `sudo apt install ros-noetic-jackal-*`
+
+### Development tools
+
+```bash
+sudo apt install -y \
+    grepcidr \ # CIDR range matching (for use with scripts that automatically connect to robots)
+    ripgrep
+```
+
+## Robot setup
+
+### Jackal2 Configuration
 
 `ben_jackal2.vsk`: VICON configuration for the Jackal2 object. This contains 3 markers around the body and 3 markers surrounding the IMU unit.
 
