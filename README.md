@@ -2,6 +2,23 @@
 
 `ben_jackal2.vsk`: VICON configuration for the Jackal2 object. This contains 3 markers around the body and 3 markers surrounding the IMU unit.
 
+### Connecting the controller to the robot
+
+Put the controller in pairing mode. On the controller, press the PS button and the Share button at the same time. The controller will start flashing.
+
+```bash
+sudo bluetoothctl
+scan on
+# wait for the controller to show up
+scan off
+pair <controller-mac-address> # connect to the controller
+trust <controller-mac-address> # trust the controller
+connect <controller-mac-address> # connect to the controller
+```
+
+Troubleshooting tips:
+- https://superuser.com/a/1199595/465482
+
 ### Connecting rviz to the robot
 
 ```bash
