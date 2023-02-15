@@ -60,6 +60,8 @@ def tick_controller(cmd_vel_pub):
     # lookahead_pose = {
         
     # }
+
+    pub_cmd_vel(cmd_vel_pub, 0.5, 0.3)
     
 
     # Make the robot follow a circle of radius RADIUS meters around the origin
@@ -81,7 +83,7 @@ def main():
     rospy.loginfo(f"Node {NODE_NAME} started. Ctrl-C to stop.")
 
     # Define subscribers and publishers
-    rospy.subscriber('/odometry/filtered', Odometry, odom_callback)
+    rospy.Subscriber('/odometry/filtered', Odometry, odom_callback)
     cmd_vel_pub = rospy.Publisher('/cmd_vel', Twist, queue_size=1)
 
     # Wait for a few seconds for the upstream nodes to start
