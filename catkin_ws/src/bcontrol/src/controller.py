@@ -73,12 +73,12 @@ def tick_controller(cmd_vel_pub, path_pub, lookahead_pub):
 
     # path = Path([[0,-10], [0,10], [3, 10]], closed=True)
     # path = Path(generate_figure_eight_approximation([0,0], 10, 100), closed=True)
-    # path = Path(rotate_points(generate_figure_eight_approximation([0,0], 10, 100), math.pi/4), closed=True)
+    path = Path(rotate_points(generate_figure_eight_approximation([0,0], 10, 100), math.pi/4), closed=True)
     # path = Path(generate_ellipse_approximation([0,0], 5, 10, 100, theta=0.5), closed=True)
 
-    path_points = rotate_points(generate_figure_eight_approximation([0,0], 10, 100), math.pi/4)
-    path_points_slice = lookahead_resample(path_points, [x,y], 10, 20)
-    path = Path(path_points_slice)
+    # path_points = rotate_points(generate_figure_eight_approximation([0,0], 10, 100), math.pi/4)
+    # path_points_slice = lookahead_resample(path_points, [x,y], 10, 20)
+    # path = Path(path_points_slice)
 
     # Convert the path to a PoseArray message and publish it
     path_msg = path.to_pose_array()
