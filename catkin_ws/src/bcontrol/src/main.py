@@ -73,11 +73,12 @@ def tick_controller(cmd_vel_pub, path_pub, lookahead_pub):
 
     # path = Path([[0,-10], [0,10], [3, 10]], closed=True)
     # path = Path(generate_figure_eight_approximation([0,0], 10, 100), closed=True)
-    # path = Path(rotate_points(generate_figure_eight_approximation([0,0], 10, 100), math.pi/4), closed=True)
+    path = Path(rotate_points(generate_figure_eight_approximation([0,0], 10, 100), math.pi/4), closed=True)
     # path = Path(generate_ellipse_approximation([0,0], 5, 10, 100, theta=0.5), closed=True)
-    path_points = rotate_points(generate_figure_eight_approximation([0,0], 10, 100), math.pi/4)
-    path_points_slice = lookahead_resample(path_points, [x,y], 10, 100)
-    path = Path(path_points_slice)
+
+    # path_points = rotate_points(generate_figure_eight_approximation([0,0], 10, 100), math.pi/4)
+    # path_points_slice = lookahead_resample(path_points, [x,y], 10, 100)
+    # path = Path(path_points_slice)
 
     # Convert the path to a PoseArray message and publish it
     path_msg = path.to_pose_array()
@@ -110,8 +111,8 @@ def main():
     # Define subscribers and publishers
     rospy.Subscriber('/odometry/filtered', Odometry, odom_callback)
     cmd_vel_pub = rospy.Publisher('/cmd_vel', Twist, queue_size=1)
-    path_pub = rospy.Publisher('/bconrol/path', PoseArray, queue_size=1)
-    lookahead_pub = rospy.Publisher('/bconrol/lookahead', PoseArray, queue_size=1)
+    path_pub = rospy.Publisher('/bcontrol/path', PoseArray, queue_size=1)
+    lookahead_pub = rospy.Publisher('/bcontrol/lookahead', PoseArray, queue_size=1)
 
     # Wait for a few seconds for the upstream nodes to start
     sleep(3)
