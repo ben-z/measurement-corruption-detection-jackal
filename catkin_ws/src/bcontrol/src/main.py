@@ -4,8 +4,10 @@ import rospy
 import math
 from geometry_msgs.msg import Twist, PoseArray
 from nav_msgs.msg import Odometry
+import numpy as np
 from time import sleep
-from utils import Path, pathpoints_to_pose_array
+from utils import Path, pathpoints_to_pose_array, wrap_angle, clamp
+import tf
 
 NODE_NAME = 'bcontrol'
 RADIUS = 2 # meters
@@ -15,7 +17,10 @@ CONTROLLER_PERIOD = 1 / CONTROLLER_HZ # seconds
 # If the odometry message is older than this, it is considered invalid.
 ODOM_MSG_TIMEOUT = CONTROLLER_PERIOD # seconds
 
-LOOKAHEAD_M = 0.5 # meters
+MAX_LINEAR_VELOCITY = 2 # m/s
+MAX_ANGULAR_VELOCITY = 1 # rad/s
+
+LOOKAHEAD_M = 2 # meters
 
 state = {
     'odom_msg': None,
@@ -58,11 +63,15 @@ def tick_controller(cmd_vel_pub, path_pub, lookahead_pub):
     # Get the current position and heading estimates of the robot
     x = odom_msg.pose.pose.position.x
     y = odom_msg.pose.pose.position.y
-    heading = math.atan2(y, x)
+
+    orientation = odom_msg.pose.pose.orientation
+    # Convert the orientation quaternion to a yaw angle
+    q = [orientation.x, orientation.y, orientation.z, orientation.w]
+    roll, pitch, heading = tf.transformations.euler_from_quaternion(q)
 
     print(f"Current position: ({x:.2f}, {y:.2f}) m, heading: {heading:.2f} rad ({math.degrees(heading):.2f} deg)")
 
-    path = Path([[0,-10], [0,10], [3, 10]])
+    path = Path([[0,-10], [0,10], [3, 10]], closed=True)
 
     # Convert the path to a PoseArray message and publish it
     path_msg = path.to_pose_array()
@@ -71,25 +80,21 @@ def tick_controller(cmd_vel_pub, path_pub, lookahead_pub):
     closest = path.get_closest_point([x,y])
     lookahead = path.walk(closest, LOOKAHEAD_M)
 
-    print("Closest", closest)
-    print("Lookahead", lookahead)
+    dpos = np.array(lookahead.point) - np.array([x,y])
+    dpos_norm = np.linalg.norm(dpos)
+    target_heading = math.atan2(dpos[1], dpos[0])
+    dheading = wrap_angle(target_heading - heading)
+    Kp_heading = 2
+
+    # Use pure pursuit to compute the desired linear and angular velocities
+    linear_velocity = min(dpos_norm, MAX_LINEAR_VELOCITY)
+    angular_velocity = clamp(-MAX_ANGULAR_VELOCITY, Kp_heading * dheading, MAX_ANGULAR_VELOCITY)
+    
+    print(f"dpos: {dpos[0]:.2f}, {dpos[1]:.2f} m, target_heading {target_heading:.2f} heading {heading:.2f} dheading: {dheading:.2f} rad ({math.degrees(dheading):.2f} deg) linvel: {linear_velocity:.2f} m/s angvel: {angular_velocity:.2f} rad/s ({math.degrees(angular_velocity):.2f} deg/s))")
 
     lookahead_pub.publish(pathpoints_to_pose_array([lookahead], path))
-    pub_cmd_vel(cmd_vel_pub, 0.5, 0.3)
+    pub_cmd_vel(cmd_vel_pub, linear_velocity, angular_velocity)
     
-
-    # Make the robot follow a circle of radius RADIUS meters around the origin
-    # with a velocity of VELOCITY m/s
-    # Hint: use the odom_msg.pose.pose.position.x and odom_msg.pose.pose.position.y
-    # fields to get the current position of the robot
-    # Hint: use the math.atan2() function to get the angle of the robot
-    # Hint: use the pub_cmd_vel() function to publish the desired velocity
-    # Hint: use the CONTROLLER_HZ variable to set the desired frequency of the controller
-    # Hint: use the rospy.Rate() function to sleep for the desired period
-    # Hint: use the rospy.is_shutdown() function to check if the node is shutting down
-    # Hint: use the rospy.loginfo() function to print messages to the console
-
-
 def main():
     # Initialize the node
     rospy.init_node(NODE_NAME)

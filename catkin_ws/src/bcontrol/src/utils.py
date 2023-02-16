@@ -77,6 +77,15 @@ class Path:
             progress_m -= self.lengths[i]
         return self.path[-1]
 
+    def get_heading_at_point(self, path_point):
+        """
+        Returns the heading of the path at the given point.
+        """
+        if path_point.segment_idx is None:
+            raise ValueError('PathPoint object must have a segment_idx attribute.')
+
+        return self.headings[path_point.segment_idx]
+
     def get_closest_point(self, point):
         """
         Returns the closest point on the path to the given point.
@@ -118,7 +127,7 @@ class Path:
             query_slice = slice(0, len(self.path))
 
         pose_array = PoseArray()
-        pose_array.header.frame_id = 'odom'
+        pose_array.header.frame_id = 'map'
         for i, p in enumerate(self.path[query_slice]):
             pose = Pose()
             pose.position.x = p[0]
@@ -236,7 +245,7 @@ def pathpoints_to_pose_array(pathpoints, path):
     Converts a list of PathPoint objects to a PoseArray message.
     """
     pose_array = PoseArray()
-    pose_array.header.frame_id = "odom"
+    pose_array.header.frame_id = "map"
     for pathpoint in pathpoints:
         pose = Pose()
         pose.position.x = pathpoint.point[0]
@@ -244,6 +253,19 @@ def pathpoints_to_pose_array(pathpoints, path):
         pose.orientation = Quaternion(*quaternion_from_euler(0, 0, path.headings[pathpoint.segment_idx]))
         pose_array.poses.append(pose)
     return pose_array
+
+def wrap_angle(angle):
+    """
+    Wraps an angle to the range [-pi, pi]
+    """
+    return (angle + math.pi) % (2 * math.pi) - math.pi
+
+def clamp(n, minn, maxn):
+    """
+    Clamps a number between a minimum and maximum value.
+    """
+    return max(min(maxn, n), minn)
+
 
 # class PathWalker:
 #     """
