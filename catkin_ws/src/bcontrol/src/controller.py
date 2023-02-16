@@ -22,12 +22,18 @@ MAX_ANGULAR_VELOCITY = 1 # rad/s
 
 LOOKAHEAD_M = 2 # meters
 
+PLANNER_PATH_CLOSED = True
+
 state = {
     'odom_msg': None,
+    'path': None,
 }
 
 def odom_callback(odom_msg: Odometry):
     state['odom_msg'] = odom_msg
+
+def planner_path_callback(path_msg: PoseArray):
+    state['path'] = Path.from_pose_array(path_msg, closed=PLANNER_PATH_CLOSED)
 
 def pub_cmd_vel(cmd_vel_pub, linear_vel, angular_vel):
     """
@@ -60,6 +66,11 @@ def tick_controller(cmd_vel_pub, path_pub, lookahead_pub):
         rospy.logwarn(f"Odometry message is too old! Age: {odom_msg_age.to_sec()}s")
         return
 
+    path = state['path']
+    if path is None:
+        rospy.logwarn_throttle(1, "No path received yet")
+        return
+
     # Get the current position and heading estimates of the robot
     x = odom_msg.pose.pose.position.x
     y = odom_msg.pose.pose.position.y
@@ -73,7 +84,7 @@ def tick_controller(cmd_vel_pub, path_pub, lookahead_pub):
 
     # path = Path([[0,-10], [0,10], [3, 10]], closed=True)
     # path = Path(generate_figure_eight_approximation([0,0], 10, 100), closed=True)
-    path = Path(rotate_points(generate_figure_eight_approximation([0,0], 10, 100), math.pi/4), closed=True)
+    # path = Path(rotate_points(generate_figure_eight_approximation([0,0], 10, 100), math.pi/4), closed=True)
     # path = Path(generate_ellipse_approximation([0,0], 5, 10, 100, theta=0.5), closed=True)
 
     # path_points = rotate_points(generate_figure_eight_approximation([0,0], 10, 100), math.pi/4)
@@ -110,6 +121,7 @@ def main():
 
     # Define subscribers and publishers
     rospy.Subscriber('/odometry/filtered', Odometry, odom_callback)
+    rospy.Subscriber('/bplanpath', PoseArray, planner_path_callback)
     cmd_vel_pub = rospy.Publisher('/cmd_vel', Twist, queue_size=1)
     path_pub = rospy.Publisher('/bcontrol/path', PoseArray, queue_size=1)
     lookahead_pub = rospy.Publisher('/bcontrol/lookahead', PoseArray, queue_size=1)

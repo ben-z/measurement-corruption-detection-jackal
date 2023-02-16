@@ -20,6 +20,7 @@ class Path:
     """
     The Path object represents a path that can be followed by a robot.
     """
+    
     def __init__(self, path, closed=False):
         """
         Arguments:
@@ -48,6 +49,16 @@ class Path:
 
             # Add the heading of the last point to the first point
             self.headings.append(np.arctan2(self.path[0][1] - self.path[-1][1], self.path[0][0] - self.path[-1][0]))
+    
+    @classmethod
+    def from_pose_array(cls, pose_array, closed=None):
+        """
+        Returns a new Path object created from the given PoseArray.
+        """
+        path = []
+        for pose in pose_array.poses:
+            path.append([pose.position.x, pose.position.y])
+        return cls(path, closed)
         
     def get_point(self, progress_m=None, progress_pct=None):
         """
