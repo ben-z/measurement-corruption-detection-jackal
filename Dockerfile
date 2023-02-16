@@ -57,6 +57,7 @@ RUN sudo rosdep init && \
 USER docker
 
 RUN echo "source /opt/ros/noetic/setup.bash" >> ~/.bashrc
+RUN echo "function rosdep_install_all() { rosdep install --from-paths src --ignore-src -r -y; }" >> ~/.bashrc
 
 WORKDIR /workspace
 

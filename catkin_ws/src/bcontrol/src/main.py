@@ -6,7 +6,7 @@ from geometry_msgs.msg import Twist, PoseArray
 from nav_msgs.msg import Odometry
 import numpy as np
 from time import sleep
-from utils import Path, pathpoints_to_pose_array, wrap_angle, clamp, generate_circle_approximation, generate_figure_eight_approximation, generate_ellipse_approximation, rotate_points
+from utils import Path, pathpoints_to_pose_array, wrap_angle, clamp, generate_circle_approximation, generate_figure_eight_approximation, generate_ellipse_approximation, rotate_points, lookahead_resample
 import tf
 
 NODE_NAME = 'bcontrol'
@@ -73,8 +73,11 @@ def tick_controller(cmd_vel_pub, path_pub, lookahead_pub):
 
     # path = Path([[0,-10], [0,10], [3, 10]], closed=True)
     # path = Path(generate_figure_eight_approximation([0,0], 10, 100), closed=True)
-    path = Path(rotate_points(generate_figure_eight_approximation([0,0], 10, 100), math.pi/4), closed=True)
+    # path = Path(rotate_points(generate_figure_eight_approximation([0,0], 10, 100), math.pi/4), closed=True)
     # path = Path(generate_ellipse_approximation([0,0], 5, 10, 100, theta=0.5), closed=True)
+    path_points = rotate_points(generate_figure_eight_approximation([0,0], 10, 100), math.pi/4)
+    path_points_slice = lookahead_resample(path_points, [x,y], 10, 100)
+    path = Path(path_points_slice)
 
     # Convert the path to a PoseArray message and publish it
     path_msg = path.to_pose_array()
