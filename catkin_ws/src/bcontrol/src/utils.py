@@ -192,6 +192,25 @@ class Path:
             if completed_iterations > max_iterations:
                 raise Exception(f"Walked {completed_iterations} iterations without completion. This is likely an infinite loop.")
 
+def generate_circle_approximation(center, radius, num_points):
+    """
+    Generates a list of points on a circle.
+    Arguments:
+        center: The center of the circle.
+        radius: The radius of the circle.
+        num_points: The number of points to generate. The more points, the more accurate the approximation.
+    Returns a list of points on the circle.
+    """
+
+    points = []
+    for i in range(num_points):
+        angle = 2 * math.pi * i / num_points
+        points.append([
+            center[0] + radius * math.cos(angle),
+            center[1] + radius * math.sin(angle)
+        ])
+    return points
+
 def get_point_on_segment(progress_m, p1, p2, v_length_m=None):
     """
     Returns the point on the line segment at the given progress.
