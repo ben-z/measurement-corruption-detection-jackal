@@ -2,9 +2,10 @@
 
 import rospy
 import math
-from geometry_msgs.msg import Twist
+from geometry_msgs.msg import Twist, PoseArray
 from nav_msgs.msg import Odometry
 from time import sleep
+from utils import Path, pathpoints_to_pose_array
 
 NODE_NAME = 'bcontrol'
 RADIUS = 2 # meters
@@ -13,6 +14,8 @@ CONTROLLER_HZ = 10 # Hz
 CONTROLLER_PERIOD = 1 / CONTROLLER_HZ # seconds
 # If the odometry message is older than this, it is considered invalid.
 ODOM_MSG_TIMEOUT = CONTROLLER_PERIOD # seconds
+
+LOOKAHEAD_M = 0.5 # meters
 
 state = {
     'odom_msg': None,
@@ -39,7 +42,7 @@ def pub_cmd_vel(cmd_vel_pub, linear_vel, angular_vel):
     # Publish the message
     cmd_vel_pub.publish(twist_msg)
 
-def tick_controller(cmd_vel_pub):
+def tick_controller(cmd_vel_pub, path_pub, lookahead_pub):
     # extract the odometry message from the state
     odom_msg = state['odom_msg']
     if odom_msg is None:
@@ -57,10 +60,21 @@ def tick_controller(cmd_vel_pub):
     y = odom_msg.pose.pose.position.y
     heading = math.atan2(y, x)
 
-    # lookahead_pose = {
-        
-    # }
+    print(f"Current position: ({x:.2f}, {y:.2f}) m, heading: {heading:.2f} rad ({math.degrees(heading):.2f} deg)")
 
+    path = Path([[0,-10], [0,10], [3, 10]])
+
+    # Convert the path to a PoseArray message and publish it
+    path_msg = path.to_pose_array()
+    path_pub.publish(path_msg)
+    
+    closest = path.get_closest_point([x,y])
+    lookahead = path.walk(closest, LOOKAHEAD_M)
+
+    print("Closest", closest)
+    print("Lookahead", lookahead)
+
+    lookahead_pub.publish(pathpoints_to_pose_array([lookahead], path))
     pub_cmd_vel(cmd_vel_pub, 0.5, 0.3)
     
 
@@ -85,6 +99,8 @@ def main():
     # Define subscribers and publishers
     rospy.Subscriber('/odometry/filtered', Odometry, odom_callback)
     cmd_vel_pub = rospy.Publisher('/cmd_vel', Twist, queue_size=1)
+    path_pub = rospy.Publisher('/bconrol/path', PoseArray, queue_size=1)
+    lookahead_pub = rospy.Publisher('/bconrol/lookahead', PoseArray, queue_size=1)
 
     # Wait for a few seconds for the upstream nodes to start
     sleep(3)
@@ -93,7 +109,7 @@ def main():
     rate = rospy.Rate(CONTROLLER_HZ)
 
     while not rospy.is_shutdown():
-        tick_controller(cmd_vel_pub)
+        tick_controller(cmd_vel_pub, path_pub, lookahead_pub)
 
         # Sleep for the desired period
         rate.sleep()
