@@ -6,7 +6,7 @@ from geometry_msgs.msg import Twist, PoseArray
 from nav_msgs.msg import Odometry
 import numpy as np
 from time import sleep
-from utils import Path, pathpoints_to_pose_array, wrap_angle, clamp, generate_circle_approximation
+from utils import Path, pathpoints_to_pose_array, wrap_angle, clamp, generate_circle_approximation, generate_figure_eight_approximation, generate_ellipse_approximation, rotate_points
 import tf
 
 NODE_NAME = 'bcontrol'
@@ -72,7 +72,9 @@ def tick_controller(cmd_vel_pub, path_pub, lookahead_pub):
     print(f"Current position: ({x:.2f}, {y:.2f}) m, heading: {heading:.2f} rad ({math.degrees(heading):.2f} deg)")
 
     # path = Path([[0,-10], [0,10], [3, 10]], closed=True)
-    path = Path(generate_circle_approximation([0,0], 10, 100), closed=True)
+    # path = Path(generate_figure_eight_approximation([0,0], 10, 100), closed=True)
+    path = Path(rotate_points(generate_figure_eight_approximation([0,0], 10, 100), math.pi/4), closed=True)
+    # path = Path(generate_ellipse_approximation([0,0], 5, 10, 100, theta=0.5), closed=True)
 
     # Convert the path to a PoseArray message and publish it
     path_msg = path.to_pose_array()
