@@ -101,3 +101,5 @@ roslaunch bcontrol stack.launch
 
 `cmd_vel` is the topic for sending velocity commands to the robot. The message type is `geometry_msgs/Twist`.
 
+`/opt/ros/noetic/share/jackal_control/launch/control.launch` launches the EKF when the `enable_ekf` parameter or the `ENABLE_EKF` environment variable is true. Defaults to true. `/opt/ros/noetic/share/jackal_control/config/robot_localization.yaml` is the configuration for the EKF.
+

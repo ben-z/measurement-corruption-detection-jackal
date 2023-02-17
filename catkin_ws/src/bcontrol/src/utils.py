@@ -1,3 +1,4 @@
+import functools
 import math
 import numpy as np
 from geometry_msgs.msg import Pose, PoseArray, Quaternion
@@ -442,6 +443,12 @@ def lookahead_resample(path, current_pos, lookahead_distance, num_subdivisions):
 
     # Return the slice of the resampled path from the closest point to the lookahead point
     return resampled_path[closest_idx:lookahead_idx]
+
+def deep_getattr(obj, attr, *args):
+    """
+    Gets an attribute of an object recursively. For example, deep_getattr(obj, "a.b.c") is equivalent to obj.a.b.c.
+    """
+    return functools.reduce(getattr, [obj] + attr.split("."), *args)
 
 # class PathWalker:
 #     """

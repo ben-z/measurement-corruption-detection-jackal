@@ -91,6 +91,7 @@ def tick_controller(cmd_vel_pub, lookahead_pub):
     # path_points_slice = lookahead_resample(path_points, [x,y], 10, 20)
     # path = Path(path_points_slice)
 
+    # TODO: We can speed this up by doing 1 global search followed by local searches until the path gets replaced again.
     closest = path.get_closest_point([x,y])
     lookahead = path.walk(closest, LOOKAHEAD_M)
 
