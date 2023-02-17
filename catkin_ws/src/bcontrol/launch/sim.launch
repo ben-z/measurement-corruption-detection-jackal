@@ -1,10 +1,14 @@
 <launch>
+  <arg name="rviz_config" default="robot" />
+
   <!-- Launch a static transform from map to odom -->
   <node pkg="tf2_ros" type="static_transform_publisher" name="map_to_odom" args="0 0 0 0 0 0 map odom"/>
 
-  <!-- Launch the controller -->
-  <node pkg="bcontrol" type="controller.py" name="bcontrol_node" output="screen"/>
+  <!-- Launch rviz -->
+  <node name="rviz" pkg="rviz" type="rviz" args="-d $(find bcontrol)/rviz/$(arg rviz_config).rviz" />
 
-  <!-- Launch the planner -->
-  <node pkg="bcontrol" type="planner.py" name="bplan_node" output="screen"/>
+  <!-- Launch Gazebo -->
+  <include file="$(find jackal_gazebo)/launch/jackal_world.launch">
+    <arg name="world_name" value="/workspace/gazebo-worlds/empty.world"/>
+  </include>
 </launch>

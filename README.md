@@ -69,21 +69,32 @@ docker compose up -d --build
 docker compose exec dev bash
 ```
 
-Start the Gazebo simulator:
+All commands from now on should be run inside the container.
+
+Install dependencies:
 
 ```bash
-# Environmental variable configuration reference: https://github.com/jackal/jackal/commit/75c68523945b0edf504c64b8b188260292bb3472
-export JACKAL_LASER_3D=1 # Enable 3D laser
-DISPLAY=:1.0 roslaunch jackal_gazebo jackal_world.launch world_name:=/workspace/gazebo-worlds/empty.world
-DISPLAY=:1.0 roslaunch jackal_viz view_robot.launch
+rosdep update
+rosdep install --from-paths src --ignore-src -r -y
 ```
 
-Development:
+Build the workspace:
 
 ```bash
 cd /workspace/catkin_ws
 catkin build
 source devel/setup.bash
+```
+
+Start the simulation and the stack:
+
+```bash
+# Environmental variable configuration reference: https://github.com/jackal/jackal/commit/75c68523945b0edf504c64b8b188260292bb3472
+export JACKAL_LASER_3D=1 # Enable 3D laser
+# Launch the simulation
+DISPLAY=:1.0 roslaunch bcontrol sim.launch
+# Launch the stack
+roslaunch bcontrol stack.launch
 ```
 
 ## Development notes

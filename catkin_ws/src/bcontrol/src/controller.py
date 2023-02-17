@@ -53,7 +53,7 @@ def pub_cmd_vel(cmd_vel_pub, linear_vel, angular_vel):
     # Publish the message
     cmd_vel_pub.publish(twist_msg)
 
-def tick_controller(cmd_vel_pub, path_pub, lookahead_pub):
+def tick_controller(cmd_vel_pub, lookahead_pub):
     # extract the odometry message from the state
     odom_msg = state['odom_msg']
     if odom_msg is None:
@@ -91,10 +91,6 @@ def tick_controller(cmd_vel_pub, path_pub, lookahead_pub):
     # path_points_slice = lookahead_resample(path_points, [x,y], 10, 20)
     # path = Path(path_points_slice)
 
-    # Convert the path to a PoseArray message and publish it
-    path_msg = path.to_pose_array()
-    path_pub.publish(path_msg)
-    
     closest = path.get_closest_point([x,y])
     lookahead = path.walk(closest, LOOKAHEAD_M)
 
@@ -121,9 +117,8 @@ def main():
 
     # Define subscribers and publishers
     rospy.Subscriber('/odometry/filtered', Odometry, odom_callback)
-    rospy.Subscriber('/bplanpath', PoseArray, planner_path_callback)
+    rospy.Subscriber('/bplan/path', PoseArray, planner_path_callback)
     cmd_vel_pub = rospy.Publisher('/cmd_vel', Twist, queue_size=1)
-    path_pub = rospy.Publisher('/bcontrol/path', PoseArray, queue_size=1)
     lookahead_pub = rospy.Publisher('/bcontrol/lookahead', PoseArray, queue_size=1)
 
     # Wait for a few seconds for the upstream nodes to start
@@ -133,7 +128,7 @@ def main():
     rate = rospy.Rate(CONTROLLER_HZ)
 
     while not rospy.is_shutdown():
-        tick_controller(cmd_vel_pub, path_pub, lookahead_pub)
+        tick_controller(cmd_vel_pub, lookahead_pub)
 
         # Sleep for the desired period
         rate.sleep()

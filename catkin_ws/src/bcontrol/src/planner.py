@@ -25,7 +25,7 @@ def main():
     rospy.loginfo(f"Node {NODE_NAME} started. Ctrl-C to stop.")
 
     # Define subscribers and publishers
-    path_pub = rospy.Publisher('/bplanpath', PoseArray, queue_size=1)
+    path_pub = rospy.Publisher('/bplan/path', PoseArray, queue_size=1)
 
     # Wait for a few seconds for the upstream nodes to start
     sleep(3)
