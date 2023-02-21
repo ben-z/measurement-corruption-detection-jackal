@@ -71,19 +71,23 @@ docker compose exec dev bash
 
 All commands from now on should be run inside the container.
 
+cd into the catkin workspace:
+
+```bash
+devsetup # shortcut (defined in /etc/local.bashrc)
+```
+
 Install dependencies:
 
 ```bash
 rosdep update
-rosdep install --from-paths src --ignore-src -r -y
+rosdep_install_all # shortcut (defined in /etc/local.bashrc)
 ```
 
 Build the workspace:
 
 ```bash
-cd /workspace/catkin_ws
 catkin build
-source devel/setup.bash
 ```
 
 Start the simulation and the stack:

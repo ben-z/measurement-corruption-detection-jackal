@@ -31,9 +31,6 @@ RUN USER=docker && \
     mkdir -p /etc/fixuid && \
     printf "user: $USER\ngroup: $GROUP\npaths:\n  - /home/$USER/" > /etc/fixuid/config.yml
 
-# Copy over configuration files
-COPY rootfs /
-
 # Add clearpath repo for jackal packages
 # http://wiki.ros.org/ClearpathRobotics/Packages
 RUN curl -s https://packages.clearpathrobotics.com/public.key | apt-key add - \
@@ -51,13 +48,15 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 RUN apt-get update && apt-get install -y --no-install-recommends \
     python3-catkin-tools python3-rosdep
 
-RUN sudo rosdep init && \
-    rosdep update
+# Copy over configuration files
+COPY rootfs /
 
 USER docker
 
-RUN echo "source /opt/ros/noetic/setup.bash" >> ~/.bashrc
-RUN echo "function rosdep_install_all() { rosdep install --from-paths src --ignore-src -r -y; }" >> ~/.bashrc
+RUN sudo rosdep init && \
+    rosdep update
+
+RUN echo "source /etc/local.bashrc" >> ~/.bashrc
 
 WORKDIR /workspace
 
