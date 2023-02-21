@@ -9,6 +9,7 @@ from time import sleep
 from utils import Path, pathpoints_to_pose_array, wrap_angle, clamp, generate_circle_approximation, generate_figure_eight_approximation, generate_ellipse_approximation, rotate_points, lookahead_resample, PathPoint
 import tf
 from typing import Optional, TypedDict
+from threading import Lock
 
 NODE_NAME = 'bcontrol'
 RADIUS = 2 # meters
@@ -29,18 +30,23 @@ class State(TypedDict):
     odom_msg: Optional[Odometry]
     path: Optional[Path]
     closest_path_point: Optional[PathPoint]
+    lock: Lock
 
 state: State = {
     'odom_msg': None,
     'path': None,
     'closest_path_point': None,
+    'lock': Lock(),
 }
 
 def odom_callback(odom_msg: Odometry):
-    state['odom_msg'] = odom_msg
+    with state['lock']:
+        state['odom_msg'] = odom_msg
 
 def planner_path_callback(path_msg: PoseArray):
-    state['path'] = Path.from_pose_array(path_msg, closed=PLANNER_PATH_CLOSED)
+    with state['lock']:
+        state['path'] = Path.from_pose_array(path_msg, closed=PLANNER_PATH_CLOSED)
+        state['closest_path_point'] = None # reset the closest path point now that we have a new path
 
 def pub_cmd_vel(cmd_vel_pub, linear_vel, angular_vel):
     """
@@ -61,8 +67,13 @@ def pub_cmd_vel(cmd_vel_pub, linear_vel, angular_vel):
     cmd_vel_pub.publish(twist_msg)
 
 def tick_controller(cmd_vel_pub, lookahead_pub):
-    # extract the odometry message from the state
-    odom_msg = state['odom_msg']
+    # Extract the state variables atomically
+    # Note: we never mutate state variables (only replace them) so we don't need to
+    # worry about the state changing while we're using it.
+    with state['lock']:
+        odom_msg = state['odom_msg']
+        path = state['path']
+
     if odom_msg is None:
         rospy.logwarn_throttle(1, "No odometry message received yet")
         return
@@ -73,7 +84,6 @@ def tick_controller(cmd_vel_pub, lookahead_pub):
         rospy.logwarn(f"Odometry message is too old! Age: {odom_msg_age.to_sec()}s")
         return
 
-    path = state['path']
     if path is None:
         rospy.logwarn_throttle(1, "No path received yet")
         return
