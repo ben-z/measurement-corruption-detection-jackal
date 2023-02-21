@@ -107,3 +107,6 @@ roslaunch bcontrol stack.launch
 
 `/opt/ros/noetic/share/jackal_control/launch/control.launch` launches the EKF when the `enable_ekf` parameter or the `ENABLE_EKF` environment variable is true. Defaults to true. `/opt/ros/noetic/share/jackal_control/config/robot_localization.yaml` is the configuration for the EKF.
 
+A graph of nodes and topics:
+
+![rosgraph](./docs/rosgraph.png)
