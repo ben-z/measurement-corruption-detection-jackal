@@ -131,7 +131,46 @@ class Path:
                 closest.segment_idx = i
                 closest_dist = dist
 
+        assert closest is not None, 'No closest point found.'
+
         return closest
+    
+    def get_local_closest_point(self, point: np.ndarray, path_point: PathPoint):
+        """
+        Returns the closest point on the path to the given point. This function is the same as get_closest_point, but it does a local search around the given path_point to improve performance.
+        """
+
+        if path_point.segment_idx is None:
+            raise ValueError('PathPoint object must have a segment_idx attribute.')
+
+        if self.closed:
+            segments = list(zip(self.path, self.path[1:] + [self.path[0]]))
+        else:
+            segments = list(zip(self.path[:-1], self.path[1:]))
+
+        assert path_point.segment_idx < len(segments), f"PathPoint segment_idx {path_point.segment_idx} is out of bounds for path with {len(segments)} segments."
+
+        current_segment = segments[path_point.segment_idx]
+        closest_point_current_segment = get_closest_point_on_segment(point, *current_segment)
+        closest_point_current_segment.segment_idx = path_point.segment_idx
+        dist_to_current_segment = np.linalg.norm(np.array(closest_point_current_segment.point) - np.array(point))
+        
+        if self.closed or path_point.segment_idx < len(segments) - 1:
+            next_segment_idx = (path_point.segment_idx + 1) % len(segments)
+            closest_point_next_segment = get_closest_point_on_segment(point, *segments[next_segment_idx])
+            closest_point_next_segment.segment_idx = next_segment_idx
+            dist_to_next_segment = np.linalg.norm(np.array(closest_point_next_segment.point) - np.array(point))
+            if dist_to_next_segment < dist_to_current_segment:
+                return self.get_local_closest_point(point, closest_point_next_segment)
+        if self.closed or path_point.segment_idx > 0:
+            prev_segment_idx = (path_point.segment_idx - 1) % len(segments)
+            closest_point_previous_segment = get_closest_point_on_segment(point, *segments[prev_segment_idx])
+            closest_point_previous_segment.segment_idx = prev_segment_idx
+            dist_to_previous_segment = np.linalg.norm(np.array(closest_point_previous_segment.point) - np.array(point))
+            if dist_to_previous_segment < dist_to_current_segment:
+                return self.get_local_closest_point(point, closest_point_previous_segment)
+
+        return closest_point_current_segment
     
     def to_pose_array(self, query_slice=None):
         """
@@ -151,7 +190,7 @@ class Path:
             pose_array.poses.append(pose)
         return pose_array
     
-    def walk(self, starting_point, length_m):
+    def walk(self, starting_point: PathPoint, length_m: float):
         """
         Walks along the path starting at the given point.
         Arguments:
@@ -175,6 +214,8 @@ class Path:
 
         while True:
             current_segment_idx = current_point.segment_idx
+            assert current_segment_idx is not None, "The current point must have a segment_idx attribute."
+            assert current_point.segment_progress_m is not None, "The current point must have a segment_progress_m attribute."
             if current_point.segment_progress_m + length_m > self.lengths[current_segment_idx]:
                 # Walk forward to the next segment
                 if self.closed:

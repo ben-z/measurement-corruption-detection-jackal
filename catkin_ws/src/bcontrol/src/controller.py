@@ -6,8 +6,9 @@ from geometry_msgs.msg import Twist, PoseArray
 from nav_msgs.msg import Odometry
 import numpy as np
 from time import sleep
-from utils import Path, pathpoints_to_pose_array, wrap_angle, clamp, generate_circle_approximation, generate_figure_eight_approximation, generate_ellipse_approximation, rotate_points, lookahead_resample
+from utils import Path, pathpoints_to_pose_array, wrap_angle, clamp, generate_circle_approximation, generate_figure_eight_approximation, generate_ellipse_approximation, rotate_points, lookahead_resample, PathPoint
 import tf
+from typing import Optional, TypedDict
 
 NODE_NAME = 'bcontrol'
 RADIUS = 2 # meters
@@ -24,9 +25,15 @@ LOOKAHEAD_M = 2 # meters
 
 PLANNER_PATH_CLOSED = True
 
-state = {
+class State(TypedDict):
+    odom_msg: Optional[Odometry]
+    path: Optional[Path]
+    closest_path_point: Optional[PathPoint]
+
+state: State = {
     'odom_msg': None,
     'path': None,
+    'closest_path_point': None,
 }
 
 def odom_callback(odom_msg: Odometry):
@@ -91,8 +98,12 @@ def tick_controller(cmd_vel_pub, lookahead_pub):
     # path_points_slice = lookahead_resample(path_points, [x,y], 10, 20)
     # path = Path(path_points_slice)
 
-    # TODO: We can speed this up by doing 1 global search followed by local searches until the path gets replaced again.
-    closest = path.get_closest_point([x,y])
+    if state['closest_path_point'] is None:
+        closest = path.get_closest_point([x,y])
+    else:
+        closest = path.get_local_closest_point([x,y], state['closest_path_point'])
+    state['closest_path_point'] = closest
+
     lookahead = path.walk(closest, LOOKAHEAD_M)
 
     dpos = np.array(lookahead.point) - np.array([x,y])
