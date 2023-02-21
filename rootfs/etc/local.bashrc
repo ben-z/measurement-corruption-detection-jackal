@@ -8,3 +8,5 @@ function source_devel() {
     fi
 }
 function devsetup() { cd /workspace/catkin_ws && source_devel; }
+
+alias ds='devsetup'
