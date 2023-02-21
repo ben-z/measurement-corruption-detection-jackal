@@ -81,7 +81,7 @@ def tick_controller(cmd_vel_pub, lookahead_pub):
     # Check if the odom message is too old
     odom_msg_age = rospy.Time.now() - odom_msg.header.stamp
     if odom_msg_age > rospy.Duration(ODOM_MSG_TIMEOUT):
-        rospy.logwarn(f"Odometry message is too old! Age: {odom_msg_age.to_sec()}s")
+        rospy.logwarn(f"Odometry message is too old! Age: {odom_msg_age.to_sec()}s. Not updating the controller.")
         return
 
     if path is None:
