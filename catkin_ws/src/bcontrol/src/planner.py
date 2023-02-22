@@ -11,9 +11,13 @@ RADIUS = 2 # meters
 VELOCITY = 0.5 # m/s
 PLANNER_HZ = 1 # Hz
 PLANNER_PERIOD = 1 / PLANNER_HZ # seconds
+# Whether the underlying reference path of the planner is closed
+PLANNER_BASE_PATH_CLOSED = True
+# Whether the path published by the planner is closed
+PLANNER_PATH_CLOSED = PLANNER_BASE_PATH_CLOSED
   
 def tick_planner(path_pub):
-    path = Path(rotate_points(generate_figure_eight_approximation([0,0], 10, 100), math.pi/4), closed=True)
+    path = Path(rotate_points(generate_figure_eight_approximation([0,0], 10, 100), math.pi/4), closed=PLANNER_BASE_PATH_CLOSED)
 
     path_msg = path.to_pose_array()
     path_pub.publish(path_msg)

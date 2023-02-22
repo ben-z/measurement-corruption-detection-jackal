@@ -110,3 +110,40 @@ roslaunch bcontrol stack.launch
 A graph of nodes and topics:
 
 ![rosgraph](./docs/rosgraph.png)
+
+
+### Sensors
+
+The Jackal has the following sensors:
+- IMU
+- Odom (wheel encoder?)
+
+Default `robot_localization` configuration found at `/opt/ros/noetic/share/jackal_control/config/robot_localization.yaml`:
+
+```yaml
+#Configuation for robot odometry EKF
+#
+frequency: 50
+
+odom0: /jackal_velocity_controller/odom
+odom0_config: [false, false, false, # x, y, z
+               false, false, false, # roll, pitch, yaw
+               true, true, true, # dx, dy, dz
+               false, false, true, # droll, dpitch, dyaw
+               false, false, false] # ddx, ddy, ddz
+odom0_differential: false
+
+imu0: /imu/data
+imu0_config: [false, false, false,
+              true, true, false,
+              false, false, false,
+              true, true, true,
+              false, false, false]
+imu0_differential: false
+
+odom_frame: odom
+base_link_frame: base_link
+world_frame: odom
+
+predict_to_current_time: true
+```

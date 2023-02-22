@@ -10,6 +10,7 @@ from utils import Path, pathpoints_to_pose_array, wrap_angle, clamp, generate_ci
 import tf
 from typing import Optional, TypedDict
 from threading import Lock
+from planner import PLANNER_PATH_CLOSED
 
 NODE_NAME = 'bcontrol'
 RADIUS = 2 # meters
@@ -23,8 +24,6 @@ MAX_LINEAR_VELOCITY = 2 # m/s
 MAX_ANGULAR_VELOCITY = 1 # rad/s
 
 LOOKAHEAD_M = 2 # meters
-
-PLANNER_PATH_CLOSED = True
 
 class State(TypedDict):
     odom_msg: Optional[Odometry]
