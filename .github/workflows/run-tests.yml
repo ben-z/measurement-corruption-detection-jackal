@@ -26,7 +26,7 @@ jobs:
           docker images ls
           docker ps
           docker buildx ls
-          docker buildx build --cache-to=type=gha --cache-from=type=gha -t benz/research-jackal .
+          docker buildx build --cache-to=type=gha --cache-from=type=gha -t benz/research-jackal --output type=docker .
           docker images ls
           docker ps
           docker buildx ls
