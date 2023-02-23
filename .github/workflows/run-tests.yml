@@ -14,10 +14,17 @@ jobs:
     container:
       image: ubuntu:focal
     steps:
-      - uses: ros-tooling/setup-ros@v0.5
+      - uses: actions/checkout@v3
+      - uses: docker/setup-buildx-action@v2
+      - uses: docker/build-push-action@v4
+        with:
+          tags: benz/research-jackal
+          cache-from: type=gha
       - run: |
           pwd
           ls -alh
-          cd catkin_ws
-          rosdep install --from-paths src --ignore-src -r -y
-          python3 ./src/bcontrol/src/utils.py
+          docker images ls
+          docker ps
+          #cd catkin_ws
+          #rosdep install --from-paths src --ignore-src -r -y
+          #python3 ./src/bcontrol/src/utils.py
