@@ -1,11 +1,13 @@
 import functools
 import math
 import numpy as np
+from numpy.testing import assert_allclose
 from geometry_msgs.msg import Pose, PoseArray, Quaternion
 from tf.transformations import quaternion_from_euler
 from dataclasses import dataclass
 from geometry_msgs.msg import Twist
 from scipy.interpolate import interp1d
+from typing import List, Tuple, Union
 
 @dataclass
 class PathPoint:
@@ -22,7 +24,7 @@ class Path:
     The Path object represents a path that can be followed by a robot.
     """
     
-    def __init__(self, path, closed=False):
+    def __init__(self, path: List[Tuple[float,float]], closed=False):
         """
         Arguments:
             path: A list of points, each point is a tuple (x, y). The path is linearly interpolated.
@@ -52,14 +54,22 @@ class Path:
             self.headings.append(np.arctan2(self.path[0][1] - self.path[-1][1], self.path[0][0] - self.path[-1][0]))
     
     @classmethod
-    def from_pose_array(cls, pose_array, closed=None):
+    def from_pose_array(cls, pose_array, closed: Union[bool,None] = None):
         """
         Returns a new Path object created from the given PoseArray.
         """
         path = []
         for pose in pose_array.poses:
             path.append([pose.position.x, pose.position.y])
+        if closed is None:
+            return cls(path)
         return cls(path, closed)
+        
+    def __eq__(self, other: object) -> bool:
+        if not isinstance(other, Path):
+            return NotImplemented
+        
+        return self.path == other.path and self.closed == other.closed
         
     def get_point(self, progress_m=None, progress_pct=None):
         """
@@ -69,27 +79,32 @@ class Path:
             progress_m: The progress along the path in meters. If the path is closed, this value can be greater than the path length.
             progress_pct: The progress along the path as a percentage. If the path is closed, this value can be greater than 1.
         Returns:
-            The point on the path at the given progress.
+            The point on the path at the given progress, as a PathPoint object.
         """
-
-        if progress_m is None and progress_pct is None:
-            raise ValueError('Either progress_m or progress_pct must be specified.')
         if progress_m is not None and progress_pct is not None:
             raise ValueError('Only one of progress_m or progress_pct can be specified.')
         if progress_m is None:
-            progress_m = progress_pct * self.length
+            if progress_pct is None:
+                raise ValueError('Either progress_m or progress_pct must be specified.')
+            else:
+                progress_m = progress_pct * self.length
 
         if self.closed:
             progress_m = progress_m % self.length
         if progress_m < 0:
-            progress_m = 0
+            raise ValueError(f'{progress_m=} must be greater than or equal to 0.')
         if progress_m > self.length:
-            progress_m = self.length
-        for i in range(len(self.path) - 1):
-            if progress_m <= self.lengths[i]:
-                return self.path[i] + (self.path[i + 1] - self.path[i]) * progress_m / self.lengths[i]
-            progress_m -= self.lengths[i]
-        return self.path[-1]
+            raise ValueError(f'{progress_m=} must be less than or equal to the path length.')
+        for i, segment_length in enumerate(self.lengths):
+            if progress_m <= segment_length:
+                return PathPoint(
+                    segment_progress_m=progress_m,
+                    segment_idx=i,
+                    point=get_point_on_segment(progress_m, self.path[i], self.path[(i + 1) % len(self.path)], segment_length)
+                )
+            progress_m -= segment_length
+        
+        raise ValueError(f"Couldn't fine the point in path! This is impossible. {progress_m=}")
 
     def get_heading_at_point(self, path_point):
         """
@@ -323,7 +338,7 @@ def rotate_points(points, angle, center_of_rotation=[0, 0]):
         rotated_points.append([x, y])
     return rotated_points
 
-def get_point_on_segment(progress_m, p1, p2, v_length_m=None):
+def get_point_on_segment(progress_m:float, p1, p2, v_length_m=None):
     """
     Returns the point on the line segment at the given progress.
     
@@ -477,8 +492,6 @@ def lookahead_resample(path, current_pos, lookahead_distance, num_subdivisions):
     # Resample the path to have 'num_subdivisions' subdivisions
     t = np.linspace(0, 1, len(path))
     resampled_t = np.linspace(0, 1, num_subdivisions)
-    # resampled_path = np.interp(resampled_t, t, np.array(path))
-    # resampled_path = interp_along_axis(path, t, resampled_t, axis=0)
     interp = interp1d(t, path, axis=0)
     resampled_path = interp(resampled_t)
 
@@ -491,31 +504,97 @@ def deep_getattr(obj, attr, *args):
     """
     return functools.reduce(getattr, [obj] + attr.split("."), *args)
 
-# class PathWalker:
-#     """
-#     Takes in a path and a starting position (segment, progress along segment) and implements a walk(distance) function that returns the new position (segment, progress along segment) after walking the given distance along the path. If the path is closed, the robot will return to the start point when it reaches the end point. If the path is not closed, the robot will stop at the end point when it reaches the end point. The return value will signal whether the robot has reached the end point.
-#     """
 
-# Remaining functions:
+def test_wrap_angle():
+    """
+    Test the implementation of the wrap_angle function
+    """
+    assert wrap_angle(0) == 0
+    assert wrap_angle(0.5 * np.pi) == 0.5 * np.pi
+    assert wrap_angle(np.pi) == -np.pi
+    assert wrap_angle(1.5 * np.pi) == -0.5 * np.pi
+    assert wrap_angle(2 * np.pi) == 0
 
-# PathWalker - takes in a path and a starting position (segment, progress along segment) and implements a walk(distance) function that returns the new position (segment, progress along segment) after walking the given distance along the path. If the path is closed, the robot will return to the start point when it reaches the end point. If the path is not closed, the robot will stop at the end point when it reaches the end point. The return value will signal whether the robot has reached the end point.
-# What if the path updates?
+    # vector inputs
+    assert_allclose(wrap_angle(np.array([0, 0.5 * np.pi, np.pi, 1.5 * np.pi, 2 * np.pi])), [0, 0.5 * np.pi, -np.pi, -0.5 * np.pi, 0], rtol=1e-5)
 
-# The control loop:
-# - Get the current position and heading of the robot (from estimate)
-# - Get the closest point on the path to the robot (initialize along a path, then do local search)
-# - Look ahead X meters along the path, set this as the target point (or the end point if the path is not closed, this can be done using the PathWalker)
-# - Based on the angle difference and the distance to the target point, calculate the desired angular velocity
+def test_path():
+    """
+    Test the implementation of the Path class
+    """
 
+    path = Path([(0, 0), (1, 0), (1, 1)], closed=True)
+    assert_allclose(path.length, 2 + np.sqrt(2), rtol=1e-5)
+    assert_allclose(path.lengths, [1, 1, np.sqrt(2)], rtol=1e-5)
+    assert_allclose(wrap_angle(np.array(path.headings)), [0, 0.5 * np.pi, -0.75 * np.pi], rtol=1e-5)
+    assert path.closed
 
+    # Test get_point
+    point = path.get_point(progress_m=0.5)
+    assert_allclose(point.point, [0.5, 0], rtol=1e-5)
+    assert point.segment_idx == 0
+    assert_allclose(point.segment_progress_m, 0.5, rtol=1e-5)
 
+    point = path.get_point(progress_pct=0.75)
+    assert_allclose(point.point, [0.60355339, 0.60355339], rtol=1e-5)
+    assert point.segment_idx == 2
+    assert_allclose(point.segment_progress_m, 0.75 * path.length - 2, rtol=1e-5)
 
+    point = path.get_point(progress_m=path.length+0.1)
+    assert_allclose(point.point, [0.1, 0], rtol=1e-5)
+    assert point.segment_idx == 0
+    assert_allclose(point.segment_progress_m, 0.1, rtol=1e-5)
 
+    point = path.get_point(progress_m=-1)
+    assert_allclose(point.point, [np.sqrt(1/2), np.sqrt(1/2)], rtol=1e-5)
+    assert point.segment_idx == 2
+    assert_allclose(point.segment_progress_m, path.lengths[2] - 1, rtol=1e-5)
 
+    # Test get_heading_at_point
+    heading = path.get_heading_at_point(point)
+    assert_allclose(heading, -0.75 * np.pi, rtol=1e-5)
 
-# local_get_closest_point_on_path(path, point, idx, progress_m) - returns the closest point on the path to the given point. The return value is a dictionary with the following keys:
-#     idx: The index of the closest path segment on the path
-#     point: The closest point on the path
-#     dist: The distance between the closest point on the path and the given point
-#     progress_m: The distance along the path segment to the closest point on the path
-# This function employs gradient descent where the gradient is whether a neighbouring segment is closer. This is a local search algorithm and is not guaranteed to find the global minimum. However, it is fast and works well in practice.
+    # Test get_closest_point
+    closest_point = path.get_closest_point([1, 0.5])
+    assert_allclose(closest_point.point, [1, 0.5], rtol=1e-5)
+    assert closest_point.segment_idx == 1
+    assert_allclose(closest_point.segment_progress_m, 0.5, rtol=1e-5)
+
+    closest_point = path.get_closest_point([-1, 0])
+    assert_allclose(closest_point.point, [0, 0], rtol=1e-5)
+    assert closest_point.segment_idx == 0
+    assert_allclose(closest_point.segment_progress_m, 0, rtol=1e-5)
+
+    # Test get_local_closest_point
+    local_closest_point = path.get_local_closest_point([1, 0.5], closest_point)
+    assert_allclose(local_closest_point.point, [1, 0.5], rtol=1e-5)
+    assert local_closest_point.segment_idx == 1
+    assert_allclose(local_closest_point.segment_progress_m, 0.5, rtol=1e-5)
+
+    # Test to_pose_array
+    pose_array = path.to_pose_array()
+    assert isinstance(pose_array, PoseArray)
+    assert len(pose_array.poses) == 3
+
+    # Test walk
+    start_point = path.get_point(progress_m=1.0)
+    end_point = path.walk(start_point, length_m=0.4)
+    assert_allclose(end_point.point, [1, 0.4])
+    assert end_point.segment_idx == 1
+    assert_allclose(end_point.segment_progress_m, 0.4)
+
+    # Test __eq__
+    path1 = Path([(0, 0), (1, 0), (1, 1)])
+    path2 = Path([(0, 0), (1, 0), (1, 1)])
+    path3 = Path([(0, 0), (1, 0), (1, 1)], closed=True)
+    path4 = Path([(0, 0), (1, 0), (1, 1), (0, 1)], closed=True)
+
+    assert path1 == path2
+    assert path1 != path3
+    assert path3 != path4
+
+if __name__ == "__main__":
+    test_wrap_angle()
+    test_path()
+
+    print("All tests passed!")
