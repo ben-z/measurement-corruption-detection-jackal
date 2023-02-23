@@ -8,6 +8,8 @@ on:
     branches:
     - master
 
+concurrency: ci-${{ github.ref }}
+
 jobs:
   run_tests:
     runs-on: ubuntu-latest
