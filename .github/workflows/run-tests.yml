@@ -29,4 +29,5 @@ jobs:
           docker buildx build --cache-to=type=gha --cache-from=type=gha -t benz/research-jackal .
           docker images ls
           docker ps
+          docker buildx ls
           docker run benz/research-jackal -v $(pwd):/workspace bash -c "cd /workspace/catkin_ws && rosdep install --from-paths src --ignore-src -r -y && python3 ./src/bcontrol/src/utils.py"
