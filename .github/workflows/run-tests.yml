@@ -16,6 +16,8 @@ jobs:
     steps:
       - uses: ros-tooling/setup-ros@v0.5
       - run: |
+          pwd
+          ls -alh
           cd catkin_ws
           rosdep install --from-paths src --ignore-src -r -y
           python3 ./src/bcontrol/src/utils.py
