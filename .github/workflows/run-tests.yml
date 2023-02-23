@@ -6,16 +6,28 @@ on:
     - master
   pull_request:
     branches:
-    - main
+    - master
+
+concurrency: ci-${{ github.ref }}
 
 jobs:
   run_tests:
     runs-on: ubuntu-latest
-    container:
-      image: ubuntu:focal
     steps:
-      - uses: ros-tooling/setup-ros@v0.5
+      - uses: actions/checkout@v3
+      - uses: docker/setup-buildx-action@v2
+      # necessary for buildx cache:
+      # https://docs.docker.com/build/cache/backends/gha/#authentication
+      - name: Expose GitHub Runtime
+        uses: crazy-max/ghaction-github-runtime@v2
       - run: |
-          cd catkin_ws
-          rosdep install --from-paths src --ignore-src -r -y
-          python3 ./src/bcontrol/src/utils.py
+          pwd
+          ls -alh
+          docker images ls
+          docker ps
+          docker buildx ls
+          docker buildx build --cache-to=type=gha --cache-from=type=gha -t benz/research-jackal --output type=docker .
+          docker images ls
+          docker ps
+          docker buildx ls
+          docker run -v $(pwd):/workspace benz/research-jackal bash -c "source /opt/ros/noetic/setup.bash && cd /workspace/catkin_ws && rosdep install --from-paths src --ignore-src -r -y && python3 ./src/bcontrol/src/utils.py"
