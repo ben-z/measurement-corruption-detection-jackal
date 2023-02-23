@@ -1,0 +1,21 @@
+name: Run tests
+
+on:
+  push:
+    branches:
+    - master
+  pull_request:
+    branches:
+    - main
+
+jobs:
+  run_tests:
+    runs-on: ubuntu-latest
+    container:
+      image: ubuntu:focal
+    steps:
+      - uses: ros-tooling/setup-ros@v0.5
+      - run: |
+          cd catkin_ws
+          rosdep install --from-paths src --ignore-src -r -y
+          python3 ./src/bcontrol/src/utils.py
