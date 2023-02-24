@@ -25,7 +25,7 @@ ODOM_MSG_TIMEOUT = CONTROLLER_PERIOD # seconds
 MAX_LINEAR_VELOCITY = 0.5 # m/s
 MAX_ANGULAR_VELOCITY = 0.5 # rad/s
 
-LOOKAHEAD_M = 2 # meters
+LOOKAHEAD_M = 1 # meters
 
 class State(TypedDict):
     odom_msg: Optional[Odometry]

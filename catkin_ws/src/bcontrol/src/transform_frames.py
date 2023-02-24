@@ -9,9 +9,10 @@
     Copyright 2020, 2021
 '''
 import rospy
-from geometry_msgs.msg import Pose, Point, Quaternion, PoseArray, PoseStamped, PointStamped, TransformStamped
+from geometry_msgs.msg import Pose, Point, Quaternion, PoseArray, PoseStamped, PointStamped, TransformStamped, PoseWithCovariance
 from std_msgs.msg import Header
 import tf2_ros, tf2_geometry_msgs
+from nav_msgs.msg import Odometry
 
 class TransformFrames():
     def __init__(self):
@@ -53,4 +54,15 @@ class TransformFrames():
         origin_A_stamped = PoseStamped( pose=origin_A, header=header )
         pose_frame_B = tf2_geometry_msgs.do_transform_pose(origin_A_stamped, self.get_transform(frame_A, frame_B, stamp))
         return pose_frame_B
+    
+    def odom_transform(self, odom: Odometry, target_frame: str='odom') -> Odometry:
+        ''' Transform an Odometry message to a new frame '''
+        trans = self.get_transform( odom.header.frame_id, target_frame, odom.header.stamp )
+        new_header = Header(frame_id=target_frame, stamp=odom.header.stamp)
+        pose_s = PoseStamped(pose=odom.pose.pose, header=odom.header)
+        pose_t = tf2_geometry_msgs.do_transform_pose(pose_s, trans)
+        odom_t = Odometry(header=new_header, child_frame_id=target_frame, pose=PoseWithCovariance(pose=pose_t.pose))
+        odom_t.twist = odom.twist
+        return odom_t
+        
 
