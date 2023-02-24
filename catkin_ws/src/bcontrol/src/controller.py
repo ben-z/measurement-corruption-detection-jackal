@@ -17,7 +17,7 @@ from transform_frames import TransformFrames
 NODE_NAME = 'bcontrol'
 RADIUS = 2 # meters
 VELOCITY = 0.5 # m/s
-CONTROLLER_HZ = 5 # Hz
+CONTROLLER_HZ = 10 # Hz
 CONTROLLER_PERIOD = 1 / CONTROLLER_HZ # seconds
 # If the odometry message is older than this, it is considered invalid.
 ODOM_MSG_TIMEOUT = CONTROLLER_PERIOD # seconds
@@ -130,10 +130,11 @@ def tick_controller(cmd_vel_pub, lookahead_pub):
     dpos_norm = np.linalg.norm(dpos)
     target_heading = math.atan2(dpos[1], dpos[0])
     dheading = wrap_angle(target_heading - heading)
-    Kp_heading = 1.5
+    Kp_pos = 1.0
+    Kp_heading = 2.0
 
     # Use pure pursuit to compute the desired linear and angular velocities
-    linear_velocity = min(dpos_norm, MAX_LINEAR_VELOCITY)
+    linear_velocity = min(Kp_pos * dpos_norm, MAX_LINEAR_VELOCITY)
     angular_velocity = clamp(Kp_heading * dheading, -MAX_ANGULAR_VELOCITY, MAX_ANGULAR_VELOCITY)
     
     print(f"dpos: {dpos[0]:.2f}, {dpos[1]:.2f} m, target_heading {target_heading:.2f} heading {heading:.2f} dheading: {dheading:.2f} rad ({math.degrees(dheading):.2f} deg) linvel: {linear_velocity:.2f} m/s angvel: {angular_velocity:.2f} rad/s ({math.degrees(angular_velocity):.2f} deg/s))")
