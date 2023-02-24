@@ -1,11 +1,12 @@
 <launch>
   <arg name="rviz_config" default="robot" />
+  <arg name="launch_vicon" default="true" />
 
   <!-- Launch rviz -->
   <node name="rviz" pkg="rviz" type="rviz" args="-d $(find bcontrol)/rviz/$(arg rviz_config).rviz" />
 
   <!-- Launch Gazebo -->
-  <include file="$(find vicon_bridge)/launch/vicon.launch">
+  <include file="$(find vicon_bridge)/launch/vicon.launch" if="$(arg launch_vicon)">
     <arg name="datastream_hostport" value="129.97.71.102:801"/>
     <arg name="vicon_world_frame" value="map"/>
   </include>
