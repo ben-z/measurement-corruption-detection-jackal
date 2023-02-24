@@ -25,7 +25,7 @@ ODOM_MSG_TIMEOUT = CONTROLLER_PERIOD # seconds
 MAX_LINEAR_VELOCITY = 0.5 # m/s
 MAX_ANGULAR_VELOCITY = 0.5 # rad/s
 
-LOOKAHEAD_M = 2 # meters
+LOOKAHEAD_M = 1 # meters
 
 class State(TypedDict):
     odom_msg: Optional[Odometry]
@@ -43,24 +43,29 @@ state: State = {
 }
 
 def odom_callback(odom_msg: Odometry):
+    transform_frames = state["transform_frames"]
+    if transform_frames is None:
+        rospy.logerr("No transform listener available. Cannot transform the odometry message to the odom frame.")
+        return
+
+    # Transform the odometry message to the map frame
+    try: 
+        odom_msg_map = transform_frames.odom_transform(odom_msg, target_frame="map")
+    except Exception as e:
+        rospy.logerr(f"Error transforming the odometry message to the odom frame: {e}")
+        return
+
     with state['lock']:
-        state['odom_msg'] = odom_msg
+        state['odom_msg'] = odom_msg_map
 
 def planner_path_callback(path_msg: PoseArray):
+    new_path = Path.from_pose_array(path_msg, closed=PLANNER_PATH_CLOSED)
     with state['lock']:
-        if state['transform_frames'] is None:
-            rospy.logerr("No transform listener available. Cannot transform the path to the odom frame.")
+        if new_path == state['path']:
+            rospy.loginfo("Received the same path as before. Ignoring it.")
             return
-
-        # Transform the path to the odom frame
-        try:
-            transform_frames = state['transform_frames']
-
-            path_msg_odom = transform_frames.pose_transform(path_msg, target_frame='odom')
-            state['path'] = Path.from_pose_array(path_msg_odom, closed=PLANNER_PATH_CLOSED)
-            state['closest_path_point'] = None # reset the closest path point now that we have a new path
-        except Exception as e:
-            rospy.logerr(f"Error transforming the path to the odom frame: {e}")
+        state['path'] = new_path
+        state['closest_path_point'] = None # reset the closest path point now that we have a new path
 
 def pub_cmd_vel(cmd_vel_pub, linear_vel, angular_vel):
     """
@@ -113,15 +118,6 @@ def tick_controller(cmd_vel_pub, lookahead_pub):
 
     print(f"Current position: ({x:.2f}, {y:.2f}) m, heading: {heading:.2f} rad ({math.degrees(heading):.2f} deg)")
 
-    # path = Path([[0,-10], [0,10], [3, 10]], closed=True)
-    # path = Path(generate_figure_eight_approximation([0,0], 10, 100), closed=True)
-    # path = Path(rotate_points(generate_figure_eight_approximation([0,0], 10, 100), math.pi/4), closed=True)
-    # path = Path(generate_ellipse_approximation([0,0], 5, 10, 100, theta=0.5), closed=True)
-
-    # path_points = rotate_points(generate_figure_eight_approximation([0,0], 10, 100), math.pi/4)
-    # path_points_slice = lookahead_resample(path_points, [x,y], 10, 20)
-    # path = Path(path_points_slice)
-
     if state['closest_path_point'] is None:
         closest = path.get_closest_point([x,y])
     else:
@@ -142,7 +138,7 @@ def tick_controller(cmd_vel_pub, lookahead_pub):
     
     print(f"dpos: {dpos[0]:.2f}, {dpos[1]:.2f} m, target_heading {target_heading:.2f} heading {heading:.2f} dheading: {dheading:.2f} rad ({math.degrees(dheading):.2f} deg) linvel: {linear_velocity:.2f} m/s angvel: {angular_velocity:.2f} rad/s ({math.degrees(angular_velocity):.2f} deg/s))")
 
-    lookahead_pub.publish(pathpoints_to_pose_array([lookahead], path, "odom"))
+    lookahead_pub.publish(pathpoints_to_pose_array([lookahead], path, frame_id="map"))
     pub_cmd_vel(cmd_vel_pub, linear_velocity, angular_velocity)
     
 def main():
