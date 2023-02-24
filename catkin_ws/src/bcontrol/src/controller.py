@@ -7,21 +7,23 @@ from nav_msgs.msg import Odometry
 import numpy as np
 from time import sleep
 from utils import Path, pathpoints_to_pose_array, wrap_angle, clamp, generate_circle_approximation, generate_figure_eight_approximation, generate_ellipse_approximation, rotate_points, lookahead_resample, PathPoint
+import tf2_ros
 import tf
 from typing import Optional, TypedDict
 from threading import Lock
 from planner import PLANNER_PATH_CLOSED
+from transform_frames import TransformFrames
 
 NODE_NAME = 'bcontrol'
 RADIUS = 2 # meters
 VELOCITY = 0.5 # m/s
-CONTROLLER_HZ = 10 # Hz
+CONTROLLER_HZ = 5 # Hz
 CONTROLLER_PERIOD = 1 / CONTROLLER_HZ # seconds
 # If the odometry message is older than this, it is considered invalid.
 ODOM_MSG_TIMEOUT = CONTROLLER_PERIOD # seconds
 
-MAX_LINEAR_VELOCITY = 2 # m/s
-MAX_ANGULAR_VELOCITY = 1 # rad/s
+MAX_LINEAR_VELOCITY = 0.5 # m/s
+MAX_ANGULAR_VELOCITY = 0.5 # rad/s
 
 LOOKAHEAD_M = 2 # meters
 
@@ -29,12 +31,14 @@ class State(TypedDict):
     odom_msg: Optional[Odometry]
     path: Optional[Path]
     closest_path_point: Optional[PathPoint]
+    transform_frames: Optional[TransformFrames]
     lock: Lock
 
 state: State = {
     'odom_msg': None,
     'path': None,
     'closest_path_point': None,
+    'transform_frames': None,
     'lock': Lock(),
 }
 
@@ -44,8 +48,19 @@ def odom_callback(odom_msg: Odometry):
 
 def planner_path_callback(path_msg: PoseArray):
     with state['lock']:
-        state['path'] = Path.from_pose_array(path_msg, closed=PLANNER_PATH_CLOSED)
-        state['closest_path_point'] = None # reset the closest path point now that we have a new path
+        if state['transform_frames'] is None:
+            rospy.logerr("No transform listener available. Cannot transform the path to the odom frame.")
+            return
+
+        # Transform the path to the odom frame
+        try:
+            transform_frames = state['transform_frames']
+
+            path_msg_odom = transform_frames.pose_transform(path_msg, target_frame='odom')
+            state['path'] = Path.from_pose_array(path_msg_odom, closed=PLANNER_PATH_CLOSED)
+            state['closest_path_point'] = None # reset the closest path point now that we have a new path
+        except Exception as e:
+            rospy.logerr(f"Error transforming the path to the odom frame: {e}")
 
 def pub_cmd_vel(cmd_vel_pub, linear_vel, angular_vel):
     """
@@ -127,7 +142,7 @@ def tick_controller(cmd_vel_pub, lookahead_pub):
     
     print(f"dpos: {dpos[0]:.2f}, {dpos[1]:.2f} m, target_heading {target_heading:.2f} heading {heading:.2f} dheading: {dheading:.2f} rad ({math.degrees(dheading):.2f} deg) linvel: {linear_velocity:.2f} m/s angvel: {angular_velocity:.2f} rad/s ({math.degrees(angular_velocity):.2f} deg/s))")
 
-    lookahead_pub.publish(pathpoints_to_pose_array([lookahead], path))
+    lookahead_pub.publish(pathpoints_to_pose_array([lookahead], path, "odom"))
     pub_cmd_vel(cmd_vel_pub, linear_velocity, angular_velocity)
     
 def main():
@@ -141,6 +156,8 @@ def main():
     rospy.Subscriber('/bplan/path', PoseArray, planner_path_callback)
     cmd_vel_pub = rospy.Publisher('/cmd_vel', Twist, queue_size=1)
     lookahead_pub = rospy.Publisher('/bcontrol/lookahead', PoseArray, queue_size=1)
+
+    state["transform_frames"] = TransformFrames()
 
     # Wait for a few seconds for the upstream nodes to start
     sleep(3)

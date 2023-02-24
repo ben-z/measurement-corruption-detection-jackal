@@ -386,12 +386,12 @@ def get_closest_point_on_segment(point, p1, p2):
     
     return PathPoint(point=closest, segment_progress_m=progress_m)
 
-def pathpoints_to_pose_array(pathpoints, path):
+def pathpoints_to_pose_array(pathpoints, path, frame_id="map"):
     """
     Converts a list of PathPoint objects to a PoseArray message.
     """
     pose_array = PoseArray()
-    pose_array.header.frame_id = "map"
+    pose_array.header.frame_id = frame_id
     for pathpoint in pathpoints:
         pose = Pose()
         pose.position.x = pathpoint.point[0]

@@ -1,0 +1,18 @@
+<launch>
+  <arg name="rviz_config" default="robot" />
+
+  <!-- Launch rviz -->
+  <node name="rviz" pkg="rviz" type="rviz" args="-d $(find bcontrol)/rviz/$(arg rviz_config).rviz" />
+
+  <!-- Launch Gazebo -->
+  <include file="$(find vicon_bridge)/launch/vicon.launch">
+    <arg name="datastream_hostport" value="129.97.71.102:801"/>
+    <arg name="vicon_world_frame" value="map"/>
+  </include>
+
+  <!-- Publish transform from map to odom -->
+  <!-- https://discourse.ros.org/t/map-base-odom-as-alternative-for-rep-105-recommended-frame-order/25095 -->
+  <node name="map_to_odom_publisher" pkg="map_to_odom_publisher" type="map_to_odom_publisher" output="screen">
+    <param name="pose_topic" value="/vicon/ben_jackal2/ben_jackal2"/>
+  </node>
+</launch>

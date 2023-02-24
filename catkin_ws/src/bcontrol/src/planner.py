@@ -17,7 +17,7 @@ PLANNER_BASE_PATH_CLOSED = True
 PLANNER_PATH_CLOSED = PLANNER_BASE_PATH_CLOSED
   
 def tick_planner(path_pub):
-    path = Path(rotate_points(generate_figure_eight_approximation([0,0], 10, 100), math.pi/4), closed=PLANNER_BASE_PATH_CLOSED)
+    path = Path(rotate_points(generate_figure_eight_approximation([0,0], 2, 100), 0), closed=PLANNER_BASE_PATH_CLOSED)
 
     path_msg = path.to_pose_array()
     path_pub.publish(path_msg)
