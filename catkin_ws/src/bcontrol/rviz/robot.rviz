@@ -5,7 +5,6 @@ Panels:
     Property Tree Widget:
       Expanded:
         - /Global Options1
-        - /Status1
         - /TF1/Tree1
         - /Odometry1/Shape1
       Splitter Ratio: 0.6572238206863403
@@ -198,9 +197,9 @@ Visualization Manager:
     - Class: rviz/InteractiveMarkers
       Enable Transparency: true
       Enabled: true
-      Name: InteractiveMarkers
+      Name: Twist Controller
       Show Axes: false
-      Show Descriptions: true
+      Show Descriptions: false
       Show Visual Aids: false
       Update Topic: /twist_marker_server/update
       Value: true
@@ -298,7 +297,7 @@ Visualization Manager:
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Scale: 88.4228744506836
+      Scale: 113.87356567382812
       Target Frame: map
       X: 0
       Y: 0
