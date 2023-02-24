@@ -23,9 +23,9 @@ CONTROLLER_PERIOD = 1 / CONTROLLER_HZ # seconds
 ODOM_MSG_TIMEOUT = CONTROLLER_PERIOD # seconds
 
 MAX_LINEAR_VELOCITY = 0.5 # m/s
-MAX_ANGULAR_VELOCITY = 0.5 # rad/s
+MAX_ANGULAR_VELOCITY = 1.0 # rad/s
 
-LOOKAHEAD_M = 1 # meters
+LOOKAHEAD_M = 0.5 # meters
 
 class State(TypedDict):
     odom_msg: Optional[Odometry]
@@ -130,11 +130,11 @@ def tick_controller(cmd_vel_pub, lookahead_pub):
     dpos_norm = np.linalg.norm(dpos)
     target_heading = math.atan2(dpos[1], dpos[0])
     dheading = wrap_angle(target_heading - heading)
-    Kp_heading = 1
+    Kp_heading = 1.5
 
     # Use pure pursuit to compute the desired linear and angular velocities
     linear_velocity = min(dpos_norm, MAX_LINEAR_VELOCITY)
-    angular_velocity = clamp(-MAX_ANGULAR_VELOCITY, Kp_heading * dheading, MAX_ANGULAR_VELOCITY)
+    angular_velocity = clamp(Kp_heading * dheading, -MAX_ANGULAR_VELOCITY, MAX_ANGULAR_VELOCITY)
     
     print(f"dpos: {dpos[0]:.2f}, {dpos[1]:.2f} m, target_heading {target_heading:.2f} heading {heading:.2f} dheading: {dheading:.2f} rad ({math.degrees(dheading):.2f} deg) linvel: {linear_velocity:.2f} m/s angvel: {angular_velocity:.2f} rad/s ({math.degrees(angular_velocity):.2f} deg/s))")
 
