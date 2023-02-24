@@ -21,13 +21,5 @@ jobs:
       - name: Expose GitHub Runtime
         uses: crazy-max/ghaction-github-runtime@v2
       - run: |
-          pwd
-          ls -alh
-          docker images ls
-          docker ps
-          docker buildx ls
           docker buildx build --cache-to=type=gha --cache-from=type=gha -t benz/research-jackal --output type=docker .
-          docker images ls
-          docker ps
-          docker buildx ls
           docker run -v $(pwd):/workspace benz/research-jackal bash -c "source /opt/ros/noetic/setup.bash && cd /workspace/catkin_ws && rosdep install --from-paths src --ignore-src -r -y && python3 ./src/bcontrol/src/utils.py"
