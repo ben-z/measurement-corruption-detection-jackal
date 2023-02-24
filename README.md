@@ -163,5 +163,6 @@ The university appears to block accessing port 123 (NTP) from the robot. This ca
 
 ```bash
 sudo apt install linuxptp
-ptp4l -i <interface>
+ethtool -T <interface> # check if the interface supports hardware timestamping
+ptp4l -i <interface> -m -S # -i is the interface to use, -m outputs messages to stdout, -S uses software timestamping
 ```
