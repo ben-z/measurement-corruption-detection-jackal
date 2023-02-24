@@ -156,3 +156,12 @@ world_frame: odom
 
 predict_to_current_time: true
 ```
+
+### Time synchronization
+
+The university appears to block accessing port 123 (NTP) from the robot. This causes the clock to be out of sync with the rest of the network. As a workaround, we use `ptp4l` to synchronize the robot's clock with the master clock on the host machine.
+
+```bash
+sudo apt install linuxptp
+ptp4l -i <interface>
+```
