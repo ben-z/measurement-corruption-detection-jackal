@@ -96,7 +96,7 @@ Start the simulation and the stack:
 # Environmental variable configuration reference: https://github.com/jackal/jackal/commit/75c68523945b0edf504c64b8b188260292bb3472
 export JACKAL_LASER_3D=1 # Enable 3D laser
 # Launch the simulation
-VGL_DISPLAY=egl0 DISPLAY=:1.0 roslaunch bcontrol sim.launch
+VGL_DISPLAY=egl0 DISPLAY=:1.0 vglrun roslaunch bcontrol sim.launch
 # Launch the stack
 roslaunch bcontrol stack.launch
 ```
