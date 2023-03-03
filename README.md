@@ -101,7 +101,7 @@ VGL_DISPLAY=egl0 DISPLAY=:1.0 roslaunch bcontrol sim.launch
 roslaunch bcontrol stack.launch
 ```
 
-`VGL_DISPLAY=egl0` 
+`VGL_DISPLAY=egl0` is used to tell VirtualGL to use the first EGL device. Each EGL device corresponds to a `/dev/dri/card*` device.
 
 Useful VGL commands:
 
