@@ -5,5 +5,8 @@ services:
     user: "${FIXUID:?}:${FIXGID:?}"
     volumes:
       - .:/workspace
+    devices:
+      # Required for VirtualGL
+      - /dev/dri:/dev/dri
     ports:
       - "15900:5900" # VMC

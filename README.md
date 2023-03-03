@@ -74,7 +74,7 @@ All commands from now on should be run inside the container.
 cd into the catkin workspace:
 
 ```bash
-devsetup # shortcut (defined in /etc/local.bashrc)
+devsetup # shortcut for cd-ing into the catkin_ws dir and sourcing setup.bash (defined in /etc/local.bashrc)
 ```
 
 Install dependencies:
@@ -96,9 +96,17 @@ Start the simulation and the stack:
 # Environmental variable configuration reference: https://github.com/jackal/jackal/commit/75c68523945b0edf504c64b8b188260292bb3472
 export JACKAL_LASER_3D=1 # Enable 3D laser
 # Launch the simulation
-DISPLAY=:1.0 roslaunch bcontrol sim.launch
+VGL_DISPLAY=egl0 DISPLAY=:1.0 roslaunch bcontrol sim.launch
 # Launch the stack
 roslaunch bcontrol stack.launch
+```
+
+`VGL_DISPLAY=egl0` 
+
+Useful VGL commands:
+
+```bash
+sudo /opt/VirtualGL/bin/eglinfo -e # list available EGL devices
 ```
 
 ## Development notes

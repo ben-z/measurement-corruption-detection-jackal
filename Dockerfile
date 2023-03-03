@@ -1,4 +1,4 @@
-FROM nvcr.io/nvidia/cudagl:11.4.2-base-ubuntu20.04
+FROM nvidia/cudagl:11.4.2-base-ubuntu20.04
 
 ENV DEBIAN_FRONTEND=noninteractive
 
@@ -12,9 +12,14 @@ RUN sh -c 'echo "deb http://packages.ros.org/ros/ubuntu $(lsb_release -sc) main"
     && apt-get install -y ros-noetic-desktop-full
 
 # Dependencies for virtual desktop
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    lxde x11vnc xvfb mesa-utils supervisor \
-    && apt-get purge -y light-locker
+RUN wget -q https://sourceforge.net/projects/turbovnc/files/3.0.3/turbovnc_3.0.3_amd64.deb \
+    && wget -q https://sourceforge.net/projects/virtualgl/files/3.0.2/virtualgl32_3.0.2_amd64.deb \
+    && wget -q https://sourceforge.net/projects/virtualgl/files/3.0.2/virtualgl_3.0.2_amd64.deb \
+    && apt-get update && apt-get install -y --no-install-recommends \
+        ./turbovnc_3.0.3_amd64.deb ./virtualgl32_3.0.2_amd64.deb ./virtualgl_3.0.2_amd64.deb \
+        lxde mesa-utils supervisor \
+    && apt-get purge -y light-locker \
+    && rm -f turbovnc_3.0.3_amd64.deb virtualgl32_3.0.2_amd64.deb virtualgl_3.0.2_amd64.deb
 
 # Add a docker user so we that created files in the docker container are owned by a non-root user
 RUN addgroup --gid 1000 docker && \
@@ -48,14 +53,19 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 RUN apt-get update && apt-get install -y --no-install-recommends \
     python3-catkin-tools python3-rosdep
 
-# Copy over configuration files
-COPY rootfs /
 
 USER docker
 
 RUN sudo rosdep init && \
     rosdep update
 
+# Required by TurboVNC
+RUN touch ~/.Xauthority
+
+# Copy over configuration files
+COPY rootfs /
+
+# custom bashrc
 RUN echo "source /etc/local.bashrc" >> ~/.bashrc
 
 WORKDIR /workspace
