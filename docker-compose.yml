@@ -10,3 +10,4 @@ services:
       - /dev/dri:/dev/dri
     ports:
       - "15900:5900" # VMC
+      - "18765:8765" # Foxglove

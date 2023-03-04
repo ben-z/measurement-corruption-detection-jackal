@@ -51,8 +51,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 # Install development tools
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    python3-catkin-tools python3-rosdep
-
+    python3-catkin-tools python3-rosdep tmux ros-noetic-foxglove-bridge
 
 USER docker
 
