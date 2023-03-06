@@ -62,7 +62,7 @@ def planner_path_callback(path_msg: PoseArray):
     new_path = Path.from_pose_array(path_msg, closed=PLANNER_PATH_CLOSED)
     with state['lock']:
         if new_path == state['path']:
-            rospy.loginfo("Received the same path as before. Ignoring it.")
+            rospy.logdebug("Received the same path as before. Ignoring it.")
             return
         state['path'] = new_path
         state['closest_path_point'] = None # reset the closest path point now that we have a new path
@@ -116,7 +116,7 @@ def tick_controller(cmd_vel_pub, lookahead_pub):
     q = [orientation.x, orientation.y, orientation.z, orientation.w]
     roll, pitch, heading = tf.transformations.euler_from_quaternion(q)
 
-    print(f"Current position: ({x:.2f}, {y:.2f}) m, heading: {heading:.2f} rad ({math.degrees(heading):.2f} deg)")
+    rospy.logdebug(f"Current position: ({x:.2f}, {y:.2f}) m, heading: {heading:.2f} rad ({math.degrees(heading):.2f} deg)")
 
     if state['closest_path_point'] is None:
         closest = path.get_closest_point([x,y])
@@ -137,14 +137,14 @@ def tick_controller(cmd_vel_pub, lookahead_pub):
     linear_velocity = min(Kp_pos * dpos_norm, MAX_LINEAR_VELOCITY)
     angular_velocity = clamp(Kp_heading * dheading, -MAX_ANGULAR_VELOCITY, MAX_ANGULAR_VELOCITY)
     
-    print(f"dpos: {dpos[0]:.2f}, {dpos[1]:.2f} m, target_heading {target_heading:.2f} heading {heading:.2f} dheading: {dheading:.2f} rad ({math.degrees(dheading):.2f} deg) linvel: {linear_velocity:.2f} m/s angvel: {angular_velocity:.2f} rad/s ({math.degrees(angular_velocity):.2f} deg/s))")
+    rospy.logdebug(f"dpos: {dpos[0]:.2f}, {dpos[1]:.2f} m, target_heading {target_heading:.2f} heading {heading:.2f} dheading: {dheading:.2f} rad ({math.degrees(dheading):.2f} deg) linvel: {linear_velocity:.2f} m/s angvel: {angular_velocity:.2f} rad/s ({math.degrees(angular_velocity):.2f} deg/s))")
 
     lookahead_pub.publish(pathpoints_to_pose_array([lookahead], path, frame_id="map"))
     pub_cmd_vel(cmd_vel_pub, linear_velocity, angular_velocity)
     
 def main():
     # Initialize the node
-    rospy.init_node(NODE_NAME)
+    rospy.init_node(NODE_NAME,log_level=rospy.DEBUG)
 
     rospy.loginfo(f"Node {NODE_NAME} started. Ctrl-C to stop.")
 
