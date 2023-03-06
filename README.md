@@ -183,6 +183,17 @@ systemctl restart systemd-timesyncd # restart the time sync service
 journalctl -u systemd-timesyncd -f # monitor the time sync service logs
 ```
 
+##### Stratum 1 servers
+
+[List here](https://www.advtimesync.com/docs/manual/stratum1.html)
+
+Tested working at the time of writing:
+```
+ntp.student.cs.uwaterloo.ca
+clock.uregina.ca
+```
+
+
 #### PTP
 
 *ptp4l requires an interface that supports timestamping. Only the ethernet interface supports timestamping. Also, it didn't work on the robot when connecting the `eno1` to `wato-laptop1`'s enp4s0. So the instructions below are deprecated.*
