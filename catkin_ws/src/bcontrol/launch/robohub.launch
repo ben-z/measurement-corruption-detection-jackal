@@ -1,9 +1,0 @@
-<launch>
-  <arg name="teleop" default="false" />
-
-  <!-- Launch teleop (the control stack runs on the remote machine, not on the robot) -->
-  <include file="$(find bcontrol)/launch/robot.launch" if="$(arg teleop)" />
-
-  <!-- Plotting and visualization -->
-  <node name="rviz" pkg="rviz" type="rviz" args="-d $(find bcontrol)/rviz/$(arg rviz_config).rviz" />
-</launch>

@@ -1,0 +1,6 @@
+<launch>
+  <arg name="rviz_config" default="robot" />
+
+  <!-- Plotting and visualization -->
+  <node name="rviz" pkg="rviz" type="rviz" args="-d $(find bcontrol)/rviz/$(arg rviz_config).rviz" />
+</launch>

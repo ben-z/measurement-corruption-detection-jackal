@@ -1,5 +1,18 @@
 # Jackal Research
 
+There are a few components in this project. They include:
+1. `robot.launch`: Launches the basic services required for the robot to operate. This includes positioning services, transform publishers, etc.
+1. `sim.launch`: Same as `robot.launch`, but for simulation.
+1. `stack.launch`: Launches our custom stack. This includes the controller, the planner, the localiser, the detector, etc.
+1. `visualization.launch`: Launches visualization nodes. Requires a display.
+
+We can run the stack in the following configurations in the real world:
+| `robot.launch` | `stack.launch` | `visualization.launch` | Comments |
+| --- | --- | --- | --- |
+| Robot | Robot | Workstation | The ideal setup. Pretty much every thing runs on the robot, we use the workstation for monitoring only. |
+| Workstation | Workstation | Workstation | This is used for debugging or when the robot has insufficient resources. |
+
+
 ## Workspace setup
 
 Please use `Dockerfile` as the source of truth for required packages. The following instructions are for quick reference only.
@@ -59,6 +72,32 @@ ssh jackal1
 rosbag record -j -a -x "(.*)/camera(.*)" -o <recording-prefix>
 ```
 
+## Development on the robot
+
+Visualizations:
+
+```bash
+ros_connect_to_jackal2 # shortcut defined in ~/.commonrc (version controlled in personal dotfiles repo)
+cd ~/Projects/research-jackal/catkin_ws
+rosdep install --from-paths src --ignore-src -r -y
+catkin build
+source ./devel/setup.zsh
+DISPLAY=:0 roslaunch bcontrol visualization.launch
+```
+
+Running the stack on the robot:
+
+```bash
+docker compose up -d --build robot
+docker compose exec robot bash
+cd catkin_ws
+rosdep install --from-paths src --ignore-src -r -y
+catkin build
+source ./devel/setup.bash
+roslaunch bcontrol robot.launch
+roslaunch bcontrol stack.launch
+```
+
 ## Simulation
 
 Start the Docker container:
@@ -97,6 +136,8 @@ Start the simulation and the stack:
 export JACKAL_LASER_3D=1 # Enable 3D laser
 # Launch the simulation
 VGL_DISPLAY=egl0 DISPLAY=:1.0 vglrun roslaunch bcontrol sim.launch
+# Launch visualizations
+VGL_DISPLAY=egl0 DISPLAY=:1.0 vglrun roslaunch bcontrol visualization.launch
 # Launch the stack
 roslaunch bcontrol stack.launch
 ```
