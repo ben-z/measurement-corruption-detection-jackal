@@ -1,0 +1,20 @@
+<launch>
+  <arg name="rviz_config" default="robot" />
+  <arg name="launch_vicon" default="true" />
+
+  <!-- VICON -->
+  <include file="$(find vicon_bridge)/launch/vicon.launch" if="$(arg launch_vicon)">
+    <arg name="datastream_hostport" value="129.97.71.102:801"/>
+    <arg name="vicon_world_frame" value="map"/>
+    <arg name="max_publish_frequency" value="1.0"/>
+  </include>
+
+  <!-- Publish transform from map to odom -->
+  <!-- https://discourse.ros.org/t/map-base-odom-as-alternative-for-rep-105-recommended-frame-order/25095 -->
+  <node name="map_to_odom_publisher" pkg="map_to_odom_publisher" type="map_to_odom_publisher" output="screen">
+    <param name="pose_topic" value="/vicon/ben_jackal2/ben_jackal2"/>
+  </node>
+
+  <!-- Plotting and visualization -->
+  <node name="foxglove_bridge" pkg="foxglove_bridge" type="foxglove_bridge" output="screen" />
+</launch>

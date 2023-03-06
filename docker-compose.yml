@@ -1,7 +1,10 @@
 version: "3.9"
 services:
-  dev:
-    build: .
+  sim:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: sim
     user: "${FIXUID:?}:${FIXGID:?}"
     volumes:
       - .:/workspace
@@ -11,3 +14,12 @@ services:
     ports:
       - "15900:5900" # VMC
       - "18765:8765" # Foxglove
+  robot:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: robot
+    user: "${FIXUID:?}:${FIXGID:?}"
+    volumes:
+      - .:/workspace
+    network_mode: "host"

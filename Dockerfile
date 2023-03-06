@@ -1,4 +1,46 @@
-FROM nvidia/cudagl:11.4.2-base-ubuntu20.04
+FROM ros:noetic-robot as robot
+
+ENV DEBIAN_FRONTEND=noninteractive
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    gcc g++ wget curl vim git python3 python3-pip gnupg2 lsb-release
+
+# Add a docker user so we that created files in the docker container are owned by a non-root user
+RUN addgroup --gid 1000 docker && \
+    adduser --uid 1000 --ingroup docker --home /home/docker --shell /bin/bash --disabled-password --gecos "" docker && \
+    echo "docker ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers.d/nopasswd
+
+# Remap the docker user and group to be the same uid and group as the host user.
+# Any created files by the docker container will be owned by the host user.
+RUN USER=docker && \
+    GROUP=docker && \
+    curl -SsL https://github.com/boxboat/fixuid/releases/download/v0.4/fixuid-0.4-linux-amd64.tar.gz | tar -C /usr/local/bin -xzf - && \
+    chown root:root /usr/local/bin/fixuid && \
+    chmod 4755 /usr/local/bin/fixuid && \
+    mkdir -p /etc/fixuid && \
+    printf "user: $USER\ngroup: $GROUP\npaths:\n  - /home/$USER/" > /etc/fixuid/config.yml
+
+# Add clearpath repo for jackal packages
+# http://wiki.ros.org/ClearpathRobotics/Packages
+RUN curl -s https://packages.clearpathrobotics.com/public.key | apt-key add - \
+    && sh -c 'echo "deb https://packages.clearpathrobotics.com/stable/ubuntu $(lsb_release -cs) main" > /etc/apt/sources.list.d/clearpath-latest.list'
+
+# Install Jackal packages
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    ros-noetic-jackal-simulator ros-noetic-jackal-navigation
+
+# Install development tools
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    python3-catkin-tools python3-rosdep tmux ros-noetic-foxglove-bridge
+
+USER docker
+
+WORKDIR /workspace
+    
+ENTRYPOINT ["/usr/local/bin/fixuid"]
+CMD ["sleep", "infinity"]
+
+FROM nvidia/cudagl:11.4.2-base-ubuntu20.04 as sim
 
 ENV DEBIAN_FRONTEND=noninteractive
 

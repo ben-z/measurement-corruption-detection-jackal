@@ -1,6 +1,6 @@
 [submodule "vicon_bridge"]
 	path = catkin_ws/src/vicon_bridge
-	url = ist-git@git.uwaterloo.ca:robohub/vicon_bridge.git
+	url = git@github.com:ben-z/robohub-vicon-bridge.git
 [submodule "catkin_ws/src/map_to_odom_publisher"]
 	path = catkin_ws/src/map_to_odom_publisher
 	url = git@github.com:ben-z/map_to_odom_publisher.git

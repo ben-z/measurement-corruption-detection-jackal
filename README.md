@@ -66,7 +66,7 @@ Start the Docker container:
 ```bash
 ./generate-dot-env.sh
 docker compose up -d --build
-docker compose exec dev bash
+docker compose exec sim bash
 ```
 
 All commands from now on should be run inside the container.
