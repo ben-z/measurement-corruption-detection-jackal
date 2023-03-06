@@ -167,7 +167,27 @@ predict_to_current_time: true
 
 ### Time synchronization
 
-The university appears to block accessing port 123 (NTP) from the robot. This causes the clock to be out of sync with the rest of the network. As a workaround, we use `ptp4l` to synchronize the robot's clock with the master clock on the host machine.
+The university appears to block accessing port 123 (NTP) from the university network. This causes the clock to be out of sync with the rest of the network. Below are some workarounds.
+
+#### NTP
+
+Run this on a host machine
+```bash
+sudo docker run --name=ntp --env=NTP_SERVERS="127.127.1.1" --rm --publish=123:123/udp cturra/ntp
+```
+
+Edit `/etc/systemd/timesyncd.conf` on the robot to include `NTP=<host_ip>`.
+
+```bash
+systemctl restart systemd-timesyncd # restart the time sync service
+journalctl -u systemd-timesyncd -f # monitor the time sync service logs
+```
+
+#### PTP
+
+*ptp4l requires an interface that supports timestamping. Only the ethernet interface supports timestamping. Also, it didn't work on the robot when connecting the `eno1` to `wato-laptop1`'s enp4s0. So the instructions below are deprecated.*
+
+We use `ptp4l` to synchronize the robot's clock with the master clock on the host machine.
 
 ```bash
 sudo apt install linuxptp
