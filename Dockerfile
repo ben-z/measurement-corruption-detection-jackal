@@ -31,12 +31,22 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 # Install development tools
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    python3-catkin-tools python3-rosdep tmux ros-noetic-foxglove-bridge
+    python3-catkin-tools python3-rosdep tmux ros-noetic-foxglove-bridge \
+    ros-noetic-tf2-tools
 
 USER docker
 
+RUN pip install typeguard==3.0.0rc2
+
+# Copy over configuration files
+COPY docker-rootfs/shared/ /
+COPY docker-rootfs/robot/ /
+
+# custom bashrc
+RUN echo "source /etc/local.bashrc" >> ~/.bashrc
+
 WORKDIR /workspace
-    
+
 ENTRYPOINT ["/usr/local/bin/fixuid"]
 CMD ["sleep", "infinity"]
 
@@ -93,18 +103,22 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 # Install development tools
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    python3-catkin-tools python3-rosdep tmux ros-noetic-foxglove-bridge
+    python3-catkin-tools python3-rosdep tmux ros-noetic-foxglove-bridge \
+    ros-noetic-tf2-tools
 
 USER docker
 
 RUN sudo rosdep init && \
     rosdep update
 
+RUN pip install typeguard==3.0.0rc2
+
 # Required by TurboVNC
 RUN touch ~/.Xauthority
 
 # Copy over configuration files
-COPY rootfs /
+COPY docker-rootfs/shared/ /
+COPY docker-rootfs/sim/ /
 
 # custom bashrc
 RUN echo "source /etc/local.bashrc" >> ~/.bashrc

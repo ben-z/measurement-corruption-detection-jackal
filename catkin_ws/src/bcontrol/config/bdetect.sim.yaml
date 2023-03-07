@@ -1,0 +1,17 @@
+bdetect:
+  model_type: "DIFFERENTIAL_DRIVE"
+  sensors:
+    - topic: "/jackal_velocity_controller/odom"
+      type: "ODOMETRY"
+      measured_states:
+        - "X"
+        - "Y"
+        - "ORIENTATION"
+    - topic: "/jackal_velocity_controller/odom"
+      type: "ODOMETRY"
+      measured_states:
+        - "VELOCITY"
+    - topic: "/imu/data"
+      type: "IMU"
+      measured_states:
+        - "ANGULAR_VELOCITY"

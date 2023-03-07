@@ -1,4 +1,10 @@
 <launch>
+  <arg name="platform" doc="The environment of the launch site. `sim` or `robot`" />
+  <group unless="$(eval platform in ['sim', 'robot'])">
+    <node pkg="bcontrol" type="terminate.py" name="terminate" output="screen" args="'Invalid argument: platform'" required="true" />
+  </group>
+
+
   <!-- Launch the controller -->
   <node pkg="bcontrol" type="controller.py" name="bcontrol_node" output="screen"/>
 
@@ -6,5 +12,13 @@
   <node pkg="bcontrol" type="planner.py" name="bplan_node" output="screen"/>
 
   <!-- Launch the detector -->
-  <!-- <node pkg="bcontrol" type="detector.py" name="bdetect_node" output="screen"/> -->
+  <node pkg="bcontrol" type="detector.py" name="bdetect_node" output="screen">
+    <rosparam command="load" file="$(find bcontrol)/config/bdetect.sim.yaml" if="$(eval platform == 'sim')" />
+    <rosparam command="load" file="$(find bcontrol)/config/bdetect.robot.yaml" if="$(eval platform == 'robot')" />
+  </node>
+
+  <!-- EKF -->
+  <node pkg="robot_localization" type="ekf_localization_node" name="ekf_localization">
+    <rosparam command="load" file="$(find bcontrol)/config/robot_localization.yaml" />
+  </node>
 </launch>

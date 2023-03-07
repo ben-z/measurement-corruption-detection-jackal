@@ -135,7 +135,7 @@ Start the simulation and the stack:
 # Environmental variable configuration reference: https://github.com/jackal/jackal/commit/75c68523945b0edf504c64b8b188260292bb3472
 export JACKAL_LASER_3D=1 # Enable 3D laser
 # Launch the simulation
-VGL_DISPLAY=egl0 DISPLAY=:1.0 vglrun roslaunch bcontrol sim.launch
+VGL_DISPLAY=egl0 DISPLAY=:1.0 ENABLE_EKF=false vglrun roslaunch bcontrol sim.launch
 # Launch visualizations
 VGL_DISPLAY=egl0 DISPLAY=:1.0 vglrun roslaunch bcontrol visualization.launch
 # Launch the stack
@@ -159,6 +159,10 @@ sudo /opt/VirtualGL/bin/eglinfo -e # list available EGL devices
 A graph of nodes and topics (in simulation):
 
 ![rosgraph](./docs/rosgraph.png)
+
+View the graph with `rosrun rqt_graph rqt_graph`.
+
+View the tf tree with `rosrun rqt_tf_tree rqt_tf_tree`. Or `rosrun tf2_tools view_frames`.
 
 ### Robot
 

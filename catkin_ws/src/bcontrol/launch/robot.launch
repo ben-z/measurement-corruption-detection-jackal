@@ -10,7 +10,7 @@
     <arg name="max_publish_frequency" value="1.0"/>
   </include>
 
-  <!-- Publish transform from map to odom -->
+  <!-- Publish transform from map to odom. TODO replace this with a robot_localization node -->
   <!-- https://discourse.ros.org/t/map-base-odom-as-alternative-for-rep-105-recommended-frame-order/25095 -->
   <node name="map_to_odom_publisher" pkg="map_to_odom_publisher" type="map_to_odom_publisher" output="screen">
     <param name="pose_topic" value="/vicon/ben_jackal2/ben_jackal2"/>
