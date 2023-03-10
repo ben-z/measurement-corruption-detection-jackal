@@ -4,3 +4,9 @@
 [submodule "catkin_ws/src/map_to_odom_publisher"]
 	path = catkin_ws/src/map_to_odom_publisher
 	url = git@github.com:ben-z/map_to_odom_publisher.git
+[submodule "catkin_ws/src/jackal_control"]
+	path = catkin_ws/src/jackal_control
+	url = git@github.com:ben-z/jackal_control.git
+[submodule "catkin_ws/src/diff_drive_controller"]
+	path = catkin_ws/src/diff_drive_controller
+	url = git@github.com:ben-z/diff_drive_controller.git

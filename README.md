@@ -95,7 +95,7 @@ rosdep install --from-paths src --ignore-src -r -y
 catkin build
 source ./devel/setup.bash
 roslaunch bcontrol robot.launch
-roslaunch bcontrol stack.launch
+roslaunch bcontrol stack.launch platform:=robot
 ```
 
 ## Simulation
@@ -139,7 +139,7 @@ VGL_DISPLAY=egl0 DISPLAY=:1.0 ENABLE_EKF=false vglrun roslaunch bcontrol sim.lau
 # Launch visualizations
 VGL_DISPLAY=egl0 DISPLAY=:1.0 vglrun roslaunch bcontrol visualization.launch
 # Launch the stack
-roslaunch bcontrol stack.launch
+roslaunch bcontrol stack.launch platform:=sim
 ```
 
 `VGL_DISPLAY=egl0` is used to tell VirtualGL to use the first EGL device. Each EGL device corresponds to a `/dev/dri/card*` device.

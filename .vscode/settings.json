@@ -1,0 +1,8 @@
+{
+    "cmake.sourceDirectory": "${workspaceFolder}/catkin_ws/build/catkin_tools_prebuild",
+    "python.analysis.typeCheckingMode": "basic",
+    "files.associations": {
+        "*.json": "jsonc",
+        "chrono": "cpp"
+    }
+}
