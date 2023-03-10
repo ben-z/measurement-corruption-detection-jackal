@@ -119,7 +119,7 @@ devsetup # shortcut for cd-ing into the catkin_ws dir and sourcing setup.bash (d
 Install dependencies:
 
 ```bash
-rosdep update
+sudo apt-get update && rosdep update
 rosdep_install_all # shortcut (defined in /etc/local.bashrc)
 ```
 
