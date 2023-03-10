@@ -14,6 +14,7 @@ from threading import Lock
 from planner import PLANNER_PATH_CLOSED
 from enum import Enum
 from detector_utils import ModelConfig, SensorConfig, InputConfig, ModelType, MODEL_STATE, DifferentialDriveStates, KinematicBicycleStates, DetectorData, imu_msg_to_state, odometry_msg_to_state, get_model_states, get_model_inputs, accel_stamped_msg_to_input
+from copy import deepcopy
 
 NODE_NAME = 'bdetect'
 DETECTOR_SOLVE_HZ = 1.0 # Hz
@@ -44,6 +45,8 @@ class State(TypedDict):
     inputs: List[InputState]
     detector_data: Optional[DetectorData]
     sensor_validity_pub: Optional[rospy.Publisher]
+    detector_data_for_solving: Optional[DetectorData]
+    is_solving: bool
 
 state: State = {
     'estimate': None,
@@ -53,6 +56,8 @@ state: State = {
     'inputs': [],
     'detector_data': None,
     'sensor_validity_pub': None,
+    'detector_data_for_solving': None,
+    'is_solving': False,
 }
 
 def odom_callback(estimate: Odometry):
@@ -197,12 +202,13 @@ def create_subscriptions(config: ModelConfig):
 def has_valid_data(sensor: SensorState):
     return sensor['data'] is not None
 
-def loop(event):
+def update_loop(event: rospy.timer.TimerEvent):
     """
     The detector loop has 2 stages:
     1. Update: Gather data from the sensors and construct the C, Y, and U matrices
     2. Solve: Solve the optimization problem
     """
+    rospy.logdebug(f"update_loop {event.last_duration=}")
     assert state['detector_data'] is not None, "Detector data should be initialized before the loop starts"
 
     N = state['detector_data']['config']['N']
@@ -247,11 +253,36 @@ def loop(event):
     state['detector_data']['sensors_present'] = state['detector_data']['sensors_present'][-N:]
     state['detector_data']['inputs_present'] = state['detector_data']['inputs_present'][-N:]
 
-    rospy.loginfo("Finished update stage")
+    with state['lock']:
+        if len(state['detector_data']['C']) >= N and not state['is_solving']:
+            # Push the data to the solve loop
+            state['detector_data_for_solving'] = deepcopy(state['detector_data'])
+
+    # TODO: Publish the current sensor pass/fail status
+
+def solve_loop(event: rospy.timer.TimerEvent):
+    """
+    Solves the optimization problem and publishes the results.
+    """
+    with state['lock']:
+        assert not state['is_solving'], "A solve loop is already running"
+        detector_data = state['detector_data_for_solving']
+        state['detector_data_for_solving'] = None # clear the state after we have a reference to the data
+        if not detector_data:
+            return
+        state['is_solving'] = True
+
+    rospy.logwarn("Solving... ====================================================")
+    sleep(2)
+    rospy.logwarn("Solved! ==========================================================")
+
+    with state['lock']:
+        assert state['is_solving'], "The solve loop should be running"
+        state['is_solving'] = False
 
 def main():
     # Initialize the node
-    rospy.init_node(NODE_NAME)
+    rospy.init_node(NODE_NAME, log_level=rospy.DEBUG)
 
     rospy.loginfo(f"Node {NODE_NAME} started. Ctrl-C to stop.")
 
@@ -273,7 +304,8 @@ def main():
     # Wait for a few seconds for the upstream nodes to start
     sleep(3)
 
-    rospy.Timer(rospy.Duration(config['dt']), loop)
+    rospy.Timer(rospy.Duration(config['dt']), update_loop)
+    rospy.Timer(rospy.Duration(DETECTOR_SOLVE_PERIOD), solve_loop)
 
     rospy.spin()
 
