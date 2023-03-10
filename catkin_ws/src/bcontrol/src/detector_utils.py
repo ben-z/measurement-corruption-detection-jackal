@@ -36,6 +36,45 @@ class KinematicBicycleInputs(str, Enum):
     ACCELERATION = "ACCELERATION"
     STEERING_ANGLE_VELOCITY = "STEERING_ANGLE_VELOCITY"
 
+def linearize_model(model_type: ModelType, state: np.ndarray, input: np.ndarray, dt: float):
+    if model_type == ModelType.DIFFERENTIAL_DRIVE:
+        return get_linear_differential_drive_model(state, input, dt)
+    elif model_type == ModelType.KINEMATIC_BICYCLE:
+        raise Exception("Kinematic bicycle model not implemented yet")
+        # return get_linear_kinematic_bicycle_model(state, input, dt)
+    else:
+        raise Exception(f"Unknown model type {model_type}")
+
+def get_linear_differential_drive_model(state: np.ndarray, input: np.ndarray, dt: float):
+    """
+    Returns the A and B matrices for a discrete linear kinematic differential drive model.
+    """
+    # Unpack state and input
+    # x, y, v, a are the position, velocity, and acceleration of the robot
+    # theta is the orientation of the robot
+    # omega is the angular velocity of the robot
+    # alpha is the angular acceleration of the robot
+    x, y, theta, v, omega = state
+    a, alpha = input
+
+    A = np.eye(5) + dt * np.array([
+        [0, 0, 0, v * np.cos(theta), 0],
+        [0, 0, 0, v * np.sin(theta), 0],
+        [0, 0, 0, 0, 1],
+        [0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0]
+    ])
+
+    B = np.array([
+        [0, 0],
+        [0, 0],
+        [0, 0],
+        [dt, 0],
+        [0, dt],
+    ])
+
+    return A, B
+
 def get_model_states(model_type: ModelType) -> List[Union[DifferentialDriveStates, KinematicBicycleStates]]:
     if model_type == ModelType.DIFFERENTIAL_DRIVE:
         return list(DifferentialDriveStates)
@@ -154,6 +193,7 @@ class DetectorData(TypedDict):
     C: List[np.ndarray]
     Y: List[np.ndarray]
     U: List[np.ndarray]
+    X: List[np.ndarray]
     # sensors and inputs are lists of lists, where the outer list is the time
     sensors_present: List[List[SensorConfig]]
     inputs_present: List[List[InputConfig]]

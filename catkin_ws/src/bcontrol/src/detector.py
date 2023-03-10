@@ -13,9 +13,10 @@ from typing import Optional, TypedDict, List, Any, Callable
 from threading import Lock
 from planner import PLANNER_PATH_CLOSED
 from enum import Enum
-from detector_utils import ModelConfig, SensorConfig, InputConfig, ModelType, MODEL_STATE, DifferentialDriveStates, KinematicBicycleStates, DetectorData, imu_msg_to_state, odometry_msg_to_state, get_model_states, get_model_inputs, accel_stamped_msg_to_input
+from detector_utils import ModelConfig, SensorConfig, InputConfig, ModelType, MODEL_STATE, DifferentialDriveStates, KinematicBicycleStates, DetectorData, imu_msg_to_state, odometry_msg_to_state, get_model_states, get_model_inputs, accel_stamped_msg_to_input, linearize_model
 from copy import deepcopy
 from diagnostic_msgs.msg import DiagnosticArray, DiagnosticStatus, KeyValue
+from solver_utils import get_evolution_matrices
 
 NODE_NAME = 'bdetect'
 DETECTOR_SOLVE_HZ = 1.0 # Hz
@@ -237,9 +238,10 @@ def update_loop(event: rospy.timer.TimerEvent):
         diag_msg.message += "Last update loop took longer than the update period\n"
 
     N = state['detector_data']['config']['N']
+    model_type = state['detector_data']['config']['model_type']
     C_blocks = []
     Y_blocks = []
-    u = np.zeros((len(get_model_inputs(state['detector_data']['config']['model_type'])), 1))
+    u = np.zeros((len(get_model_inputs(model_type)), 1))
 
     sensors_present = []
     inputs_present = []
@@ -285,10 +287,27 @@ def update_loop(event: rospy.timer.TimerEvent):
 
         inputs_present.append(config)
 
+    with state['lock']:
+        # TODO check estimate age
+        estimate = state['estimate']
+
+    if not C_blocks or not Y_blocks or estimate is None:
+        rospy.logwarn(f"Skipping update loop because not enough data is available. {len(C_blocks)=}, {len(Y_blocks)=}, {estimate=}")
+
+        diag_msg.level = max(DiagnosticStatus.WARN, diag_msg.level)
+        diag_msg.message += "Not enough data is available to update the detector\n"
+
+        with state['diagnostics_lock']:
+            state['diagnostics']['update_loop'] = diag_msg
+        return
+
+    X_block = odometry_msg_to_state(estimate, model_type)
+
     with state['detector_data_lock']:
         state['detector_data']['C'].append(np.vstack(C_blocks))
         state['detector_data']['Y'].append(np.hstack(Y_blocks).T)
         state['detector_data']['U'].append(u)
+        state['detector_data']['X'].append(X_block)
         state['detector_data']['sensors_present'].append(sensors_present)
         state['detector_data']['inputs_present'].append(inputs_present)
 
@@ -296,6 +315,7 @@ def update_loop(event: rospy.timer.TimerEvent):
         state['detector_data']['C'] = state['detector_data']['C'][-N:]
         state['detector_data']['Y'] = state['detector_data']['Y'][-N:]
         state['detector_data']['U'] = state['detector_data']['U'][-N:]
+        state['detector_data']['X'] = state['detector_data']['X'][-N:]
         state['detector_data']['sensors_present'] = state['detector_data']['sensors_present'][-N:]
         state['detector_data']['inputs_present'] = state['detector_data']['inputs_present'][-N:]
 
@@ -328,14 +348,44 @@ def solve_loop(event: rospy.timer.TimerEvent):
     with state['detector_data_lock']:
         detector_data = deepcopy(state['detector_data'])
 
-    if len(detector_data['C']) < detector_data['config']['N']:
+    model_config = detector_data['config']
+
+    if len(detector_data['C']) < model_config['N']:
         diag_msg.message += "Waiting for sufficient data\n"
         with state['diagnostics_lock']:
             state['diagnostics']['solve_loop'] = diag_msg
         rospy.info("Waiting for sufficient data in the solve loop")
         return
 
-    sleep(0.9)
+    # Sanity check the data
+    for data_name in ['C', 'Y', 'U', 'X']:
+        assert len(detector_data[data_name]) == model_config['N'], f"The number of {data_name} blocks should be equal to the horizon length"
+
+    rospy.logwarn(f"Solving ===============================")
+
+    # Prepare inputs to the optimization problem
+    C_blocks = detector_data['C']
+    Y_blocks = detector_data['Y']
+
+    # Linearize the model
+    A_blocks = []
+    B_blocks = []
+    for i in range(model_config['N']):
+        A, B = linearize_model(model_config['model_type'], detector_data['X'][i], detector_data['U'][i], model_config['dt'])
+
+        A_blocks.append(A)
+        B_blocks.append(B)
+    
+    # TODO: remove input effects
+
+    state_evolution_matrix, Phi = get_evolution_matrices(A_blocks[:-1], C_blocks)
+
+    # Solve the optimization problem
+
+
+
+    rospy.logwarn(f"Solved ===============================")
+    
 
     if diag_msg.message == "":
         diag_msg.message = "ok"
@@ -377,7 +427,7 @@ def main():
     config: ModelConfig = typeguard.check_type(rospy.get_param('~bdetect'), ModelConfig)
     rospy.loginfo(f"{NODE_NAME}: loaded configuration {config}")
 
-    state['detector_data'] = DetectorData(config=config, C=[], Y=[], U=[], sensors_present=[], inputs_present=[])
+    state['detector_data'] = DetectorData(config=config, C=[], Y=[], U=[], X=[], sensors_present=[], inputs_present=[])
 
     # Create subscriptions for each sensor
     create_subscriptions(config)

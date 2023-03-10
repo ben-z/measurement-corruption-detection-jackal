@@ -36,7 +36,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 USER docker
 
-RUN pip install typeguard==3.0.0rc2
+RUN pip install typeguard==3.0.0rc2 cvxpy==1.3.0
 
 # Copy over configuration files
 COPY docker-rootfs/shared/ /
@@ -111,7 +111,7 @@ USER docker
 RUN sudo rosdep init && \
     rosdep update
 
-RUN pip install typeguard==3.0.0rc2
+RUN pip install typeguard==3.0.0rc2 cvxpy==1.3.0
 
 # Required by TurboVNC
 RUN touch ~/.Xauthority
