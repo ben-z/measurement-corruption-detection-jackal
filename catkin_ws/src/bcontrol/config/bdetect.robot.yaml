@@ -1,5 +1,7 @@
 bdetect:
   model_type: "DIFFERENTIAL_DRIVE"
+  N: 5 # The measurement window size (the number of timesteps)
+  dt: 0.1 # The discretization timestep of the model. Sensor measurements are sampled at this rate.
   sensors:
     - topic: "/vicon/ben_jackal2/ben_jackal2/odom"
       type: "ODOMETRY"

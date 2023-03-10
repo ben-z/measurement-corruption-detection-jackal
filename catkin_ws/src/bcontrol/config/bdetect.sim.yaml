@@ -1,5 +1,7 @@
 bdetect:
   model_type: "DIFFERENTIAL_DRIVE"
+  N: 5 # The measurement window size (the number of timesteps)
+  dt: 0.1 # The discretization timestep of the model. Sensor measurements are sampled at this rate.
   sensors:
     - topic: "/jackal_velocity_controller/odom"
       type: "ODOMETRY"
@@ -15,3 +17,9 @@ bdetect:
       type: "IMU"
       measured_states:
         - "ANGULAR_VELOCITY"
+  inputs:
+    - topic: "/jackal_velocity_controller/cmd_accel_out"
+      type: "ACCEL_STAMPED"
+      measured_inputs:
+        - "ACCELERATION"
+        - "ANGULAR_ACCELERATION"

@@ -612,6 +612,17 @@ checker_lookup_functions.append(checker_lookup)
 # re-export typeguard so that users always import from this module.
 typeguard = _typeguard
 
+def deep_getattr(obj, attr):
+    """
+    Get a nested attribute from an object.
+    Examples:
+    getattr(x, 'y') <==> x.y
+    getattr(x, 'y.z') <==> x.y.z
+    """
+    attributes = attr.split(".")
+    for i in attributes:
+        obj = getattr(obj, i)
+    return obj
 
 if __name__ == "__main__":
     test_wrap_angle()
