@@ -154,5 +154,6 @@ class DetectorData(TypedDict):
     C: List[np.ndarray]
     Y: List[np.ndarray]
     U: List[np.ndarray]
+    # sensors and inputs are lists of lists, where the outer list is the time
     sensors_present: List[List[SensorConfig]]
     inputs_present: List[List[InputConfig]]

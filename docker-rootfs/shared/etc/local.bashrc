@@ -1,7 +1,8 @@
 source /opt/ros/noetic/setup.bash
 function rosdep_install_all() {
     set -o xtrace
-    rosdep install --from-paths src --ignore-src -r -y
+    sudo apt-get update && rosdep update && \
+        rosdep install --from-paths src --ignore-src -r -y
     { set +o xtrace; } 2>/dev/null
 }
 function source_devel() {

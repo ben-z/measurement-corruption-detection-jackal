@@ -8,13 +8,14 @@ from nav_msgs.msg import Odometry
 from geometry_msgs.msg import PoseArray, AccelStamped
 from sensor_msgs.msg import Imu
 from time import sleep
-from utils import Path, generate_figure_eight_approximation, generate_ellipse_approximation, rotate_points, lookahead_resample, typeguard
+from utils import Path, generate_figure_eight_approximation, generate_ellipse_approximation, rotate_points, lookahead_resample, typeguard, add_timer_event_to_diag_status
 from typing import Optional, TypedDict, List, Any, Callable
 from threading import Lock
 from planner import PLANNER_PATH_CLOSED
 from enum import Enum
 from detector_utils import ModelConfig, SensorConfig, InputConfig, ModelType, MODEL_STATE, DifferentialDriveStates, KinematicBicycleStates, DetectorData, imu_msg_to_state, odometry_msg_to_state, get_model_states, get_model_inputs, accel_stamped_msg_to_input
 from copy import deepcopy
+from diagnostic_msgs.msg import DiagnosticArray, DiagnosticStatus, KeyValue
 
 NODE_NAME = 'bdetect'
 DETECTOR_SOLVE_HZ = 1.0 # Hz
@@ -31,11 +32,17 @@ class SensorState(TypedDict):
     C_block: np.ndarray
     data: Optional[Any]
     extract_measurements_fn: Callable[[Any], np.ndarray]
+    lock: Lock
 
 class InputState(TypedDict):
     config: InputConfig
     data: Optional[Any]
     extract_input_fn: Callable[[Any,np.ndarray], None]
+    lock: Lock
+
+class Diagnostics(TypedDict):
+    update_loop: DiagnosticStatus
+    solve_loop: DiagnosticStatus
 
 class State(TypedDict):
     estimate: Optional[Odometry]
@@ -44,9 +51,11 @@ class State(TypedDict):
     sensors: List[SensorState]
     inputs: List[InputState]
     detector_data: Optional[DetectorData]
+    detector_data_lock: Lock
     sensor_validity_pub: Optional[rospy.Publisher]
-    detector_data_for_solving: Optional[DetectorData]
-    is_solving: bool
+    diagnostics: Diagnostics
+    diagnostics_pub: Optional[rospy.Publisher]
+    diagnostics_lock: Lock
 
 state: State = {
     'estimate': None,
@@ -55,9 +64,14 @@ state: State = {
     'sensors': [],
     'inputs': [],
     'detector_data': None,
+    'detector_data_lock': Lock(),
     'sensor_validity_pub': None,
-    'detector_data_for_solving': None,
-    'is_solving': False,
+    'diagnostics': {
+        'update_loop': DiagnosticStatus(),
+        'solve_loop': DiagnosticStatus(),
+    },
+    'diagnostics_pub': None,
+    'diagnostics_lock': Lock(),
 }
 
 def odom_callback(estimate: Odometry):
@@ -116,11 +130,12 @@ def preprocess_sensor(model_type: ModelType, sensor_config: SensorConfig):
 
         return C_block @ partial_state
 
-    ss = SensorState(config=sensor_config, C_block=C_block, data=None, extract_measurements_fn=extract_measurements)
-    state['sensors'].append(ss)
+    s = SensorState(config=sensor_config, C_block=C_block, data=None, extract_measurements_fn=extract_measurements, lock=Lock())
+    state['sensors'].append(s)
 
     def sensor_callback(sensor_msg):
-        ss['data'] = sensor_msg
+        with s['lock']:
+            s['data'] = sensor_msg
 
     return data_class, sensor_callback
 
@@ -147,11 +162,12 @@ def preprocess_input(model_type: ModelType, input_config: InputConfig):
             input_idx = model_inputs.index(input)
             input_arr[input_idx] = extracted_input[input_idx]
 
-    ss = InputState(config=input_config, data=None, extract_input_fn=extract_input)
-    state['inputs'].append(ss)
+    s = InputState(config=input_config, data=None, extract_input_fn=extract_input, lock=Lock())
+    state['inputs'].append(s)
 
     def input_callback(input_msg):
-        ss['data'] = input_msg
+        with s['lock']:
+            s['data'] = input_msg
 
     return data_class, input_callback
 
@@ -192,8 +208,8 @@ def create_subscriptions(config: ModelConfig):
 
 # There should be a few loops here:
 # - [x] One loop for each sensor to subscribe to topics and write the latest message to the state
-# - [ ] One loop for each control input to the plant
-# - [ ] One loop running at the detector's update frequency to gather data and construct the C, Y, and U matrices
+# - [x] One loop for each control input to the plant
+# - [x] One loop running at the detector's update frequency to gather data and construct the C, Y, and U matrices
         # TODO: Append C_block to C
         # TODO: Append data from sensor_msg to Y
         # TODO: Append metadata (which sensor) to metadata
@@ -204,12 +220,21 @@ def has_valid_data(sensor: SensorState):
 
 def update_loop(event: rospy.timer.TimerEvent):
     """
-    The detector loop has 2 stages:
-    1. Update: Gather data from the sensors and construct the C, Y, and U matrices
-    2. Solve: Solve the optimization problem
+    Gather data from the sensors for the C, Y, and U matrices
     """
-    rospy.logdebug(f"update_loop {event.last_duration=}")
     assert state['detector_data'] is not None, "Detector data should be initialized before the loop starts"
+
+    # Populate the diagnostics message
+    diag_msg = DiagnosticStatus()
+    diag_msg.name = "Detector Update Loop"
+    diag_msg.level = DiagnosticStatus.OK
+    diag_msg.message = ""
+    diag_msg.values = []
+    add_timer_event_to_diag_status(diag_msg, event)
+
+    if event.last_duration and event.last_duration > state['detector_data']['config']['dt']:
+        diag_msg.level = max(DiagnosticStatus.WARN, diag_msg.level)
+        diag_msg.message += "Last update loop took longer than the update period\n"
 
     N = state['detector_data']['config']['N']
     C_blocks = []
@@ -220,65 +245,120 @@ def update_loop(event: rospy.timer.TimerEvent):
     inputs_present = []
 
     for sensor in state['sensors']:
-        if sensor['data'] is None:
+        with sensor['lock']:
+            C_block = sensor['C_block']
+            extract_measurements_fn = sensor['extract_measurements_fn']
+            config = sensor['config']
+            data = sensor['data']
+            sensor['data'] = None # clear the data after reading it
+
+        diag_msg.values.append(KeyValue(key=f"{config['topic']} has data", value=str(data is not None)))
+
+        if data is None:
             continue
 
-        C_block = sensor['C_block']
-        sensor_measurements = sensor['extract_measurements_fn'](sensor['data'])
+        # TODO check data age
+
+        sensor_measurements = extract_measurements_fn(data)
 
         C_blocks.append(C_block)
         Y_blocks.append(sensor_measurements)
 
-        sensors_present.append(sensor['config'])
+        sensors_present.append(config)
     
     for input in state['inputs']:
-        if input['data'] is None:
+        with input['lock']:
+            config = input['config']
+            extract_input_fn = input['extract_input_fn']
+            data = input['data']
+            input['data'] = None # clear the data after reading it
+
+        diag_msg.values.append(KeyValue(key=f"{config['topic']} has data", value=str(data is not None)))
+
+        if data is None:
             rospy.logerror(f"Input {input['config']['topic']} has no data. Skipping this iteration.")
             continue
 
-        input['extract_input_fn'](input['data'], u)
+        # TODO check data age
 
-        inputs_present.append(input['config'])
+        extract_input_fn(data, u)
 
-    state['detector_data']['C'].append(np.vstack(C_blocks))
-    state['detector_data']['Y'].append(np.hstack(Y_blocks).T)
-    state['detector_data']['U'].append(u)
-    state['detector_data']['sensors_present'].append(sensors_present)
-    state['detector_data']['inputs_present'].append(inputs_present)
+        inputs_present.append(config)
 
-    # trim the data to the horizon length
-    state['detector_data']['C'] = state['detector_data']['C'][-N:]
-    state['detector_data']['Y'] = state['detector_data']['Y'][-N:]
-    state['detector_data']['U'] = state['detector_data']['U'][-N:]
-    state['detector_data']['sensors_present'] = state['detector_data']['sensors_present'][-N:]
-    state['detector_data']['inputs_present'] = state['detector_data']['inputs_present'][-N:]
+    with state['detector_data_lock']:
+        state['detector_data']['C'].append(np.vstack(C_blocks))
+        state['detector_data']['Y'].append(np.hstack(Y_blocks).T)
+        state['detector_data']['U'].append(u)
+        state['detector_data']['sensors_present'].append(sensors_present)
+        state['detector_data']['inputs_present'].append(inputs_present)
 
-    with state['lock']:
-        if len(state['detector_data']['C']) >= N and not state['is_solving']:
-            # Push the data to the solve loop
-            state['detector_data_for_solving'] = deepcopy(state['detector_data'])
+        # trim the data to the horizon length
+        state['detector_data']['C'] = state['detector_data']['C'][-N:]
+        state['detector_data']['Y'] = state['detector_data']['Y'][-N:]
+        state['detector_data']['U'] = state['detector_data']['U'][-N:]
+        state['detector_data']['sensors_present'] = state['detector_data']['sensors_present'][-N:]
+        state['detector_data']['inputs_present'] = state['detector_data']['inputs_present'][-N:]
+
+    if diag_msg.message == "":
+        diag_msg.message = "ok"
+
+    with state['diagnostics_lock']:
+        state['diagnostics']['update_loop'] = diag_msg
 
     # TODO: Publish the current sensor pass/fail status
 
 def solve_loop(event: rospy.timer.TimerEvent):
     """
-    Solves the optimization problem and publishes the results.
+    Solve the optimization problem to determine whether each sensor is corrupted.
     """
-    with state['lock']:
-        assert not state['is_solving'], "A solve loop is already running"
-        detector_data = state['detector_data_for_solving']
-        state['detector_data_for_solving'] = None # clear the state after we have a reference to the data
-        if not detector_data:
-            return
-        state['is_solving'] = True
+    assert state['detector_data'] is not None, "Detector data should be initialized before the loop starts"
 
-    rospy.logwarn("Solving... ====================================================")
-    sleep(2)
-    rospy.logwarn("Solved! ==========================================================")
+    # Populate the diagnostics message
+    diag_msg = DiagnosticStatus()
+    diag_msg.name = "Detector Solve Loop"
+    diag_msg.level = DiagnosticStatus.OK
+    diag_msg.message = ""
+    diag_msg.values = []
+    add_timer_event_to_diag_status(diag_msg, event)
 
-    with state['lock']:
-        assert state['is_solving'], "The solve loop should be running"
-        state['is_solving'] = False
+    if event.last_duration and event.last_duration > DETECTOR_SOLVE_PERIOD:
+        diag_msg.level = max(DiagnosticStatus.WARN, diag_msg.level)
+        diag_msg.message += "Last update loop took longer than the update period\n"
+
+    with state['detector_data_lock']:
+        detector_data = deepcopy(state['detector_data'])
+
+    if len(detector_data['C']) < detector_data['config']['N']:
+        diag_msg.message += "Waiting for sufficient data\n"
+        with state['diagnostics_lock']:
+            state['diagnostics']['solve_loop'] = diag_msg
+        rospy.info("Waiting for sufficient data in the solve loop")
+        return
+
+    sleep(0.9)
+
+    if diag_msg.message == "":
+        diag_msg.message = "ok"
+
+    with state['diagnostics_lock']:
+        state['diagnostics']['solve_loop'] = diag_msg
+
+def diagnostics_loop(event: rospy.timer.TimerEvent):
+    """
+    Publish the diagnostics messages
+    """
+    assert state['diagnostics_pub'] is not None, "Diagnostics publisher should be initialized before the loop starts"
+
+    diagarr_msg = DiagnosticArray()
+    diagarr_msg.header.stamp = rospy.Time.now()
+
+    for key, diag in state['diagnostics'].items():
+        with state['diagnostics_lock']:
+            if diag is not None:
+                diagarr_msg.status.append(diag)
+                state['diagnostics'][key] = None
+
+    state['diagnostics_pub'].publish(diagarr_msg)
 
 def main():
     # Initialize the node
@@ -291,6 +371,7 @@ def main():
     rospy.Subscriber('/bplan/path', PoseArray, planner_path_callback)
 
     state['sensor_validity_pub'] = rospy.Publisher('/bdetect/sensor_validity', UInt8MultiArray, queue_size=1)
+    state['diagnostics_pub'] = rospy.Publisher('/diagnostics', DiagnosticArray, queue_size=10)
 
     # Load the configuration and check its type
     config: ModelConfig = typeguard.check_type(rospy.get_param('~bdetect'), ModelConfig)
@@ -304,8 +385,14 @@ def main():
     # Wait for a few seconds for the upstream nodes to start
     sleep(3)
 
+    # The detector loop has 2 stages:
+    # 1. Update: Gather data from the sensors and construct the C, Y, and U matrices
     rospy.Timer(rospy.Duration(config['dt']), update_loop)
+    # 2. Solve: Solve the optimization problem
     rospy.Timer(rospy.Duration(DETECTOR_SOLVE_PERIOD), solve_loop)
+
+    # Publish the diagnostics messages
+    rospy.Timer(rospy.Duration(min(config['dt'], DETECTOR_SOLVE_PERIOD)), diagnostics_loop)
 
     rospy.spin()
 

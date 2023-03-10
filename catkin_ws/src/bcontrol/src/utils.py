@@ -11,6 +11,8 @@ from typing import List, Tuple, Union, Any
 import typeguard as _typeguard
 from typeguard import checker_lookup_functions, TypeCheckerCallable, TypeCheckMemo, TypeCheckError
 from enum import Enum
+from diagnostic_msgs.msg import DiagnosticStatus, KeyValue
+import rospy
 
 @dataclass
 class PathPoint:
@@ -623,6 +625,13 @@ def deep_getattr(obj, attr):
     for i in attributes:
         obj = getattr(obj, i)
     return obj
+
+def add_timer_event_to_diag_status(diag_msg: DiagnosticStatus, event: rospy.timer.TimerEvent):
+    """
+    Add all event attributes to the diagnostic status message.
+    """
+    for k, v in [(a, getattr(event, a)) for a in dir(event) if not a.startswith('__')]:
+        diag_msg.values.append(KeyValue(key=f"event.{k}", value=str(v)))
 
 if __name__ == "__main__":
     test_wrap_angle()
