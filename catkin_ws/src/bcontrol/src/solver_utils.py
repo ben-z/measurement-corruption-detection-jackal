@@ -71,6 +71,6 @@ def optimize_l1(n, q, N, Phi, Y):
 
     # Form and solve problem.
     prob = cp.Problem(obj)
-    prob.solve(verbose=True)  # Returns the optimal value.
+    prob.solve(verbose=False)  # Returns the optimal value.
 
     return (prob, x0_hat)

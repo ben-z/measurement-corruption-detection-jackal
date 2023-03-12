@@ -1,6 +1,34 @@
 <launch>
   <!-- Launch a static transform from map to odom -->
-  <node pkg="tf2_ros" type="static_transform_publisher" name="map_to_odom" args="0 0 0 0 0 0 map odom"/>
+  <!-- <node pkg="tf2_ros" type="static_transform_publisher" name="map_to_odom" args="0 0 0 0 0 0 map odom"/> -->
+
+  <!-- Launch a utm_odometry_node to transform GPS to odom -->
+  <!-- <node pkg="gps_common" type="utm_odometry_node" name="utm_odometry_node" output="screen" required="true">
+    <remap from="fix" to="/navsat/fix"/>
+    <remap from="odom" to="/odom/gps"/>
+    <param name="frame_id" value="map"/>
+    <param name="child_frame_id" value="base_link"/>
+    <param name="offset_x" value="-492818.44" />
+    <param name="offset_y" value="-5527517.14" />
+    <param name="offset_z" value="-0.06" />
+  </node> -->
+
+  <!-- EKF (global) -->
+  <!-- <node pkg="robot_localization" type="ekf_localization_node" name="ekf_localization_global" required="true">
+    <rosparam command="load" file="$(find bcontrol)/config/robot_localization.global.yaml" />
+    <remap from="odometry/filtered" to="/odometry/global_filtered" />
+  </node> -->
+
+  <!--
+    Directly transform global measurements to tf (no filtering).
+    This can produce jumps in the map->odom transform when the global measurements are updated.
+    /gazebo/odom_global is published by the ros_p3d Gazebo plugin. The publish frequency is set
+    in the plugin configuration.
+  -->
+  <node name="map_to_odom_publisher" pkg="map_to_odom_publisher" type="map_to_odom_publisher" output="screen">
+    <param name="odom_topic" value="/gazebo/odom_global"/>
+    <param name="publish_frequency" value="50"/>
+  </node>
 
   <!-- Simulator -->
   <include file="$(find jackal_gazebo)/launch/jackal_world.launch">

@@ -48,6 +48,7 @@ def odom_callback(odom_msg: Odometry):
         rospy.logerr("No transform listener available. Cannot transform the odometry message to the odom frame.")
         return
 
+    # TODO: transform the path into the odom frame instead.
     # Transform the odometry message to the map frame
     try: 
         odom_msg_map = transform_frames.odom_transform(odom_msg, target_frame="map")
@@ -149,7 +150,7 @@ def main():
     rospy.loginfo(f"Node {NODE_NAME} started. Ctrl-C to stop.")
 
     # Define subscribers and publishers
-    rospy.Subscriber('/odometry/filtered', Odometry, odom_callback)
+    rospy.Subscriber('/odometry/local_filtered', Odometry, odom_callback)
     rospy.Subscriber('/bplan/path', PoseArray, planner_path_callback)
     cmd_vel_pub = rospy.Publisher('/cmd_vel', Twist, queue_size=1)
     lookahead_pub = rospy.Publisher('/bcontrol/lookahead', PoseArray, queue_size=1)

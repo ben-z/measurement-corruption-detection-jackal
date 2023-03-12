@@ -15,3 +15,5 @@ function source_devel() {
 function devsetup() { cd /workspace/catkin_ws && source_devel; }
 
 alias ds='devsetup'
+
+export ROSCONSOLE_FORMAT='[${severity}] - ${node}: [${time}] ${message}'

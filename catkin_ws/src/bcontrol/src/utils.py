@@ -633,8 +633,7 @@ def add_timer_event_to_diag_status(diag_msg: DiagnosticStatus, event: rospy.time
     for k, v in [(a, getattr(event, a)) for a in dir(event) if not a.startswith('__')]:
         diag_msg.values.append(KeyValue(key=f"event.{k}", value=str(v)))
 
-def wrap_to_pi(x):
-    return (x + np.pi) % (2 * np.pi) - np.pi
+flatten = lambda l: [item for sublist in l for item in sublist]
 
 if __name__ == "__main__":
     test_wrap_angle()

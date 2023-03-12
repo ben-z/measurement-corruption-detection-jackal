@@ -6,6 +6,7 @@ from nav_msgs.msg import Odometry
 from sensor_msgs.msg import Imu
 from geometry_msgs.msg import Quaternion, AccelStamped
 from tf.transformations import euler_from_quaternion
+from utils import flatten
 
 # Value for states/inputs that are not measured
 UNMEASURED = 0
@@ -35,6 +36,14 @@ class KinematicBicycleStates(str, Enum):
 class KinematicBicycleInputs(str, Enum):
     ACCELERATION = "ACCELERATION"
     STEERING_ANGLE_VELOCITY = "STEERING_ANGLE_VELOCITY"
+
+def get_model_angular_states(model_type: ModelType) -> List[Union[DifferentialDriveStates, KinematicBicycleStates]]:
+    if model_type == ModelType.DIFFERENTIAL_DRIVE:
+        return [DifferentialDriveStates.ORIENTATION, DifferentialDriveStates.ANGULAR_VELOCITY]
+    elif model_type == ModelType.KINEMATIC_BICYCLE:
+        return [KinematicBicycleStates.ORIENTATION, KinematicBicycleStates.STEERING_ANGLE]
+    else:
+        raise Exception(f"Unknown model type {model_type}")
 
 def linearize_model(model_type: ModelType, state: np.ndarray, input: np.ndarray, dt: float):
     if model_type == ModelType.DIFFERENTIAL_DRIVE:
@@ -197,3 +206,11 @@ class DetectorData(TypedDict):
     # sensors and inputs are lists of lists, where the outer list is the time
     sensors_present: List[List[SensorConfig]]
     inputs_present: List[List[InputConfig]]
+
+def get_all_measured_states(sensors: List[SensorConfig]):
+    return list(flatten([sensor["measured_states"] for sensor in sensors]))
+
+def get_angular_mask(model_type: ModelType, states: List[MODEL_STATE]):
+    angular_states = get_model_angular_states(model_type)
+
+    return np.array([state in angular_states for state in states])

@@ -10,3 +10,9 @@
 [submodule "catkin_ws/src/diff_drive_controller"]
 	path = catkin_ws/src/diff_drive_controller
 	url = git@github.com:ben-z/diff_drive_controller.git
+[submodule "catkin_ws/src/gps_common"]
+	path = catkin_ws/src/gps_common
+	url = git@github.com:ben-z/gps_common.git
+[submodule "catkin_ws/src/jackal_description"]
+	path = catkin_ws/src/jackal_description
+	url = git@github.com:ben-z/jackal_description.git

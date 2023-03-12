@@ -139,6 +139,9 @@ VGL_DISPLAY=egl0 DISPLAY=:1.0 ENABLE_EKF=false vglrun roslaunch bcontrol sim.lau
 VGL_DISPLAY=egl0 DISPLAY=:1.0 vglrun roslaunch bcontrol visualization.launch
 # Launch the stack
 roslaunch bcontrol stack.launch platform:=sim
+# Or launch the stack and detector separately
+roslaunch bcontrol stack.launch platform:=sim enable_detector:=false
+roslaunch bcontrol detector.launch platform:=sim
 ```
 
 `VGL_DISPLAY=egl0` is used to tell VirtualGL to use the first EGL device. Each EGL device corresponds to a `/dev/dri/card*` device.
@@ -161,7 +164,7 @@ A graph of nodes and topics (in simulation):
 
 View the graph with `rosrun rqt_graph rqt_graph`.
 
-View the tf tree with `rosrun rqt_tf_tree rqt_tf_tree`. Or `rosrun tf2_tools view_frames`.
+View the tf tree with `rosrun rqt_tf_tree rqt_tf_tree`. Or `rosrun tf2_tools view_frames.py`.
 
 ### Robot
 

@@ -1,0 +1,11 @@
+<launch>
+  <arg name="platform" doc="The environment of the launch site. `sim` or `robot`" />
+  <group unless="$(eval arg('platform') in ['sim', 'robot'])">
+    <node pkg="bcontrol" type="terminate.py" name="terminate" output="screen" args="'Invalid argument: platform'" required="true" />
+  </group>
+
+  <node pkg="bcontrol" type="detector.py" name="bdetect_node" output="screen">
+    <rosparam command="load" file="$(find bcontrol)/config/bdetect.sim.yaml" if="$(eval arg('platform') == 'sim')" />
+    <rosparam command="load" file="$(find bcontrol)/config/bdetect.robot.yaml" if="$(eval arg('platform') == 'robot')" />
+  </node>
+</launch>
