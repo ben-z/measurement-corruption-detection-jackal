@@ -1,8 +1,20 @@
 <launch>
-  <!-- Launch a static transform from map to odom -->
+  <!-- 
+    There are a few ways to feed global measurements to the system. Below will be a few methods and only one should be uncommented at a time.
+  -->
+
+  <!--
+    Method: static transform. This is the simplest method and just assumes that the local odometry is correct.
+  -->
   <!-- <node pkg="tf2_ros" type="static_transform_publisher" name="map_to_odom" args="0 0 0 0 0 0 map odom"/> -->
 
-  <!-- Launch a utm_odometry_node to transform GPS to odom -->
+  <!--
+    Method: simulated GPS. This method uses the GPS plugin in Gazebo to simulate GPS measurements.
+    The jackal.gazebo file in jackal_description by default has the GPS plugin enabled.
+
+    Launch a utm_odometry_node to transform GPS to odom and then an ekf_localization_node to fuse the GPS measurements. This method is currently broken, and should use the navsat_transform_node instead:
+    http://docs.ros.org/en/melodic/api/robot_localization/html/integrating_gps.html
+  -->
   <!-- <node pkg="gps_common" type="utm_odometry_node" name="utm_odometry_node" output="screen" required="true">
     <remap from="fix" to="/navsat/fix"/>
     <remap from="odom" to="/odom/gps"/>
@@ -11,15 +23,16 @@
     <param name="offset_x" value="-492818.44" />
     <param name="offset_y" value="-5527517.14" />
     <param name="offset_z" value="-0.06" />
-  </node> -->
-
-  <!-- EKF (global) -->
-  <!-- <node pkg="robot_localization" type="ekf_localization_node" name="ekf_localization_global" required="true">
+  </node>
+  <node pkg="robot_localization" type="ekf_localization_node" name="ekf_localization_global" required="true">
     <rosparam command="load" file="$(find bcontrol)/config/robot_localization.global.yaml" />
     <remap from="odometry/filtered" to="/odometry/global_filtered" />
   </node> -->
 
   <!--
+    Method: ros_p3d. This method uses the ros_p3d Gazebo plugin to publish global measurements in
+    cartesian coordinates.
+
     Directly transform global measurements to tf (no filtering).
     This can produce jumps in the map->odom transform when the global measurements are updated.
     /gazebo/odom_global is published by the ros_p3d Gazebo plugin. The publish frequency is set
