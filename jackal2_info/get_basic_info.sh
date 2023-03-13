@@ -15,4 +15,6 @@ rosversion -d > rosversion.log
 rostopic list > rostopic-list.log
 rosnode list > rosnode-list.log
 
+tar -czf robohub-config-$(hostname).tar.gz /etc/ros/melodic $HOME/catkin_ws /usr/sbin/ros-start /usr/sbin/ros-stop
+
 echo "Done!"

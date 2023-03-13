@@ -22,4 +22,5 @@ services:
     user: "${FIXUID:?}:${FIXGID:?}"
     volumes:
       - .:/workspace
+      - /dev/jackal:/dev/jackal
     network_mode: "host"

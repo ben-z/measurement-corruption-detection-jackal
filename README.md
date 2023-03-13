@@ -90,8 +90,8 @@ Running the stack on the robot:
 ```bash
 docker compose up -d --build robot
 docker compose exec robot bash
-cd catkin_ws
-rosdep install --from-paths src --ignore-src -r -y
+devsetup
+rosdep_install_all
 catkin build
 source ./devel/setup.bash
 roslaunch bcontrol robot.launch

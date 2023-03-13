@@ -27,7 +27,7 @@ RUN curl -s https://packages.clearpathrobotics.com/public.key | apt-key add - \
 
 # Install Jackal packages
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    ros-noetic-jackal-simulator ros-noetic-jackal-navigation
+    ros-noetic-jackal-simulator ros-noetic-jackal-navigation ros-noetic-jackal-robot
 
 # Install development tools
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -95,7 +95,7 @@ RUN curl -s https://packages.clearpathrobotics.com/public.key | apt-key add - \
 
 # Install Jackal packages
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    ros-noetic-jackal-simulator ros-noetic-jackal-navigation ros-noetic-jackal-desktop
+    ros-noetic-jackal-simulator ros-noetic-jackal-navigation ros-noetic-jackal-desktop ros-noetic-jackal-base
 
 # Install velodyne packages
 RUN apt-get update && apt-get install -y --no-install-recommends \
