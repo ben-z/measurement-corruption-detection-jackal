@@ -252,3 +252,9 @@ sudo apt install linuxptp
 ethtool -T <interface> # check if the interface supports hardware timestamping
 ptp4l -i <interface> -m -S # -i is the interface to use, -m outputs messages to stdout, -S uses software timestamping
 ```
+
+#### Wireless card no-carrier
+
+This happened on 2023-03-13 on Jackal2 in the robohub. The wireless card appears to be missing (no-carrier in `ip a`, link detected: no in `ethtool`) but shows up in `sudo lspci -vvv | grep -i -A 44 wireless` and `lshw -C network`.
+
+I had to run `sudo modprobe -r iwlwifi && sudo modprobe iwlwifi` every time after startup now to recover the wifi connection.
