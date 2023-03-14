@@ -3,6 +3,11 @@
 
   <arg name="launch_vicon" default="true" />
 
+  <include file="$(find brobohub)/launch/base.launch">
+    <arg name="config" value="brobohub_um7" />
+  </include>
+  <include file="$(find brobohub)/launch/um7.launch"/>
+
   <!-- VICON (for positioning) -->
   <!--
     FIXME: Could revert to the RoboHub vicon repo and replace max_publish_frequency

@@ -1,0 +1,12 @@
+<!-- This file is derived from ~/catkin_ws/src/wat65_jackal/urdf/jackal_description.urdf.xacro on jackal2 in robohub -->
+<robot>
+  <link name="um7">
+    <origin xyz="0 0 0" rpy="0 0 0"/>
+  </link>
+  
+  <joint name="um7_sensor_joint" type="fixed">
+    <parent link="rear_mount" />
+    <child link="um7" />
+    <origin xyz="0 0 0.005" rpy="3.14159 0 -1.570796" />
+  </joint>
+</robot>

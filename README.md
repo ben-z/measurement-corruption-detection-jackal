@@ -88,13 +88,14 @@ DISPLAY=:0 roslaunch bcontrol visualization.launch
 Running the stack on the robot:
 
 ```bash
+ros-stop # Stop the default stack. We have our own end-to-end stack.
 docker compose up -d --build robot
 docker compose exec robot bash
 devsetup
 rosdep_install_all
 catkin build
 source ./devel/setup.bash
-roslaunch bcontrol robot.launch
+ENABLE_EKF=false roslaunch bcontrol robot.launch
 roslaunch bcontrol stack.launch platform:=robot
 ```
 

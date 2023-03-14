@@ -22,5 +22,8 @@ services:
     user: "${FIXUID:?}:${FIXGID:?}"
     volumes:
       - .:/workspace
+    devices:
       - /dev/jackal:/dev/jackal
+      - /dev/input/ps4:/dev/input/ps4
+      - /dev/clearpath/um7:/dev/clearpath/um7
     network_mode: "host"
