@@ -22,7 +22,7 @@ NODE_NAME = 'bdetect'
 DETECTOR_SOLVE_HZ = 1.0 # Hz
 DETECTOR_SOLVE_PERIOD = 1.0 / DETECTOR_SOLVE_HZ # seconds
 
-np.set_printoptions(precision=4,suppress=True)
+np.set_printoptions(precision=4, suppress=True, linewidth=200)
 
 # TODO: Implement the detector
 # Inputs: odom from IMU, x, y, orientation from GPS, path from the planner
@@ -260,8 +260,8 @@ def update_loop(event: rospy.timer.TimerEvent):
 
         if data is None:
             # If there's no data, then the measurement matrix is all zeros
-            C_block = np.zero_like(C_block)
-            sensor_measurements = np.zeros((len(config['measured_states']), 1))
+            C_block = np.zeros_like(C_block)
+            sensor_measurements = np.zeros(len(config['measured_states']))
         else:
             # TODO check data age
             sensor_measurements = extract_measurements_fn(data)
@@ -280,7 +280,7 @@ def update_loop(event: rospy.timer.TimerEvent):
         diag_msg.values.append(KeyValue(key=f"{config['topic']} has data", value=str(data is not None)))
 
         if data is None:
-            rospy.logerror(f"Input {input['config']['topic']} has no data. Skipping this iteration.")
+            rospy.logerr(f"Input {input['config']['topic']} has no data. Skipping this iteration.")
             continue
 
         # TODO check data age
@@ -294,7 +294,7 @@ def update_loop(event: rospy.timer.TimerEvent):
         estimate = state['estimate']
 
     if not sensors_present or not inputs_present or estimate is None:
-        rospy.logerror(f"Not enough data is available for an update loop. {len(sensors_present)=}, {len(inputs_present)=}, {estimate=}")
+        rospy.logerr(f"Not enough data is available for an update loop. {len(sensors_present)=}, {len(inputs_present)=}, {estimate=}")
 
         diag_msg.level = max(DiagnosticStatus.ERROR, diag_msg.level)
         diag_msg.message += "Not enough data is available to update the detector\n"
@@ -453,7 +453,8 @@ def main():
     rospy.loginfo(f"Node {NODE_NAME} started. Ctrl-C to stop.")
 
     # Use the current estimate of the robot's state and the planned path for linearization
-    rospy.Subscriber('/odometry/filtered', Odometry, odom_callback)
+    # TODO: add a parameter "solve_frame" to specify the frame to which all messages should be converted to.
+    rospy.Subscriber('/odometry/local_filtered', Odometry, odom_callback)
     rospy.Subscriber('/bplan/path', PoseArray, planner_path_callback)
 
     state['sensor_validity_pub'] = rospy.Publisher('/bdetect/sensor_validity', UInt8MultiArray, queue_size=1)

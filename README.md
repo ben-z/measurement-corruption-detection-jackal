@@ -140,7 +140,9 @@ VGL_DISPLAY=egl0 DISPLAY=:1.0 vglrun roslaunch bcontrol visualization.launch
 roslaunch bcontrol stack.launch platform:=sim
 # Or launch the stack and detector separately
 roslaunch bcontrol stack.launch platform:=sim enable_detector:=false
-roslaunch bcontrol detector.launch platform:=sim
+roslaunch bcontrol detector.launch platform:=sim # or
+roslaunch bcontrol detector.launch platform:=sim debug:=true # for interactive debugging
+```
 ```
 
 `VGL_DISPLAY=egl0` is used to tell VirtualGL to use the first EGL device. Each EGL device corresponds to a `/dev/dri/card*` device.

@@ -14,6 +14,7 @@ services:
     ports:
       - "15900:5900" # VMC
       - "18765:8765" # Foxglove
+      - "5678:5678" # Debugpy
   robot:
     build:
       context: .
