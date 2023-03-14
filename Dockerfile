@@ -29,6 +29,12 @@ RUN curl -s https://packages.clearpathrobotics.com/public.key | apt-key add - \
 RUN apt-get update && apt-get install -y --no-install-recommends \
     ros-noetic-jackal-simulator ros-noetic-jackal-navigation ros-noetic-jackal-robot
 
+# Install packages required by our stack. This can be done using rosdep, but pre-installing
+# them here speeds up the build process.
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    ros-noetic-serial ros-noetic-um7 ros-noetic-hector-localization \
+    ros-noetic-ros-numpy
+
 # Install development tools
 RUN apt-get update && apt-get install -y --no-install-recommends \
     python3-catkin-tools python3-rosdep tmux ros-noetic-foxglove-bridge \
@@ -95,7 +101,14 @@ RUN curl -s https://packages.clearpathrobotics.com/public.key | apt-key add - \
 
 # Install Jackal packages
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    ros-noetic-jackal-simulator ros-noetic-jackal-navigation ros-noetic-jackal-desktop ros-noetic-jackal-base
+    ros-noetic-jackal-simulator ros-noetic-jackal-navigation \
+    ros-noetic-jackal-desktop ros-noetic-jackal-base
+    
+# Install packages required by our stack. This can be done using rosdep, but pre-installing
+# them here speeds up the build process.
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    ros-noetic-serial ros-noetic-um7 ros-noetic-hector-localization \
+    ros-noetic-ros-numpy
 
 # Install velodyne packages
 RUN apt-get update && apt-get install -y --no-install-recommends \
