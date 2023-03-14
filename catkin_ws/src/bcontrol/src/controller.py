@@ -149,16 +149,21 @@ def main():
 
     rospy.loginfo(f"Node {NODE_NAME} started. Ctrl-C to stop.")
 
+    state["transform_frames"] = TransformFrames()
+
+    # Wait for a few seconds for the upstream nodes to start
+    sleep(3)
+
     # Define subscribers and publishers
     rospy.Subscriber('/odometry/local_filtered', Odometry, odom_callback)
     rospy.Subscriber('/bplan/path', PoseArray, planner_path_callback)
     cmd_vel_pub = rospy.Publisher('/cmd_vel', Twist, queue_size=1)
     lookahead_pub = rospy.Publisher('/bcontrol/lookahead', PoseArray, queue_size=1)
 
-    state["transform_frames"] = TransformFrames()
-
-    # Wait for a few seconds for the upstream nodes to start
-    sleep(3)
+    # Wait for a few seconds for data to start coming in
+    # This is not required and is only for reducing warnings
+    # at startup
+    sleep(1)
 
     # Set a rate for the publisher
     rate = rospy.Rate(CONTROLLER_HZ)

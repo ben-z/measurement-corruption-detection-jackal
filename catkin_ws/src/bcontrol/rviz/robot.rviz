@@ -6,7 +6,7 @@ Panels:
       Expanded:
         - /Global Options1
         - /RobotModel1/Links1
-        - /TF1/Frames1
+        - /TF1/Frames1/map1/Position1
         - /TF1/Tree1
         - /Odometry (Local, Filtered)1/Shape1
         - /Odometry (Global, Filtered)1/Shape1
@@ -89,7 +89,7 @@ Visualization Manager:
         imu_link:
           Value: false
         map:
-          Value: false
+          Value: true
         mid_mount:
           Value: false
         navsat_link:
@@ -367,5 +367,5 @@ Window Geometry:
   Views:
     collapsed: false
   Width: 1440
-  X: -1
-  Y: -20
+  X: -2
+  Y: -40

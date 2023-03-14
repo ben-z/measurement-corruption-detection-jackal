@@ -6,10 +6,10 @@
   <arg name="enable_detector" default="true" doc="Enable the detector node" />
 
   <!-- Launch the controller -->
-  <node pkg="bcontrol" type="controller.py" name="bcontrol_node" output="screen"/>
+  <node pkg="bcontrol" type="controller.py" name="bcontrol_node" output="log"/>
 
   <!-- Launch the planner -->
-  <node pkg="bcontrol" type="planner.py" name="bplan_node" output="screen"/>
+  <node pkg="bcontrol" type="planner.py" name="bplan_node" output="log"/>
 
   <!-- Launch the detector -->
   <include file="$(find bcontrol)/launch/detector.launch" if="$(eval arg('enable_detector'))">
@@ -24,7 +24,7 @@
 
     More info: https://discourse.ros.org/t/map-base-odom-as-alternative-for-rep-105-recommended-frame-order/25095
   -->
-  <node name="map_to_odom_publisher" pkg="map_to_odom_publisher" type="map_to_odom_publisher" output="screen">
+  <node name="map_to_odom_publisher" pkg="map_to_odom_publisher" type="map_to_odom_publisher" output="log">
     <param name="odom_topic" value="/global_localization/robot/odom"/>
     <param name="publish_frequency" value="50"/>
   </node>
