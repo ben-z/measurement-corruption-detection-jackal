@@ -32,7 +32,7 @@ jackal2
           bus info: cpu@0
           version: Intel(R) Core(TM) i5-4570TE CPU @ 2.70GHz
           slot: SOCKET 0
-          size: 3117MHz
+          size: 3044MHz
           capacity: 3800MHz
           width: 64 bits
           clock: 100MHz
@@ -123,7 +123,7 @@ jackal2
              clock: 33MHz
              capabilities: msi pm vga_controller bus_master cap_list rom
              configuration: driver=i915 latency=0
-             resources: irq:39 memory:f7800000-f7bfffff memory:e0000000-efffffff ioport:f000(size=64) memory:c0000-dffff
+             resources: irq:40 memory:f7800000-f7bfffff memory:e0000000-efffffff ioport:f000(size=64) memory:c0000-dffff
         *-multimedia:0
              description: Audio device
              product: Xeon E3-1200 v3/4th Gen Core Processor HD Audio Controller
@@ -247,11 +247,12 @@ jackal2
              logical name: eno1
              version: 05
              serial: c4:00:ad:31:43:26
+             size: 1Gbit/s
              capacity: 1Gbit/s
              width: 32 bits
              clock: 33MHz
              capabilities: pm msi bus_master cap_list ethernet physical tp 10bt 10bt-fd 100bt 100bt-fd 1000bt-fd autonegotiation
-             configuration: autonegotiation=on broadcast=yes driver=e1000e driverversion=3.2.6-k firmware=0.13-4 latency=0 link=no multicast=yes port=twisted pair
+             configuration: autonegotiation=on broadcast=yes driver=e1000e driverversion=3.2.6-k duplex=full firmware=0.13-4 ip=169.254.198.248 latency=0 link=yes multicast=yes port=twisted pair speed=1Gbit/s
              resources: irq:30 memory:f7e00000-f7e1ffff memory:f7e3d000-f7e3dfff ioport:f080(size=32)
         *-usb:1
              description: USB controller
@@ -293,7 +294,7 @@ jackal2
              clock: 33MHz
              capabilities: pm msi pciexpress bus_master cap_list
              configuration: driver=snd_hda_intel latency=0
-             resources: irq:38 memory:f7e30000-f7e33fff
+             resources: irq:39 memory:f7e30000-f7e33fff
         *-pci:0
              description: PCI bridge
              product: 8 Series/C220 Series Chipset Family PCI Express Root Port #1
@@ -331,7 +332,7 @@ jackal2
                 clock: 33MHz
                 capabilities: pm msi pciexpress bus_master cap_list ethernet physical wireless
                 configuration: broadcast=yes driver=iwlwifi driverversion=5.4.0-122-lowlatency firmware=17.948900127.0 ip=129.97.71.37 latency=0 link=yes multicast=yes wireless=IEEE 802.11
-                resources: irq:40 memory:f7d00000-f7d01fff
+                resources: irq:38 memory:f7d00000-f7d01fff
         *-pci:2
              description: PCI bridge
              product: 8 Series/C220 Series Chipset Family PCI Express Root Port #6
@@ -474,7 +475,7 @@ jackal2
                    size: 232GiB
                    capacity: 232GiB
                    capabilities: bootable journaled extended_attributes large_files huge_files dir_nlink recover extents ext4 ext2 initialized
-                   configuration: created=2019-05-02 13:34:45 filesystem=ext4 lastmountpoint=/ modified=2022-12-02 15:24:18 mount.fstype=ext4 mount.options=rw,noatime,errors=remount-ro mounted=2022-12-02 15:24:19 state=mounted
+                   configuration: created=2019-05-02 13:34:45 filesystem=ext4 lastmountpoint=/ modified=2023-03-14 09:54:37 mount.fstype=ext4 mount.options=rw,noatime,errors=remount-ro mounted=2023-03-14 09:54:38 state=mounted
   *-power UNCLAIMED
        description: To Be Filled By O.E.M.
        product: To Be Filled By O.E.M.

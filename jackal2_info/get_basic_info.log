@@ -9,5 +9,12 @@
 + rosversion -d
 + rostopic list
 + rosnode list
++ mkdir -p rootfs/etc/ rootfs/usr/sbin/
++ sudo cp -r /etc/ros rootfs/etc/
++ sudo cp /usr/sbin/ros-start rootfs/usr/sbin/
++ sudo cp /usr/sbin/ros-stop rootfs/usr/sbin/
++ mkdir -p rootfs/home/administrator/
++ tar -czf rootfs/home/administrator/catkin_ws.tar.gz /home/administrator/catkin_ws
+tar: Removing leading `/' from member names
 + echo 'Done!'
 Done!

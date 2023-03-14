@@ -18,7 +18,12 @@ rosversion -d > rosversion.log
 rostopic list > rostopic-list.log
 rosnode list > rosnode-list.log
 
-mkdir -p rootfs/etc/
+mkdir -p rootfs/etc/ rootfs/usr/sbin/
 sudo cp -r /etc/ros rootfs/etc/
+sudo cp /usr/sbin/ros-start rootfs/usr/sbin/
+sudo cp /usr/sbin/ros-stop rootfs/usr/sbin/
+
+mkdir -p rootfs$HOME/
+tar -czf rootfs$HOME/catkin_ws.tar.gz $HOME/catkin_ws
 
 echo "Done!"

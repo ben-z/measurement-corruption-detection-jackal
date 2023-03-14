@@ -1,5 +1,8 @@
 #!/bin/bash
 
+# Saves some basic information about a system to log files
+# Usage: ./get_basic_info.sh > get_basic_info.log 2>&1
+
 set -o xtrace
 
 hostname > hostname.log
@@ -15,6 +18,12 @@ rosversion -d > rosversion.log
 rostopic list > rostopic-list.log
 rosnode list > rosnode-list.log
 
-tar -czf robohub-config-$(hostname).tar.gz /etc/ros/melodic $HOME/catkin_ws /usr/sbin/ros-start /usr/sbin/ros-stop
+mkdir -p rootfs/etc/ rootfs/usr/sbin/
+sudo cp -r /etc/ros rootfs/etc/
+sudo cp /usr/sbin/ros-start rootfs/usr/sbin/
+sudo cp /usr/sbin/ros-stop rootfs/usr/sbin/
+
+mkdir -p rootfs$HOME/
+tar -czf rootfs$HOME/catkin_ws.tar.gz $HOME/catkin_ws
 
 echo "Done!"

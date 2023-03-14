@@ -12,10 +12,10 @@ CPU family:          6
 Model:               60
 Model name:          Intel(R) Core(TM) i5-4570TE CPU @ 2.70GHz
 Stepping:            3
-CPU MHz:             3024.900
+CPU MHz:             2852.767
 CPU max MHz:         3300.0000
 CPU min MHz:         800.0000
-BogoMIPS:            5387.76
+BogoMIPS:            5387.48
 Virtualization:      VT-x
 L1d cache:           32K
 L1i cache:           32K
