@@ -16,19 +16,12 @@
   <include file="$(find vicon_bridge)/launch/vicon.launch" if="$(arg launch_vicon)">
     <arg name="datastream_hostport" value="129.97.71.102:801"/>
     <arg name="vicon_world_frame" value="map"/>
-    <arg name="max_publish_frequency" value="1.0"/>
+    <arg name="max_publish_frequency" value="100.0"/>
   </include>
 
-  <!--
-    Directly transform global measurements to tf (no filtering).
-    This can produce jumps in the map->odom transform when the global measurements are updated.
-    /vicon/ben_jackal2/ben_jackal2 is published by the VICON system
-  -->
-  <!-- https://discourse.ros.org/t/map-base-odom-as-alternative-for-rep-105-recommended-frame-order/25095 -->
-  <node name="map_to_odom_publisher" pkg="map_to_odom_publisher" type="map_to_odom_publisher" output="screen">
-    <param name="transform_stamped_topic" value="/vicon/ben_jackal2/ben_jackal2"/>
-    <param name="publish_frequency" value="50"/>
-  </node>
+  <!-- throttle position measurements to mimic GPS rate -->
+  <node name="vicon_transform_msg_throttle" pkg="topic_tools" type="throttle" args="messages /vicon/ben_jackal2/ben_jackal2 1.0 /global_localization/robot/transform" />
+  <node name="vicon_odom_msg_throttle" pkg="topic_tools" type="throttle" args="messages /vicon/ben_jackal2/ben_jackal2/odom 1.0 /global_localization/robot/odom" />
 
   <!-- Telemetry -->
   <node name="foxglove_bridge" pkg="foxglove_bridge" type="foxglove_bridge" output="screen" />

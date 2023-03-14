@@ -3,7 +3,7 @@ bdetect:
   N: 5 # The measurement window size (the number of timesteps)
   dt: 0.1 # The discretization timestep of the model. Sensor measurements are sampled at this rate.
   sensors:
-    - topic: "/vicon/ben_jackal2/ben_jackal2/odom"
+    - topic: "/global_localization/robot/odom"
       type: "ODOMETRY"
       measured_states:
         - "X"

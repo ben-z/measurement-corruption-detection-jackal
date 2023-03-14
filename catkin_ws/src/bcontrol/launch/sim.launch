@@ -33,15 +33,9 @@
     Method: ros_p3d. This method uses the ros_p3d Gazebo plugin to publish global measurements in
     cartesian coordinates.
 
-    Directly transform global measurements to tf (no filtering).
-    This can produce jumps in the map->odom transform when the global measurements are updated.
-    /gazebo/odom_global is published by the ros_p3d Gazebo plugin. The publish frequency is set
-    in the plugin configuration.
+    /gazebo/odom_global is published by the ros_p3d Gazebo plugin.
   -->
-  <node name="map_to_odom_publisher" pkg="map_to_odom_publisher" type="map_to_odom_publisher" output="screen">
-    <param name="odom_topic" value="/gazebo/odom_global"/>
-    <param name="publish_frequency" value="50"/>
-  </node>
+  <node name="vicon_odom_msg_throttle" pkg="topic_tools" type="throttle" args="messages /gazebo/odom_global 1.0 /global_localization/robot/odom" />
 
   <!-- Simulator -->
   <include file="$(find jackal_gazebo)/launch/jackal_world.launch">

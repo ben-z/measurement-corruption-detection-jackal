@@ -16,6 +16,19 @@
     <arg name="platform" value="$(arg platform)" />
   </include>
 
+  <!--
+    Publish the map->odom transform based on global position messages.
+
+    Directly transform global measurements to tf (no filtering).
+    This can produce jumps in the map->odom transform when the global measurements are updated.
+
+    More info: https://discourse.ros.org/t/map-base-odom-as-alternative-for-rep-105-recommended-frame-order/25095
+  -->
+  <node name="map_to_odom_publisher" pkg="map_to_odom_publisher" type="map_to_odom_publisher" output="screen">
+    <param name="odom_topic" value="/global_localization/robot/odom"/>
+    <param name="publish_frequency" value="50"/>
+  </node>
+
   <!-- EKF (local) -->
   <node pkg="robot_localization" type="ekf_localization_node" name="ekf_localization_local" required="true">
     <rosparam command="load" file="$(find bcontrol)/config/robot_localization.local.sim.yaml" if="$(eval arg('platform') == 'sim')" />
