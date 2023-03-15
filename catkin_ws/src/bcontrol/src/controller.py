@@ -61,6 +61,10 @@ def odom_callback(odom_msg: Odometry):
 
 def planner_path_callback(path_msg: PoseArray):
     new_path = Path.from_pose_array(path_msg, closed=PLANNER_PATH_CLOSED)
+    # TODO: if the raw path didn't change, then simply transform it again.
+    # Otherwise, recompute the path and closest point.
+    # Alternatively, run another loop that transforms the path at set intervals.
+    # May need a reentrant lock?
     with state['lock']:
         if new_path == state['path']:
             rospy.logdebug("Received the same path as before. Ignoring it.")
