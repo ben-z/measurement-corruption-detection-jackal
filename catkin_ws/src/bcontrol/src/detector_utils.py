@@ -1,7 +1,7 @@
 import numpy as np
 
 from enum import Enum
-from typing import List, TypedDict, Union
+from typing import List, TypedDict, Union, Optional
 from nav_msgs.msg import Odometry
 from sensor_msgs.msg import Imu
 from geometry_msgs.msg import Quaternion, AccelStamped
@@ -179,6 +179,7 @@ class SensorConfig(TypedDict):
     topic: str
     type: SensorType
     measured_states: List[MODEL_STATE]
+    transform_to_solve_frame: Optional[bool]
 
 MODEL_INPUT = Union[DifferentialDriveInputs,KinematicBicycleInputs]
 
@@ -196,6 +197,7 @@ class ModelConfig(TypedDict):
     dt: float
     sensors: List[SensorConfig]
     inputs: List[InputConfig]
+    solve_frame: str
 
 class DetectorData(TypedDict):
     config: ModelConfig

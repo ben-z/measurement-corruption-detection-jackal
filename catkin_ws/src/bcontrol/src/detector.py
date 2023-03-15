@@ -13,10 +13,11 @@ from typing import Optional, TypedDict, List, Any, Callable
 from threading import Lock
 from planner import PLANNER_PATH_CLOSED
 from enum import Enum
-from detector_utils import ModelConfig, SensorConfig, InputConfig, ModelType, MODEL_STATE, DifferentialDriveStates, KinematicBicycleStates, DetectorData, imu_msg_to_state, odometry_msg_to_state, get_model_states, get_model_inputs, accel_stamped_msg_to_input, linearize_model, get_angular_mask, get_all_measured_states
+from detector_utils import ModelConfig, SensorConfig, SensorType, InputConfig, ModelType, MODEL_STATE, DifferentialDriveStates, KinematicBicycleStates, DetectorData, imu_msg_to_state, odometry_msg_to_state, get_model_states, get_model_inputs, accel_stamped_msg_to_input, linearize_model, get_angular_mask, get_all_measured_states
 from copy import deepcopy
 from diagnostic_msgs.msg import DiagnosticArray, DiagnosticStatus, KeyValue
 from solver_utils import get_evolution_matrices, optimize_l1
+from transform_frames import TransformFrames
 
 NODE_NAME = 'bdetect'
 DETECTOR_SOLVE_HZ = 1.0 # Hz
@@ -59,6 +60,7 @@ class State(TypedDict):
     diagnostics: Diagnostics
     diagnostics_pub: Optional[rospy.Publisher]
     diagnostics_lock: Lock
+    transform_frames: Optional[TransformFrames]
 
 state: State = {
     'estimate': None,
@@ -75,6 +77,7 @@ state: State = {
     },
     'diagnostics_pub': None,
     'diagnostics_lock': Lock(),
+    'transform_frames': None,
 }
 
 def odom_callback(estimate: Odometry):
@@ -108,8 +111,18 @@ def construct_C_block(model_type: ModelType, measured_states: List[MODEL_STATE])
         state_idx = state_list.index(state) # type: ignore
         C_block[i, state_idx] = 1
     return C_block
+
+def transform_msg_to_solve_frame(solve_frame: str, sensor_type: SensorType, sensor_msg: Any):
+    transform_frames = state["transform_frames"]
+    if transform_frames is None:
+        raise Exception("transform_frames not initialized")
+
+    if sensor_type == SensorType.ODOMETRY:
+        return transform_frames.odom_transform(sensor_msg, target_frame=solve_frame)
+    else:
+        raise Exception(f"Sensor type not yet supported: {sensor_type}")
     
-def preprocess_sensor(model_type: ModelType, sensor_config: SensorConfig):
+def preprocess_sensor(model_type: ModelType, sensor_config: SensorConfig, solve_frame: str):
     """
     Takes in a sensor config and populates the state with appropriate data structures.
     Also returns a callback function that should be called when a message is received from the sensor.
@@ -123,13 +136,18 @@ def preprocess_sensor(model_type: ModelType, sensor_config: SensorConfig):
     else:
         raise Exception(f"Unknown sensor type {sensor_config['type']}")
 
+    if sensor_config.get('transform_to_solve_frame'):
+        msg_transform_fn = lambda m: transform_msg_to_solve_frame(solve_frame, sensor_config['type'], m)
+    else:
+        msg_transform_fn = lambda x: x
+
     C_block = construct_C_block(model_type, sensor_config['measured_states'])
 
     def extract_measurements(sensor_msg):
         """
         Extracts the measurements from a sensor message.
         """
-        partial_state = msg_to_state_fn(sensor_msg, model_type)
+        partial_state = msg_to_state_fn(msg_transform_fn(sensor_msg), model_type)
 
         return C_block @ partial_state
 
@@ -179,7 +197,7 @@ def create_subscriptions(config: ModelConfig):
     Creates subscriptions for each sensor in the config.
     """
     for sensor in config['sensors']:
-        data_class, sensor_callback = preprocess_sensor(config['model_type'], sensor)
+        data_class, sensor_callback = preprocess_sensor(config['model_type'], sensor, config['solve_frame'])
 
         rospy.Subscriber(sensor['topic'], data_class, sensor_callback)
     
@@ -452,8 +470,9 @@ def main():
 
     rospy.loginfo(f"Node {NODE_NAME} started. Ctrl-C to stop.")
 
+    state['transform_frames'] = TransformFrames()
+
     # Use the current estimate of the robot's state and the planned path for linearization
-    # TODO: add a parameter "solve_frame" to specify the frame to which all messages should be converted to.
     rospy.Subscriber('/odometry/local_filtered', Odometry, odom_callback)
     rospy.Subscriber('/bplan/path', PoseArray, planner_path_callback)
 

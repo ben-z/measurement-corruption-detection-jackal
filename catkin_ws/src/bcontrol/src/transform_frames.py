@@ -61,7 +61,7 @@ class TransformFrames():
         new_header = Header(frame_id=target_frame, stamp=odom.header.stamp)
         pose_s = PoseStamped(pose=odom.pose.pose, header=odom.header)
         pose_t = tf2_geometry_msgs.do_transform_pose(pose_s, trans)
-        odom_t = Odometry(header=new_header, child_frame_id=target_frame, pose=PoseWithCovariance(pose=pose_t.pose))
+        odom_t = Odometry(header=new_header, child_frame_id=odom.child_frame_id, pose=PoseWithCovariance(pose=pose_t.pose))
         odom_t.twist = odom.twist
         return odom_t
         
