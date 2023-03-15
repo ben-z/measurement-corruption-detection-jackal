@@ -68,8 +68,8 @@ export ROS_MASTER_URI=http://jackal1.robohub.eng.uwaterloo.ca:11311
 ssh jackal1
 
 # Record. -j enables compression, -a records all topics,
-# -x excludes some topics, -o adds a prefix to the file name
-rosbag record -j -a -x "(.*)/camera(.*)" -o <recording-prefix>
+# -o adds a prefix to the file name
+rosbag record -j -a -o <recording-prefix>
 ```
 
 ## Development on the robot
@@ -96,7 +96,9 @@ rosdep_install_all
 catkin build
 source ./devel/setup.bash
 ENABLE_EKF=false roslaunch bcontrol robot.launch
-roslaunch bcontrol stack.launch platform:=robot
+roslaunch bcontrol stack.launch platform:=robot enable_detector:=false
+roslaunch bcontrol detector.launch platform:=robot # or
+roslaunch bcontrol detector.launch platform:=robot debug:=true # for interactive debugging
 ```
 
 ## Simulation

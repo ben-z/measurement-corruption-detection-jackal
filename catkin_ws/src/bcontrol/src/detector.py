@@ -294,7 +294,7 @@ def update_loop(event: rospy.timer.TimerEvent):
         estimate = state['estimate']
 
     if not sensors_present or not inputs_present or estimate is None:
-        rospy.logerr(f"Not enough data is available for an update loop. {len(sensors_present)=}, {len(inputs_present)=}, {estimate=}")
+        rospy.logerr(f"Not enough data is available for an update loop. {len(sensors_present)=}, {len(inputs_present)=}, {bool(estimate)=}")
 
         diag_msg.level = max(DiagnosticStatus.ERROR, diag_msg.level)
         diag_msg.message += "Not enough data is available to update the detector\n"
