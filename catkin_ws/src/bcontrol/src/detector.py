@@ -419,9 +419,12 @@ def solve_loop(event: rospy.timer.TimerEvent):
     print("desired_trajectory")
     print(desired_trajectory)
 
+    corruption = np.zeros((q, N))
+    # corruption[3,:] = 10
+
     # qxN matrix of measurements
     # TODO: subtract input effects and desired trajectory
-    measurements_raw = np.vstack(Ys).T
+    measurements_raw = np.vstack(Ys).T + corruption
     measurements = measurements_raw - desired_trajectory
     measurements[angular_outputs_mask, :] = wrap_angle(measurements[angular_outputs_mask, :])
 
@@ -436,8 +439,7 @@ def solve_loop(event: rospy.timer.TimerEvent):
     # Solve the optimization problem
     prob, x0_hat = optimize_l1(n, q, N, Phi, Y)
     # print(prob)
-    print(f"{x0_hat.value=} {Xs[0]=}")
-    print(f"{Xs[0]-x0_hat.value=}")
+    print(f"{x0_hat.value=}")
 
     rospy.logwarn(f"Solved ===============================")
 
