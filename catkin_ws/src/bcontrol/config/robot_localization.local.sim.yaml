@@ -1,4 +1,4 @@
-frequency: 50
+frequency: 100
 
 # odometry from the wheel encoders
 odom0: /jackal_velocity_controller/odom

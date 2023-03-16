@@ -37,6 +37,12 @@
   -->
   <node name="vicon_odom_msg_throttle" pkg="topic_tools" type="throttle" args="messages /gazebo/odom_global 1.0 /global_localization/robot/odom" />
 
+  <!-- Publish ground truth tf for debugging -->
+  <node name="ground_truth_tf" pkg="message_to_tf" type="message_to_tf" output="screen">
+    <param name="child_frame_id" value="ground_truth_base_link"/>
+    <param name="odometry_topic" value="/gazebo/odom_global"/>
+  </node>
+
   <!-- Simulator -->
   <include file="$(find jackal_gazebo)/launch/jackal_world.launch">
     <arg name="world_name" value="/workspace/gazebo-worlds/empty.world"/>
