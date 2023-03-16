@@ -1,0 +1,28 @@
+# Request
+
+# === enum Solver
+int8 L0=10 # L0 optimization
+int8 L1=11 # L1 optimization
+# === End enum Solver
+
+# All arrays are to be flattened using column-major (Fortran, or "F") order
+int32 n
+int32 q
+int32 N
+float64[] Phi # shape: (qN, n)
+float64[] Y # shape: (qN,)
+float64[] eps # shape: (1,) or (n,)
+int8 solver # enum Solver
+int32 max_num_corruptions # maximum number of corruptions to solve for. -1 means no limit
+
+---
+# Response
+
+# === enum SolutionStatus
+int8 SUCCESS=50
+int8 NO_SOLUTION=51
+int8 AMBIGUOUS_SOLUTION=52
+# === End enum SolutionStatus
+
+float64[] x0_hat
+int8 status # SolutionStatus enum

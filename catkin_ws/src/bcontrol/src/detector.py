@@ -8,7 +8,7 @@ from nav_msgs.msg import Odometry
 from geometry_msgs.msg import PoseArray, AccelStamped
 from sensor_msgs.msg import Imu
 from time import sleep
-from utils import Path, generate_figure_eight_approximation, generate_ellipse_approximation, rotate_points, lookahead_resample, typeguard, add_timer_event_to_diag_status, wrap_angle
+from utils import Path, generate_figure_eight_approximation, generate_ellipse_approximation, rotate_points, lookahead_resample, typeguard, add_timer_event_to_diag_status, wrap_angle, make_srv_enum_lookup_dict
 from typing import Optional, TypedDict, List, Any, Callable
 from threading import Lock
 from planner import PLANNER_PATH_CLOSED
@@ -16,8 +16,12 @@ from enum import Enum
 from detector_utils import ModelConfig, SensorConfig, SensorType, InputConfig, ModelType, MODEL_STATE, DifferentialDriveStates, KinematicBicycleStates, DetectorData, imu_msg_to_state, odometry_msg_to_state, get_model_states, get_model_inputs, accel_stamped_msg_to_input, linearize_model, get_angular_mask, get_all_measured_states
 from copy import deepcopy
 from diagnostic_msgs.msg import DiagnosticArray, DiagnosticStatus, KeyValue
-from solver_utils import get_evolution_matrices, optimize_l1
+from solver_utils import get_evolution_matrices, optimize_l0, optimize_l1, get_l1_objective_fn, get_input_effect_on_state
 from transform_frames import TransformFrames
+from scipy.linalg import block_diag
+from bcontrol.srv import RunSolver, RunSolverRequest, RunSolverResponse
+
+RUN_SOLVER_RESPONSE_ENUM_TO_STR = make_srv_enum_lookup_dict(RunSolverResponse)
 
 NODE_NAME = 'bdetect'
 DETECTOR_SOLVE_HZ = 1.0 # Hz
@@ -398,6 +402,7 @@ def solve_loop(event: rospy.timer.TimerEvent):
     Cs = detector_data['C']
     Ys = detector_data['Y']
     Xs = detector_data['X']
+    us = detector_data['U']
 
     measured_states = get_all_measured_states(model_config['sensors'])
     angular_outputs_mask = get_angular_mask(model_config['model_type'], measured_states)
@@ -412,6 +417,7 @@ def solve_loop(event: rospy.timer.TimerEvent):
         Bs.append(B)
     
     desired_trajectory = np.vstack([C@x for C, x in zip(Cs, Xs)]).T
+    input_effects = (block_diag(*Cs) @ get_input_effect_on_state(As, Bs, us).reshape((n*N,), order='F')).reshape((q, N), order='F')
 
     print("Xs")
     print(Xs)
@@ -419,13 +425,15 @@ def solve_loop(event: rospy.timer.TimerEvent):
     print("desired_trajectory")
     print(desired_trajectory)
 
+    print("input_effects")
+    print(input_effects)
+
     corruption = np.zeros((q, N))
-    # corruption[3,:] = 10
+    corruption[3,:] = 5
 
     # qxN matrix of measurements
-    # TODO: subtract input effects and desired trajectory
     measurements_raw = np.vstack(Ys).T + corruption
-    measurements = measurements_raw - desired_trajectory
+    measurements = measurements_raw - input_effects - desired_trajectory
     measurements[angular_outputs_mask, :] = wrap_angle(measurements[angular_outputs_mask, :])
 
     print("measurements_raw")
@@ -437,9 +445,38 @@ def solve_loop(event: rospy.timer.TimerEvent):
     state_evolution_matrix, Phi = get_evolution_matrices(As[:-1], Cs)
 
     # Solve the optimization problem
-    prob, x0_hat = optimize_l1(n, q, N, Phi, Y)
+    rospy.wait_for_service("run_solver")
+    try:
+        # prob, x0_hat = optimize_l0(n, q, N, Phi, Y)
+        run_solver = rospy.ServiceProxy("run_solver", RunSolver)
+        resp = run_solver(n=n, q=q, N=N, Phi=Phi.ravel(order='F'), Y=Y, eps=[0.2],
+                          solver=RunSolverRequest.L0, max_num_corruptions=1)
+
+        if resp.status != RunSolverResponse.SUCCESS:
+            msg = f"Solver failed: {RUN_SOLVER_RESPONSE_ENUM_TO_STR[resp.status]}"
+            rospy.logerr(msg)
+            diag_msg.message += msg
+            diag_msg.level = max(DiagnosticStatus.ERROR, diag_msg.level)
+            return
+        x0_hat = np.array(resp.x0_hat)
+    except rospy.ServiceException as e:
+        rospy.logerr(f"Service call failed: {e}")
+        diag_msg.message += f"Service call failed: {e}"
+        diag_msg.level = max(DiagnosticStatus.ERROR, diag_msg.level)
+        with state['diagnostics_lock']:
+            state['diagnostics']['solve_loop'] = diag_msg
+        return
+    except Exception as e:
+        rospy.logerr(f"Error in optimization: {e}")
+        diag_msg.message += f"Error in optimization: {e}"
+        diag_msg.level = max(DiagnosticStatus.ERROR, diag_msg.level)
+        with state['diagnostics_lock']:
+            state['diagnostics']['solve_loop'] = diag_msg
+        return
     # print(prob)
-    print(f"{x0_hat.value=}")
+    print(f"{x0_hat=}")
+    print("E")
+    print((Y - Phi@x0_hat).reshape((q, N), order='F'))
 
     rospy.logwarn(f"Solved ===============================")
 

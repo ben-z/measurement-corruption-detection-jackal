@@ -13,6 +13,7 @@ from typeguard import checker_lookup_functions, TypeCheckerCallable, TypeCheckMe
 from enum import Enum
 from diagnostic_msgs.msg import DiagnosticStatus, KeyValue
 import rospy
+from itertools import chain, combinations
 
 @dataclass
 class PathPoint:
@@ -634,6 +635,34 @@ def add_timer_event_to_diag_status(diag_msg: DiagnosticStatus, event: rospy.time
         diag_msg.values.append(KeyValue(key=f"event.{k}", value=str(v)))
 
 flatten = lambda l: [item for sublist in l for item in sublist]
+
+def powerset(iterable):
+    "powerset([1,2,3]) --> () (1,) (2,) (3,) (1,2) (1,3) (2,3) (1,2,3)"
+    s = list(iterable)
+    return chain.from_iterable(combinations(s, r) for r in range(len(s)+1))
+
+def make_srv_enum_lookup_dict(srv):
+    """
+    Make a dictionary that maps the values of a service's enum attributes to the names of those attributes.
+    Example:
+    `RunSomething.srv`:
+    ```
+    ---
+    int8 SUCCESS = 0
+    int8 FAILURE = 1
+    int8 UNKNOWN = 2
+    int8 result
+    ```
+    ```python
+    from run_something.srv import RunSomethingResponse
+    lookup = make_srv_enum_lookup_dict(RunSomethingResponse)
+    print(lookup[0])  # prints "SUCCESS"
+    print(lookup[1])  # prints "FAILURE"
+    print(lookup[2])  # prints "UNKNOWN"
+    ```
+    """
+    return {getattr(srv,k): k for k in dir(srv) if getattr(srv,k).__class__ == int}
+
 
 if __name__ == "__main__":
     test_wrap_angle()
