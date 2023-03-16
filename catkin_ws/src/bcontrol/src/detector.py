@@ -420,7 +420,7 @@ def solve_loop(event: rospy.timer.TimerEvent):
     input_effects = (block_diag(*Cs) @ get_input_effect_on_state(As, Bs, us).reshape((n*N,), order='F')).reshape((q, N), order='F')
 
     print("Xs")
-    print(Xs)
+    print(np.vstack(Xs).T)
 
     print("desired_trajectory")
     print(desired_trajectory)
@@ -429,7 +429,7 @@ def solve_loop(event: rospy.timer.TimerEvent):
     print(input_effects)
 
     corruption = np.zeros((q, N))
-    corruption[3,:] = 5
+    # corruption[3,:] = 5
 
     # qxN matrix of measurements
     measurements_raw = np.vstack(Ys).T + corruption

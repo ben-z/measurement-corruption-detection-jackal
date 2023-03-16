@@ -22,6 +22,7 @@ int32 max_num_corruptions # maximum number of corruptions to solve for. -1 means
 int8 SUCCESS=50
 int8 NO_SOLUTION=51
 int8 AMBIGUOUS_SOLUTION=52
+int8 OTHER_FAILURE=53
 # === End enum SolutionStatus
 
 float64[] x0_hat

@@ -5,12 +5,13 @@ from bcontrol.srv import RunSolver, RunSolverRequest, RunSolverResponse
 import numpy as np
 from multiprocessing import cpu_count, Pool
 from itertools import chain, combinations
-from solver_utils import optimize_l0, AmbiguousSolutionError, NoSolutionError
+from solver_utils import optimize_l0, AmbiguousSolutionError, NoSolutionError, optimize_l1
 import time
 from multiprocessing import cpu_count, Pool
 from utils import make_srv_enum_lookup_dict
 
 RES_ENUM_TO_STR = make_srv_enum_lookup_dict(RunSolverResponse)
+USE_PARALLELISM = False
 
 def run_solver(req, worker_pool):
     perf_start = time.perf_counter()
@@ -43,7 +44,14 @@ def run_solver(req, worker_pool):
             rospy.logwarn(f"No solution: {e}")
             status = RunSolverResponse.NO_SOLUTION
     elif solver == RunSolverRequest.L1:
-        raise NotImplementedError
+        x0_hat = []
+        prob, x0_hat_cp = optimize_l1(n, q, N, Phi, Y)
+        if prob.status in ["optimal", "optimal_inaccurate"]:
+            status = RunSolverResponse.SUCCESS
+            x0_hat = x0_hat_cp.value.tolist()
+        else:
+            rospy.logwarn(f"Solve failed: {prob=}")
+            status = RunSolverResponse.OTHER_FAILURE
     else:
         raise ValueError(f"Unknown solver {solver}")
     
@@ -60,6 +68,8 @@ def main():
     numworkers = min(cpu_count() // 2, 8)
     rospy.loginfo(f"Starting the solver server with {numworkers=}...")
     with Pool(processes=numworkers) as pool:
+        if not USE_PARALLELISM:
+            pool = None
         service = rospy.Service('run_solver', RunSolver, lambda req: run_solver(req, pool))
         rospy.loginfo("Solver server ready")
         rospy.spin()
