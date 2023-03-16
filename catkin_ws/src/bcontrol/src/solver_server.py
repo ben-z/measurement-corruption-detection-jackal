@@ -13,6 +13,8 @@ from utils import make_srv_enum_lookup_dict
 RES_ENUM_TO_STR = make_srv_enum_lookup_dict(RunSolverResponse)
 USE_PARALLELISM = False
 
+np.set_printoptions(precision=4, suppress=True)
+
 def run_solver(req, worker_pool):
     perf_start = time.perf_counter()
     n = req.n
@@ -57,6 +59,7 @@ def run_solver(req, worker_pool):
     
     perf_secs = time.perf_counter() - perf_start
     rospy.loginfo(f"Solver {solver} took {perf_secs:.3f} seconds")
+    rospy.loginfo(f"Solver {solver} returning {RES_ENUM_TO_STR[status]} with x0_hat={np.array(x0_hat)}")
     
     return RunSolverResponse(status=status, x0_hat=x0_hat)
 

@@ -16,6 +16,17 @@
     <arg name="platform" value="$(arg platform)" />
   </include>
 
+  <!-- Launch message corruption nodes -->
+  <node name="global_odom_corruption" pkg="bcontrol" type="message_corruption.py" required="true">
+    <param name="topic_name" value="/global_localization/robot/odom"/>
+    <param name="message_type" value="nav_msgs/Odometry"/>
+  </node>
+  <node name="wheel_odom_corruption" pkg="bcontrol" type="message_corruption.py" required="true">
+    <param name="topic_name" value="/jackal_velocity_controller/odom"/>
+    <param name="message_type" value="nav_msgs/Odometry"/>
+  </node>
+  <!-- TODO: add IMU corruption -->
+
   <!--
     Publish the map->odom transform based on global position messages.
 
@@ -24,8 +35,9 @@
 
     More info: https://discourse.ros.org/t/map-base-odom-as-alternative-for-rep-105-recommended-frame-order/25095
   -->
-  <node name="map_to_odom_publisher" pkg="map_to_odom_publisher" type="map_to_odom_publisher" output="log">
-    <param name="odom_topic" value="/global_localization/robot/odom"/>
+  <node name="map_to_odom_publisher" pkg="map_to_odom_publisher" type="map_to_odom_publisher" output="log" required="true">
+    <param name="odom_topic" value="/global_localization/robot/odom/vulnerable"/>
+    <!-- <param name="odom_topic" value="/global_localization/robot/odom"/> -->
     <param name="publish_frequency" value="50"/>
   </node>
 

@@ -4,14 +4,14 @@ bdetect:
   dt: 0.1 # The discretization timestep of the model. Sensor measurements are sampled at this rate.
   solve_frame: "odom" # The frame in which the solver operates
   sensors:
-    - topic: "/global_localization/robot/odom"
+    - topic: "/global_localization/robot/odom/vulnerable"
       type: "ODOMETRY"
       measured_states:
         - "X"
         - "Y"
         - "ORIENTATION"
       transform_to_solve_frame: true
-    - topic: "/jackal_velocity_controller/odom"
+    - topic: "/jackal_velocity_controller/odom/vulnerable"
       type: "ODOMETRY"
       measured_states:
         - "VELOCITY"

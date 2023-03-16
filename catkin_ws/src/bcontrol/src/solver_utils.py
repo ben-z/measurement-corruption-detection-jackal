@@ -157,7 +157,7 @@ def optimize_l0(n: int, q: int, N: int, Phi: np.ndarray, Y: np.ndarray, eps: np.
         max_num_corruptions = q
 
     # Candidate sets of corrupted sensors, in increasing order of size of the set
-    sensor_candidates = [s for s in powerset(range(q)) if len(s) <= max_num_corruptions]
+    sensor_candidates = [list(s) for s in powerset(range(q)) if len(s) <= max_num_corruptions]
 
     if worker_pool:
         # Parallel version with multiprocessing.Pool
@@ -188,8 +188,15 @@ def optimize_l0(n: int, q: int, N: int, Phi: np.ndarray, Y: np.ndarray, eps: np.
 
 def optimize_l0_subproblem(n, q, N, Phi, Y, attacked_sensor_indices, eps):
     x0_hat = cp.Variable(n)
-    optimizer = Y - np.matmul(Phi, x0_hat)
-    optimizer_reshaped = cp.reshape(optimizer, (q, N))
+    num_valid_sensors = q - len(attacked_sensor_indices)
+
+    optimizer_full = Y - np.matmul(Phi, x0_hat)
+    valid_sensors_I = np.delete(np.eye(q), attacked_sensor_indices, axis=0)
+    valid_sensors_matrix = block_diag(*[valid_sensors_I]*N)
+    optimizer = valid_sensors_matrix @ optimizer_full
+    optimizer_reshaped = cp.reshape(optimizer, (num_valid_sensors, N))
+    # # zero-out the attacked sensors
+    # optimizer_reshaped[attacked_sensor_indices,:] = 0
     optimizer_final = cp.mixed_norm(optimizer_reshaped, p=2, q=1)
 
     # Support both scalar eps and eps per sensor
@@ -200,8 +207,8 @@ def optimize_l0_subproblem(n, q, N, Phi, Y, attacked_sensor_indices, eps):
     for j in set(range(q)) - set(attacked_sensor_indices):
         for t in range(N):
             # constraints.append(cp.norm(optimizer[q*t+j]) <= eps)
-            constraints.append(optimizer[q*t+j] <= eps[j])
-            constraints.append(optimizer[q*t+j] >= -eps[j])
+            constraints.append(optimizer_full[q*t+j] <= eps[j])
+            constraints.append(optimizer_full[q*t+j] >= -eps[j])
 
     prob = cp.Problem(cp.Minimize(cp.norm(optimizer_final)), constraints)
     start = time.time()
