@@ -99,7 +99,11 @@ ENABLE_EKF=false roslaunch bcontrol robot.launch
 roslaunch bcontrol stack.launch platform:=robot enable_detector:=false
 roslaunch bcontrol detector.launch platform:=robot # or
 roslaunch bcontrol detector.launch platform:=robot debug:=true # for interactive debugging
+rosrun bcontrol solver_server.py # or
+rosrun bcontrol solver_server_debug.py # for interactive debugging
 ```
+
+Note that by default, only 1 interactive debugging node can be run at a time. To run multiple interactive debugging nodes, we need to change the hard-coded port number in the corresponding debug files.
 
 ## Simulation
 
@@ -144,8 +148,11 @@ roslaunch bcontrol stack.launch platform:=sim
 roslaunch bcontrol stack.launch platform:=sim enable_detector:=false
 roslaunch bcontrol detector.launch platform:=sim # or
 roslaunch bcontrol detector.launch platform:=sim debug:=true # for interactive debugging
+rosrun bcontrol solver_server.py # or
+rosrun bcontrol solver_server_debug.py # for interactive debugging
 ```
-```
+
+Note that by default, only 1 interactive debugging node can be run at a time. To run multiple interactive debugging nodes, we need to change the hard-coded port number in the corresponding debug files.
 
 `VGL_DISPLAY=egl0` is used to tell VirtualGL to use the first EGL device. Each EGL device corresponds to a `/dev/dri/card*` device.
 
