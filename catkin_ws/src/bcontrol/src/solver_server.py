@@ -35,10 +35,12 @@ def run_solver(req, worker_pool):
 
     if solver == RunSolverRequest.L0:
         x0_hat = []
+        sensor_validity = []
         try:
-            prob, x0_hat_cp = optimize_l0(n, q, N, Phi, Y, eps, worker_pool=worker_pool, max_num_corruptions=max_num_corruptions)
+            (prob, x0_hat_cp), sensor_validity_np = optimize_l0(n, q, N, Phi, Y, eps, worker_pool=worker_pool, max_num_corruptions=max_num_corruptions)
             status = RunSolverResponse.SUCCESS
             x0_hat = x0_hat_cp.value.tolist()
+            sensor_validity = sensor_validity_np.tolist()
         except AmbiguousSolutionError as e:
             rospy.logwarn(f"Ambiguous solution: {e}")
             status = RunSolverResponse.AMBIGUOUS_SOLUTION
@@ -47,6 +49,7 @@ def run_solver(req, worker_pool):
             status = RunSolverResponse.NO_SOLUTION
     elif solver == RunSolverRequest.L1:
         x0_hat = []
+        sensor_validity = []
         prob, x0_hat_cp = optimize_l1(n, q, N, Phi, Y)
         if prob.status in ["optimal", "optimal_inaccurate"]:
             status = RunSolverResponse.SUCCESS
@@ -59,9 +62,9 @@ def run_solver(req, worker_pool):
     
     perf_secs = time.perf_counter() - perf_start
     rospy.loginfo(f"Solver {solver} took {perf_secs:.3f} seconds")
-    rospy.loginfo(f"Solver {solver} returning {RES_ENUM_TO_STR[status]} with x0_hat={np.array(x0_hat)}")
+    rospy.loginfo(f"Solver {solver} returning {RES_ENUM_TO_STR[status]} with x0_hat={np.array(x0_hat)}, {sensor_validity=}")
     
-    return RunSolverResponse(status=status, x0_hat=x0_hat)
+    return RunSolverResponse(status=status, x0_hat=x0_hat, sensor_validity=sensor_validity)
 
 def main():
     rospy.init_node('solver_server')

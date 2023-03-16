@@ -27,4 +27,5 @@ int8 OTHER_FAILURE=53
 # === End enum SolutionStatus
 
 float64[] x0_hat
+bool[] sensor_validity
 int8 status # SolutionStatus enum

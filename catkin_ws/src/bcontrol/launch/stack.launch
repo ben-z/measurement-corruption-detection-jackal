@@ -27,6 +27,17 @@
   </node>
   <!-- TODO: add IMU corruption -->
 
+  <node name="global_odom_passthrough" pkg="bcontrol" type="corruption_passthrough.py" required="true">
+    <param name="topic_name" value="/global_localization/robot/odom"/>
+    <param name="message_type" value="nav_msgs/Odometry"/>
+    <param name="sensor_idx" value="2"/>
+  </node>
+  <node name="wheel_odom_passthrough" pkg="bcontrol" type="corruption_passthrough.py" required="true">
+    <param name="topic_name" value="/jackal_velocity_controller/odom"/>
+    <param name="message_type" value="nav_msgs/Odometry"/>
+    <param name="sensor_idx" value="3"/>
+  </node>
+
   <!--
     Publish the map->odom transform based on global position messages.
 
@@ -36,7 +47,7 @@
     More info: https://discourse.ros.org/t/map-base-odom-as-alternative-for-rep-105-recommended-frame-order/25095
   -->
   <node name="map_to_odom_publisher" pkg="map_to_odom_publisher" type="map_to_odom_publisher" output="log" required="true">
-    <param name="odom_topic" value="/global_localization/robot/odom/vulnerable"/>
+    <param name="odom_topic" value="/global_localization/robot/odom/uncorrupted"/>
     <!-- <param name="odom_topic" value="/global_localization/robot/odom"/> -->
     <param name="publish_frequency" value="50"/>
   </node>
@@ -49,7 +60,7 @@
   </node> -->
 
   <!-- EKF (local) -->
-  <node pkg="robot_localization" type="ekf_localization_node" name="ekf_localization_local" required="true">
+  <node pkg="robot_localization" type="ekf_localization_node" name="ekf_localization_local" required="true" output="screen">
     <rosparam command="load" file="$(find bcontrol)/config/robot_localization.local.sim.yaml" if="$(eval arg('platform') == 'sim')" />
     <rosparam command="load" file="$(find bcontrol)/config/robot_localization.local.robot.yaml" if="$(eval arg('platform') == 'robot')" />
     <remap from="odometry/filtered" to="/odometry/local_filtered" />

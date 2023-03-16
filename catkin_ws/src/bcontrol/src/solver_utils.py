@@ -183,7 +183,11 @@ def optimize_l0(n: int, q: int, N: int, Phi: np.ndarray, Y: np.ndarray, eps: np.
     if len(smallest_feasible_solns) > 1:
         raise AmbiguousSolutionError("Multiple solutions found", smallest_feasible_solns)
 
-    return smallest_feasible_solns[0][0]
+    # sensor validity
+    sensor_validity = np.ones(q, dtype=bool)
+    sensor_validity[list(smallest_feasible_solns[0][1])] = False
+
+    return smallest_feasible_solns[0][0], sensor_validity
 
 
 def optimize_l0_subproblem(n, q, N, Phi, Y, attacked_sensor_indices, eps):

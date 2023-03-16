@@ -459,6 +459,7 @@ def solve_loop(event: rospy.timer.TimerEvent):
             diag_msg.level = max(DiagnosticStatus.ERROR, diag_msg.level)
             return
         x0_hat = np.array(resp.x0_hat)
+        sensor_validity = resp.sensor_validity
     except rospy.ServiceException as e:
         rospy.logerr(f"Service call failed: {e}")
         diag_msg.message += f"Service call failed: {e}"
@@ -477,6 +478,10 @@ def solve_loop(event: rospy.timer.TimerEvent):
     print(f"{x0_hat=}")
     print("E")
     print((Y - Phi@x0_hat).reshape((q, N), order='F'))
+
+    sensor_validity_msg = UInt8MultiArray()
+    sensor_validity_msg.data = sensor_validity
+    state['sensor_validity_pub'].publish(sensor_validity_msg)
 
     rospy.logwarn(f"Solved ===============================")
 
