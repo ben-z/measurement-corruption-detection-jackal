@@ -105,11 +105,15 @@ def odometry_msg_to_state(odometry_message: Odometry, model_type: ModelType) -> 
     Converts an Odometry message to a state vector.
     UNMEASURED is used for states that are not measured.
     """
+    # convert quaternion to euler
+    orientation = odometry_message.pose.pose.orientation
+    orientation_rpy = euler_from_quaternion([orientation.x, orientation.y, orientation.z, orientation.w])
+
     if model_type == ModelType.DIFFERENTIAL_DRIVE:
         return np.array([
             odometry_message.pose.pose.position.x, # X
             odometry_message.pose.pose.position.y, # Y
-            odometry_message.pose.pose.orientation.z, # ORIENTATION
+            orientation_rpy[2], # ORIENTATION
             odometry_message.twist.twist.linear.x, # VELOCITY
             odometry_message.twist.twist.angular.z, # ANGULAR_VELOCITY
         ])
@@ -117,7 +121,7 @@ def odometry_msg_to_state(odometry_message: Odometry, model_type: ModelType) -> 
         return np.array([
             odometry_message.pose.pose.position.x, # X
             odometry_message.pose.pose.position.y, # Y
-            odometry_message.pose.pose.orientation.z, # ORIENTATION
+            orientation_rpy[2], # ORIENTATION
             odometry_message.twist.twist.linear.x, # VELOCITY
             UNMEASURED, # STEERING_ANGLE
         ])
