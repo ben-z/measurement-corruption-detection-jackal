@@ -29,6 +29,13 @@
     <param name="publish_frequency" value="50"/>
   </node>
 
+  <!-- EKF (global) -->
+  <!-- <node pkg="robot_localization" type="ekf_localization_node" name="ekf_localization_global" required="true">
+    <rosparam command="load" file="$(find bcontrol)/config/robot_localization.global.sim.yaml" if="$(eval arg('platform') == 'sim')" />
+    <rosparam command="load" file="$(find bcontrol)/config/robot_localization.global.robot.yaml" if="$(eval arg('platform') == 'robot')" />
+    <remap from="odometry/filtered" to="/odometry/global_filtered" />
+  </node> -->
+
   <!-- EKF (local) -->
   <node pkg="robot_localization" type="ekf_localization_node" name="ekf_localization_local" required="true">
     <rosparam command="load" file="$(find bcontrol)/config/robot_localization.local.sim.yaml" if="$(eval arg('platform') == 'sim')" />
