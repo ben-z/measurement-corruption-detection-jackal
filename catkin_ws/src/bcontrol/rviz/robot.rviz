@@ -6,6 +6,7 @@ Panels:
       Expanded:
         - /Global Options1
         - /RobotModel1/Links1
+        - /TF1/Frames1
         - /Odometry (Local, Filtered)1/Shape1
         - /Odometry (Global, Filtered)1/Shape1
         - /Odometry (Global, Gazebo Ground Truth)1/Shape1
@@ -72,12 +73,8 @@ Visualization Manager:
       Frame Timeout: 15
       Frames:
         All Enabled: false
-        base_footprint:
-          Value: false
         base_link:
           Value: true
-        base_stabilized:
-          Value: false
         chassis_link:
           Value: false
         front_fender_link:
@@ -88,8 +85,6 @@ Visualization Manager:
           Value: false
         front_right_wheel_link:
           Value: false
-        ground_truth_base_link:
-          Value: true
         imu_link:
           Value: false
         map:
@@ -108,6 +103,12 @@ Visualization Manager:
           Value: false
         rear_right_wheel_link:
           Value: false
+        um7:
+          Value: false
+        um7_imu_link:
+          Value: false
+        vicon/ben_jackal2/ben_jackal2:
+          Value: true
       Marker Alpha: 1
       Marker Scale: 1
       Name: TF
@@ -116,10 +117,6 @@ Visualization Manager:
       Show Names: true
       Tree:
         map:
-          base_footprint:
-            base_stabilized:
-              ground_truth_base_link:
-                {}
           odom:
             base_link:
               chassis_link:
@@ -135,7 +132,9 @@ Visualization Manager:
                   front_mount:
                     {}
                   rear_mount:
-                    {}
+                    um7:
+                      um7_imu_link:
+                        {}
                 navsat_link:
                   {}
                 rear_fender_link:
@@ -144,6 +143,8 @@ Visualization Manager:
                   {}
                 rear_right_wheel_link:
                   {}
+          vicon/ben_jackal2/ben_jackal2:
+            {}
       Update Interval: 0
       Value: true
     - Class: rviz/InteractiveMarkers
@@ -389,7 +390,7 @@ Visualization Manager:
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Scale: 123.06023406982422
+      Scale: 111.4686508178711
       Target Frame: <Fixed Frame>
       X: 0
       Y: 0
@@ -410,5 +411,5 @@ Window Geometry:
   Views:
     collapsed: false
   Width: 1848
-  X: 71
-  Y: 7
+  X: 72
+  Y: 27
