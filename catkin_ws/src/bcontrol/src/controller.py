@@ -22,8 +22,9 @@ CONTROLLER_PERIOD = 1 / CONTROLLER_HZ # seconds
 # If the odometry message is older than this, it is considered invalid.
 ODOM_MSG_TIMEOUT = CONTROLLER_PERIOD # seconds
 
-MAX_LINEAR_VELOCITY = 0.5 # m/s
-MAX_ANGULAR_VELOCITY = 1.0 # rad/s
+# Another layer of limits are set in the configuration file for jackal_control
+MAX_LINEAR_VELOCITY = 1.0 # m/s
+MAX_ANGULAR_VELOCITY = 2.0 # rad/s
 
 LOOKAHEAD_M = 0.5 # meters
 
