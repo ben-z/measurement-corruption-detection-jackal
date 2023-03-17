@@ -136,7 +136,7 @@ def tick_controller(cmd_vel_pub, lookahead_pub):
     target_heading = math.atan2(dpos[1], dpos[0])
     dheading = wrap_angle(target_heading - heading)
     Kp_pos = 1.0
-    Kp_heading = 2.0
+    Kp_heading = 3.0
 
     # Use pure pursuit to compute the desired linear and angular velocities
     linear_velocity = min(Kp_pos * dpos_norm, MAX_LINEAR_VELOCITY)
