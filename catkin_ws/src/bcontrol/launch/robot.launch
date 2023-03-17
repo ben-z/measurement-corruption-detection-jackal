@@ -24,5 +24,5 @@
   <node name="vicon_odom_msg_throttle" pkg="topic_tools" type="throttle" args="messages /vicon/ben_jackal2/ben_jackal2/odom 1.0 /global_localization/robot/odom" />
 
   <!-- Telemetry -->
-  <node name="foxglove_bridge" pkg="foxglove_bridge" type="foxglove_bridge" output="screen" />
+  <node name="foxglove_bridge" pkg="foxglove_bridge" type="foxglove_bridge" output="screen" respawn="true" />
 </launch>
