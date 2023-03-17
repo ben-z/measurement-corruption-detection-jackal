@@ -6,6 +6,7 @@ from nav_msgs.msg import Odometry
 from typing import Any
 import numpy as np
 from std_msgs.msg import UInt8MultiArray
+from threading import Lock
 
 NODE_NAME = "corruption_passthrough"
 
@@ -14,18 +15,23 @@ state = {
     "pub": None,
     "sensor_validity_msg": None,
     "sensor_idx": None,
+    "sensor_validity_final_pub": None,
+    "sensor_validity_lock": Lock(),
 }
 
 def odom_callback(msg: Odometry):
     assert state["pub"] is not None, "The publisher is not initialized yet"
     assert state["sensor_idx"] is not None, "The sensor_idx must be set"
 
-    if state["sensor_validity_msg"] is None:
+    with state['sensor_validity_lock']:
+        sensor_validity_msg = state["sensor_validity_msg"]
+
+    if sensor_validity_msg is None:
         rospy.loginfo_throttle(1.0, "No sensor_validity_msg received yet. Passing through")
         state['pub'].publish(msg)
         return
     
-    sensor_validity = state['sensor_validity_msg'].data
+    sensor_validity = sensor_validity_msg.data
     if sensor_validity[state['sensor_idx']]:
         state['pub'].publish(msg)
     else:
@@ -41,7 +47,16 @@ def sensor_validity_callback(msg: UInt8MultiArray):
     # validity[4] = 1
     msg.data = validity
     rospy.logwarn(f"sensor_validity_msg: {msg.data}")
-    state["sensor_validity_msg"] = msg
+    with state['sensor_validity_lock']:
+        state["sensor_validity_msg"] = msg
+
+def sensor_validity_final_pub_callback(event: rospy.timer.TimerEvent):
+    with state['sensor_validity_lock']:
+        sensor_validity_msg = state["sensor_validity_msg"]
+    if sensor_validity_msg is None:
+        rospy.loginfo_throttle(1.0, "No sensor_validity_msg received yet. Not publishing sensor_validity_final")
+        return
+    state['sensor_validity_final_pub'].publish(sensor_validity_msg)
 
 def main():
     rospy.init_node(NODE_NAME, log_level=rospy.DEBUG)
@@ -55,7 +70,10 @@ def main():
     
     rospy.loginfo(f"{topic_name=} {message_type=}")
 
+    state['sensor_validity_final_pub'] = rospy.Publisher("/corruption_passthrough/sensor_validity_final", UInt8MultiArray, queue_size=1)
+
     rospy.Subscriber("/bdetect/sensor_validity", UInt8MultiArray, sensor_validity_callback)
+    rospy.Timer(rospy.Duration(1), sensor_validity_final_pub_callback)
 
     if message_type == "nav_msgs/Odometry":
         state['pub'] = rospy.Publisher(topic_name + "/uncorrupted", Odometry, queue_size=1)
