@@ -46,7 +46,6 @@ def sensor_validity_callback(msg: UInt8MultiArray):
     # assume angular velocity is good (HACK)
     # validity[4] = 1
     msg.data = validity
-    rospy.logwarn(f"sensor_validity_msg: {msg.data}")
     with state['sensor_validity_lock']:
         state["sensor_validity_msg"] = msg
 
@@ -77,7 +76,7 @@ def main():
 
     if message_type == "nav_msgs/Odometry":
         state['pub'] = rospy.Publisher(topic_name + "/uncorrupted", Odometry, queue_size=1)
-        rospy.Subscriber(topic_name + "/vulnerable", Odometry, odom_callback)
+        rospy.Subscriber(topic_name, Odometry, odom_callback)
     else:
         rospy.logerr(f"Message type {message_type} not supported")
         return

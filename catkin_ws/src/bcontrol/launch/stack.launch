@@ -27,15 +27,28 @@
   </node>
   <!-- TODO: add IMU corruption -->
 
+  <!-- Launch extractor nodes. TODO: automatically generate this based on the configuration -->
+  <node name="wheel_odom_velocity_extractor" pkg="topic_tools" type="transform" required="true" args="/jackal_velocity_controller/odom/vulnerable /jackal_velocity_controller/odom/vulnerable/VELOCITY nav_msgs/Odometry 'nav_msgs.msg.Odometry(header=m.header,child_frame_id=m.child_frame_id,twist=geometry_msgs.msg.TwistWithCovariance(twist=geometry_msgs.msg.Twist(linear=geometry_msgs.msg.Vector3(x=m.twist.twist.linear.x)),covariance=m.twist.covariance))' --import nav_msgs geometry_msgs" />
+  <node name="wheel_odom_angular_velocity_extractor" pkg="topic_tools" type="transform" required="true" args="/jackal_velocity_controller/odom/vulnerable /jackal_velocity_controller/odom/vulnerable/ANGULAR_VELOCITY nav_msgs/Odometry 'nav_msgs.msg.Odometry(header=m.header,child_frame_id=m.child_frame_id,twist=geometry_msgs.msg.TwistWithCovariance(twist=geometry_msgs.msg.Twist(angular=geometry_msgs.msg.Vector3(z=m.twist.twist.angular.z)),covariance=m.twist.covariance))' --import nav_msgs geometry_msgs" />
+
+  <!-- Publish a zero odometry message. This is useful for setting the lateral velocity to 0 in robot_localization. -->
+  <node name="zero_odom_publisher" pkg="topic_tools" type="transform" required="true" args="/jackal_velocity_controller/odom /zero_odom nav_msgs/Odometry 'nav_msgs.msg.Odometry(header=m.header,child_frame_id=m.child_frame_id)' --import nav_msgs" />
+
+  <!-- Launch passthrough nodes. TODO: automatically generate this based on the configuration -->
   <node name="global_odom_passthrough" pkg="bcontrol" type="corruption_passthrough.py" required="true">
-    <param name="topic_name" value="/global_localization/robot/odom"/>
+    <param name="topic_name" value="/global_localization/robot/odom/vulnerable"/>
     <param name="message_type" value="nav_msgs/Odometry"/>
     <param name="sensor_idx" value="2"/>
   </node>
-  <node name="wheel_odom_passthrough" pkg="bcontrol" type="corruption_passthrough.py" required="true">
-    <param name="topic_name" value="/jackal_velocity_controller/odom"/>
+  <node name="wheel_odom_velocity_passthrough" pkg="bcontrol" type="corruption_passthrough.py" required="true">
+    <param name="topic_name" value="/jackal_velocity_controller/odom/vulnerable/VELOCITY"/>
     <param name="message_type" value="nav_msgs/Odometry"/>
     <param name="sensor_idx" value="3"/>
+  </node>
+  <node name="wheel_odom_angular_velocity_passthrough" pkg="bcontrol" type="corruption_passthrough.py" required="true">
+    <param name="topic_name" value="/jackal_velocity_controller/odom/vulnerable/ANGULAR_VELOCITY"/>
+    <param name="message_type" value="nav_msgs/Odometry"/>
+    <param name="sensor_idx" value="4"/>
   </node>
 
   <!--
@@ -47,7 +60,7 @@
     More info: https://discourse.ros.org/t/map-base-odom-as-alternative-for-rep-105-recommended-frame-order/25095
   -->
   <node name="map_to_odom_publisher" pkg="map_to_odom_publisher" type="map_to_odom_publisher" output="log" required="true">
-    <param name="odom_topic" value="/global_localization/robot/odom/uncorrupted"/>
+    <param name="odom_topic" value="/global_localization/robot/odom/vulnerable/uncorrupted"/>
     <!-- <param name="odom_topic" value="/global_localization/robot/odom"/> -->
     <param name="publish_frequency" value="50"/>
   </node>

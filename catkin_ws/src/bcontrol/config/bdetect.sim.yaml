@@ -15,6 +15,7 @@ bdetect:
       type: "ODOMETRY"
       measured_states:
         - "VELOCITY"
+        - "ANGULAR_VELOCITY"
     - topic: "/imu/data"
       type: "IMU"
       measured_states:

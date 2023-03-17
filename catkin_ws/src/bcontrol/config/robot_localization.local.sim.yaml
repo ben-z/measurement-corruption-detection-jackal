@@ -1,22 +1,44 @@
 frequency: 100
+two_d_mode: true
 
-# odometry from the wheel encoders
-odom0: "/jackal_velocity_controller/odom/uncorrupted"
+# Set the lateral velocity to zero (because we are a differential drive robot with no sideways motion,
+# and the model in the robot_localization package is a 15-state model, which includes lateral velocity)
+odom0: "/zero_odom"
 odom0_config: [
   false, false, false, # x, y, z
   false, false, false, # roll, pitch, yaw
-  true, true, true, # vx, vy, vz
-  false, false, true, # vroll, vpitch, vyaw
+  false, true, false, # vx, vy, vz
+  false, false, false, # vroll, vpitch, vyaw
   false, false, false # ax, ay, az
 ]
 odom0_differential: false
 
+# odometry from the wheel encoders
+odom1: "/jackal_velocity_controller/odom/vulnerable/VELOCITY/uncorrupted"
+odom1_config: [
+  false, false, false, # x, y, z
+  false, false, false, # roll, pitch, yaw
+  true, false, false, # vx, vy, vz
+  false, false, false, # vroll, vpitch, vyaw
+  false, false, false # ax, ay, az
+]
+odom1_differential: false
+odom2: "/jackal_velocity_controller/odom/vulnerable/ANGULAR_VELOCITY/uncorrupted"
+odom2_config: [
+  false, false, false, # x, y, z
+  false, false, false, # roll, pitch, yaw
+  false, false, false, # vx, vy, vz
+  false, false, true, # vroll, vpitch, vyaw
+  false, false, false # ax, ay, az
+]
+odom2_differential: false
+
 imu0: /imu/data
 imu0_config: [
   false, false, false, # x, y, z
-  true, true, false, # roll, pitch, yaw
+  false, false, false, # roll, pitch, yaw
   false, false, false, # vx, vy, vz
-  true, true, true, # vroll, vpitch, vyaw
+  false, false, true, # vroll, vpitch, vyaw
   false, false, false # ax, ay, az
 ]
 imu0_differential: false
