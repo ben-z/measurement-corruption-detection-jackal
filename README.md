@@ -374,3 +374,10 @@ twist:
     0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
     0.0, 0.0, 0.0, 0.0, 0.0, 0.0]" 
 ```
+
+Manually publish to `/bdetect/sensor_validity`:
+  
+```bash
+rostopic pub /bdetect/sensor_validity std_msgs/UInt8MultiArray "data: [1,1,1,1,1]"
+```
+
