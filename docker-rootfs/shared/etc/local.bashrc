@@ -14,6 +14,11 @@ function source_devel() {
 }
 function devsetup() { cd /workspace/catkin_ws && source_devel; }
 
+function rrecord() {
+    __prefix=${1:-unnamed}
+    rosbag record -j -a -o "${__prefix}"
+}
+
 alias ds='devsetup'
 
 export ROSCONSOLE_FORMAT='[${severity}] - ${node}: [${time}] ${message}'

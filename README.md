@@ -378,6 +378,12 @@ twist:
 Manually publish to `/bdetect/sensor_validity`:
   
 ```bash
-rostopic pub /bdetect/sensor_validity std_msgs/UInt8MultiArray "data: [1,1,1,1,1]"
+rostopic pub /bdetect/sensor_validity std_msgs/UInt8MultiArray "data: [1,1,1,1,1,1]"
+```
+
+View the current sensor validity:
+
+```bash
+rostopic echo /corruption_passthrough/sensor_validity_final
 ```
 
