@@ -16,7 +16,7 @@ bdetect:
       measured_states:
         - "VELOCITY"
         - "ANGULAR_VELOCITY"
-    - topic: "/imu_um7/data"
+    - topic: "/bbase/imu/data"
       type: "IMU"
       measured_states:
         - "ANGULAR_VELOCITY"

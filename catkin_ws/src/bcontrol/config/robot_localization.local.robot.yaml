@@ -1,4 +1,4 @@
-frequency: 100 # 50 seems fine (the angular acceleration commands are not jerky)
+frequency: 100 # 50 seems fine on the robot (the angular acceleration commands are not jerky), but not in sim.
 two_d_mode: true
 
 # Set the lateral velocity to zero (because we are a differential drive robot with no sideways motion,
@@ -47,7 +47,7 @@ odom3_config: [
 ]
 odom3_differential: true
 
-imu0: /imu_um7/data
+imu0: /bbase/imu/data
 imu0_config: [
   false, false, false, # x, y, z
   false, false, false, # roll, pitch, yaw

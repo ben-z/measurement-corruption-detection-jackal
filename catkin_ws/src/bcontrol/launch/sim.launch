@@ -43,6 +43,9 @@
     <param name="odometry_topic" value="/gazebo/odom_global"/>
   </node>
 
+  <!-- Relay IMU messages to our hardware-agnostic topic -->
+  <node name="imu_relay" pkg="topic_tools" type="relay" args="/imu/data /bbase/imu/data" />
+
   <!-- Simulator -->
   <include file="$(find jackal_gazebo)/launch/jackal_world.launch">
     <arg name="world_name" value="/workspace/gazebo-worlds/empty.world"/>

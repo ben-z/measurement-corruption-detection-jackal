@@ -9,18 +9,16 @@
   <include file="$(find brobohub)/launch/um7.launch"/>
 
   <!-- VICON (for positioning) -->
-  <!--
-    FIXME: Could revert to the RoboHub vicon repo and replace max_publish_frequency
-    with http://wiki.ros.org/topic_tools/throttle
-  -->
   <include file="$(find vicon_bridge)/launch/vicon.launch" if="$(arg launch_vicon)">
     <arg name="datastream_hostport" value="129.97.71.87:801"/>
     <arg name="vicon_world_frame" value="map"/>
     <arg name="max_publish_frequency" value="100.0"/>
   </include>
-
-  <!-- throttle position measurements to mimic GPS rate -->
+  <!-- throttle position measurements to mimic GPS rate. Also relays the topic to a hardware-agnostic topic -->
   <node name="vicon_odom_msg_throttle" pkg="topic_tools" type="throttle" args="messages /vicon/ben_jackal2/ben_jackal2/odom 1.0 /global_localization/robot/odom" />
+
+  <!-- Relay IMU messages to our hardware-agnostic topic -->
+  <node name="imu_relay" pkg="topic_tools" type="relay" args="/imu_um7/data /bbase/imu/data" />
 
   <!-- Telemetry -->
   <node name="foxglove_bridge" pkg="foxglove_bridge" type="foxglove_bridge" output="screen" respawn="true" />
