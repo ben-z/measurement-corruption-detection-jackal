@@ -14,7 +14,7 @@
     with http://wiki.ros.org/topic_tools/throttle
   -->
   <include file="$(find vicon_bridge)/launch/vicon.launch" if="$(arg launch_vicon)">
-    <arg name="datastream_hostport" value="129.97.71.102:801"/>
+    <arg name="datastream_hostport" value="129.97.71.87:801"/>
     <arg name="vicon_world_frame" value="map"/>
     <arg name="max_publish_frequency" value="100.0"/>
   </include>
