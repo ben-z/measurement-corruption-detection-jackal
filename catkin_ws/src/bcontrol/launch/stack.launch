@@ -74,8 +74,7 @@
 
   <!-- EKF (local) -->
   <node pkg="robot_localization" type="ekf_localization_node" name="ekf_localization_local" clear_params="true" required="true" output="screen">
-    <rosparam command="load" file="$(find bcontrol)/config/robot_localization.local.sim.yaml" if="$(eval arg('platform') == 'sim')" />
-    <rosparam command="load" file="$(find bcontrol)/config/robot_localization.local.robot.yaml" if="$(eval arg('platform') == 'robot')" />
+    <rosparam command="load" file="$(find bcontrol)/config/robot_localization.local.yaml" />
     <remap from="odometry/filtered" to="/odometry/local_filtered" />
   </node>
 </launch>

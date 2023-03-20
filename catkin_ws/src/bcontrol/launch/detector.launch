@@ -7,12 +7,10 @@
   </group>
 
   <node pkg="bcontrol" type="detector_debug.py" name="bdetect_node" output="screen" if="$(eval arg('debug'))">
-    <rosparam command="load" file="$(find bcontrol)/config/bdetect.sim.yaml" if="$(eval arg('platform') == 'sim')" />
-    <rosparam command="load" file="$(find bcontrol)/config/bdetect.robot.yaml" if="$(eval arg('platform') == 'robot')" />
+    <rosparam command="load" file="$(find bcontrol)/config/bdetect.yaml" />
   </node>
 
   <node pkg="bcontrol" type="detector.py" name="bdetect_node" output="screen" unless="$(eval arg('debug'))">
-    <rosparam command="load" file="$(find bcontrol)/config/bdetect.sim.yaml" if="$(eval arg('platform') == 'sim')" />
-    <rosparam command="load" file="$(find bcontrol)/config/bdetect.robot.yaml" if="$(eval arg('platform') == 'robot')" />
+    <rosparam command="load" file="$(find bcontrol)/config/bdetect.yaml" />
   </node>
 </launch>
