@@ -53,8 +53,8 @@ def sensor_validity_final_pub_callback(event: rospy.timer.TimerEvent):
     with state['sensor_validity_lock']:
         sensor_validity_msg = state["sensor_validity_msg"]
     if sensor_validity_msg is None:
-        rospy.loginfo_throttle(1.0, "No sensor_validity_msg received yet. Not publishing sensor_validity_final")
-        return
+        rospy.loginfo_throttle(1.0, "No sensor_validity_msg received yet. Publishing empty message")
+        sensor_validity_msg = UInt8MultiArray()
     state['sensor_validity_final_pub'].publish(sensor_validity_msg)
 
 def main():

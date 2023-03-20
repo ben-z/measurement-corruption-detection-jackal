@@ -20,7 +20,6 @@
   </include>
 
   <!-- throttle position measurements to mimic GPS rate -->
-  <node name="vicon_transform_msg_throttle" pkg="topic_tools" type="throttle" args="messages /vicon/ben_jackal2/ben_jackal2 1.0 /global_localization/robot/transform" />
   <node name="vicon_odom_msg_throttle" pkg="topic_tools" type="throttle" args="messages /vicon/ben_jackal2/ben_jackal2/odom 1.0 /global_localization/robot/odom" />
 
   <!-- Telemetry -->
