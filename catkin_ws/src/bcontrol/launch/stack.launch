@@ -16,36 +16,34 @@
     <arg name="platform" value="$(arg platform)" />
   </include>
 
-  <!-- Launch message corruption nodes -->
-  <node name="global_odom_corruption" pkg="bcontrol" type="message_corruption.py" required="true">
+  <!-- Launch message corruption nodes. TODO: automate the creation of this. -->
+  <node name="global_odom_corruption" pkg="bcontrol" type="message_corruptor.py" required="true">
     <param name="topic_name" value="/global_localization/robot/odom"/>
     <param name="message_type" value="nav_msgs/Odometry"/>
   </node>
-  <node name="wheel_odom_corruption" pkg="bcontrol" type="message_corruption.py" required="true">
+  <node name="wheel_odom_corruption" pkg="bcontrol" type="message_corruptor.py" required="true">
     <param name="topic_name" value="/jackal_velocity_controller/odom"/>
     <param name="message_type" value="nav_msgs/Odometry"/>
   </node>
   <!-- TODO: add IMU corruption -->
 
-  <!-- Launch extractor nodes. TODO: automatically generate this based on the configuration -->
-  <node name="wheel_odom_velocity_extractor" pkg="topic_tools" type="transform" required="true" args="/jackal_velocity_controller/odom/vulnerable /jackal_velocity_controller/odom/vulnerable/VELOCITY nav_msgs/Odometry 'nav_msgs.msg.Odometry(header=m.header,child_frame_id=m.child_frame_id,twist=geometry_msgs.msg.TwistWithCovariance(twist=geometry_msgs.msg.Twist(linear=geometry_msgs.msg.Vector3(x=m.twist.twist.linear.x)),covariance=m.twist.covariance))' --import nav_msgs geometry_msgs" />
-  <node name="wheel_odom_angular_velocity_extractor" pkg="topic_tools" type="transform" required="true" args="/jackal_velocity_controller/odom/vulnerable /jackal_velocity_controller/odom/vulnerable/ANGULAR_VELOCITY nav_msgs/Odometry 'nav_msgs.msg.Odometry(header=m.header,child_frame_id=m.child_frame_id,twist=geometry_msgs.msg.TwistWithCovariance(twist=geometry_msgs.msg.Twist(angular=geometry_msgs.msg.Vector3(z=m.twist.twist.angular.z)),covariance=m.twist.covariance))' --import nav_msgs geometry_msgs" />
+  <include file="$(find bcontrol)/launch/detector_pipeline.generated.launch" />
 
   <!-- Publish a zero odometry message. This is useful for setting the lateral velocity to 0 in robot_localization. -->
   <node name="zero_odom_publisher" pkg="topic_tools" type="transform" required="true" args="/jackal_velocity_controller/odom /zero_odom nav_msgs/Odometry 'nav_msgs.msg.Odometry(header=m.header,child_frame_id=m.child_frame_id)' --import nav_msgs" />
 
-  <!-- Launch passthrough nodes. TODO: automatically generate this based on the configuration -->
-  <node name="global_odom_passthrough" pkg="bcontrol" type="corruption_passthrough.py" required="true">
+  <!-- Launch barricade nodes. TODO: automatically generate this based on the configuration -->
+  <node name="global_odom_passthrough" pkg="bcontrol" type="sensor_barricade.py" required="true">
     <param name="topic_name" value="/global_localization/robot/odom/vulnerable"/>
     <param name="message_type" value="nav_msgs/Odometry"/>
     <param name="sensor_idx" value="2"/>
   </node>
-  <node name="wheel_odom_velocity_passthrough" pkg="bcontrol" type="corruption_passthrough.py" required="true">
+  <node name="wheel_odom_velocity_passthrough" pkg="bcontrol" type="sensor_barricade.py" required="true">
     <param name="topic_name" value="/jackal_velocity_controller/odom/vulnerable/VELOCITY"/>
     <param name="message_type" value="nav_msgs/Odometry"/>
     <param name="sensor_idx" value="3"/>
   </node>
-  <node name="wheel_odom_angular_velocity_passthrough" pkg="bcontrol" type="corruption_passthrough.py" required="true">
+  <node name="wheel_odom_angular_velocity_passthrough" pkg="bcontrol" type="sensor_barricade.py" required="true">
     <param name="topic_name" value="/jackal_velocity_controller/odom/vulnerable/ANGULAR_VELOCITY"/>
     <param name="message_type" value="nav_msgs/Odometry"/>
     <param name="sensor_idx" value="4"/>

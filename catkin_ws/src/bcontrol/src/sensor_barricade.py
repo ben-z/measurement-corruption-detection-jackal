@@ -8,7 +8,7 @@ import numpy as np
 from std_msgs.msg import UInt8MultiArray
 from threading import Lock
 
-NODE_NAME = "corruption_passthrough"
+NODE_NAME = "sensor_barricade"
 
 state = {
     "corruption_msg": None,
@@ -69,7 +69,7 @@ def main():
     
     rospy.loginfo(f"{topic_name=} {message_type=}")
 
-    state['sensor_validity_final_pub'] = rospy.Publisher("/corruption_passthrough/sensor_validity_final", UInt8MultiArray, queue_size=1)
+    state['sensor_validity_final_pub'] = rospy.Publisher("/sensor_barricade/sensor_validity_final", UInt8MultiArray, queue_size=1)
 
     rospy.Subscriber("/bdetect/sensor_validity", UInt8MultiArray, sensor_validity_callback)
     rospy.Timer(rospy.Duration(1), sensor_validity_final_pub_callback)

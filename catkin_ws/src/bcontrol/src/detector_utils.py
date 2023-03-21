@@ -1,12 +1,13 @@
 import numpy as np
 
 from enum import Enum
-from typing import List, TypedDict, Union, Optional
+from typing import List, TypedDict, Union, Optional, Type
 from nav_msgs.msg import Odometry
 from sensor_msgs.msg import Imu
 from geometry_msgs.msg import Quaternion, AccelStamped
 from tf.transformations import euler_from_quaternion
 from utils import flatten
+import genpy
 
 # Value for states/inputs that are not measured
 UNMEASURED = 0
@@ -184,6 +185,14 @@ class SensorConfig(TypedDict):
     type: SensorType
     measured_states: List[MODEL_STATE]
     transform_to_solve_frame: Optional[bool]
+
+def sensor_type_to_msg_type(sensor_type: SensorType) -> Type[genpy.Message]:
+    if sensor_type == SensorType.ODOMETRY:
+        return Odometry
+    elif sensor_type == SensorType.IMU:
+        return Imu
+    else:
+        raise Exception(f"Unknown sensor type {sensor_type}")
 
 MODEL_INPUT = Union[DifferentialDriveInputs,KinematicBicycleInputs]
 

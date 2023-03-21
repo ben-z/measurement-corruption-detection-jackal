@@ -6,7 +6,7 @@ from nav_msgs.msg import Odometry
 from typing import Any
 import numpy as np
 
-NODE_NAME = "message_corruption"
+NODE_NAME = "message_corruptor"
 
 state = {
     "corruption_msg": None,

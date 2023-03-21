@@ -60,3 +60,5 @@ CATKIN_IGNORE
 src/CMakeLists.txt
 
 .catkin_tools
+*.generated.launch
+/*.bag

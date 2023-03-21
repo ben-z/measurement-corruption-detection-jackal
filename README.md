@@ -95,6 +95,8 @@ devsetup
 rosdep_install_all
 catkin build
 source ./devel/setup.bash
+# Generate a launch file for the extractors
+rosrun bcontrol generate_detector_pipeline_launch_file.py $(rospack find bcontrol)/config/bdetect.yaml $(rospack find bcontrol)/launch/detector_pipeline.generated.launch
 ENABLE_EKF=false roslaunch bcontrol robot.launch
 roslaunch bcontrol stack.launch platform:=robot enable_detector:=false
 roslaunch bcontrol detector.launch platform:=robot # or
@@ -138,6 +140,8 @@ catkin build
 Start the simulation and the stack:
 
 ```bash
+# Generate a launch file for the extractors
+rosrun bcontrol generate_detector_pipeline_launch_file.py $(rospack find bcontrol)/config/bdetect.yaml $(rospack find bcontrol)/launch/detector_pipeline.generated.launch
 # Launch the simulation
 VGL_DISPLAY=egl0 DISPLAY=:1.0 ENABLE_EKF=false vglrun roslaunch bcontrol sim.launch
 # Launch visualizations
@@ -384,6 +388,6 @@ rostopic pub /bdetect/sensor_validity std_msgs/UInt8MultiArray "data: [1,1,1,1,1
 View the current sensor validity:
 
 ```bash
-rostopic echo /corruption_passthrough/sensor_validity_final
+rostopic echo /sensor_barricade/sensor_validity_final
 ```
 
