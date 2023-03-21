@@ -16,3 +16,6 @@
 [submodule "catkin_ws/src/jackal_description"]
 	path = catkin_ws/src/jackal_description
 	url = git@github.com:ben-z/jackal_description.git
+[submodule "catkin_ws/src/topic_tools"]
+	path = catkin_ws/src/topic_tools
+	url = git@github.com:ben-z/topic_tools.git

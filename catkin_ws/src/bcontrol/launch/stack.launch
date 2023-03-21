@@ -59,18 +59,17 @@
 
     More info: https://discourse.ros.org/t/map-base-odom-as-alternative-for-rep-105-recommended-frame-order/25095
   -->
-  <node name="map_to_odom_publisher" pkg="map_to_odom_publisher" type="map_to_odom_publisher" output="log" required="true">
-    <param name="odom_topic" value="/global_localization/robot/odom/vulnerable/uncorrupted"/>
+  <!-- <node name="map_to_odom_publisher" pkg="map_to_odom_publisher" type="map_to_odom_publisher" output="log" required="true">
+    <param name="odom_topic" value="/global_localization/robot/odom/vulnerable/uncorrupted"/> -->
     <!-- <param name="odom_topic" value="/global_localization/robot/odom"/> -->
-    <param name="publish_frequency" value="50"/>
-  </node>
+    <!-- <param name="publish_frequency" value="50"/>
+  </node> -->
 
   <!-- EKF (global) -->
-  <!-- <node pkg="robot_localization" type="ekf_localization_node" name="ekf_localization_global" required="true">
-    <rosparam command="load" file="$(find bcontrol)/config/robot_localization.global.sim.yaml" if="$(eval arg('platform') == 'sim')" />
-    <rosparam command="load" file="$(find bcontrol)/config/robot_localization.global.robot.yaml" if="$(eval arg('platform') == 'robot')" />
+  <node pkg="robot_localization" type="ekf_localization_node" name="ekf_localization_global" required="true">
+    <rosparam command="load" file="$(find bcontrol)/config/robot_localization.global.yaml" />
     <remap from="odometry/filtered" to="/odometry/global_filtered" />
-  </node> -->
+  </node>
 
   <!-- EKF (local) -->
   <node pkg="robot_localization" type="ekf_localization_node" name="ekf_localization_local" clear_params="true" required="true" output="screen">

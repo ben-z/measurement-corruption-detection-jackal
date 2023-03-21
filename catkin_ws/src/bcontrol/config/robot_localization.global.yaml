@@ -1,35 +1,77 @@
-# Configuration file for fusing GPS-like information with local odom.
+frequency: 100
+two_d_mode: true
 
-frequency: 50
-
-# odometry from the wheel encoders
-odom0: /jackal_velocity_controller/odom
+# Set the lateral velocity to zero (because we are a differential drive robot with no sideways motion,
+# and the model in the robot_localization package is a 15-state model, which includes lateral velocity)
+odom0: "/zero_odom"
 odom0_config: [
   false, false, false, # x, y, z
   false, false, false, # roll, pitch, yaw
-  true, true, true, # vx, vy, vz
-  false, false, true, # vroll, vpitch, vyaw
+  false, true, false, # vx, vy, vz
+  false, false, false, # vroll, vpitch, vyaw
   false, false, false # ax, ay, az
 ]
 odom0_differential: false
 
-# Global odometry from Gazebo
-odom1: /gazebo/odom_global
+# odometry from the wheel encoders
+odom1: "/jackal_velocity_controller/odom/vulnerable/VELOCITY/uncorrupted"
 odom1_config: [
-  true, true, false, # x, y, z
-  false, false, true, # roll, pitch, yaw
+  false, false, false, # x, y, z
+  false, false, false, # roll, pitch, yaw
+  true, false, false, # vx, vy, vz
+  false, false, false, # vroll, vpitch, vyaw
+  false, false, false # ax, ay, az
+]
+odom1_differential: false
+odom2: "/jackal_velocity_controller/odom/vulnerable/ANGULAR_VELOCITY/uncorrupted"
+odom2_config: [
+  false, false, false, # x, y, z
+  false, false, false, # roll, pitch, yaw
   false, false, false, # vx, vy, vz
   false, false, true, # vroll, vpitch, vyaw
   false, false, false # ax, ay, az
 ]
-odom1_differential: true
+odom2_differential: false
+
+# Global odometry
+odom3: /global_localization/robot/odom
+odom3_config: [
+  true, false, false, # x, y, z
+  false, false, false, # roll, pitch, yaw
+  false, false, false, # vx, vy, vz
+  false, false, false, # vroll, vpitch, vyaw
+  false, false, false # ax, ay, az
+]
+odom3_differential: false
+
+# Global odometry
+odom4: /global_localization/robot/odom
+odom4_config: [
+  false, true, false, # x, y, z
+  false, false, false, # roll, pitch, yaw
+  false, false, false, # vx, vy, vz
+  false, false, false, # vroll, vpitch, vyaw
+  false, false, false # ax, ay, az
+]
+odom4_differential: false
+
+# Global odometry
+odom5: /global_localization/robot/odom
+odom5_config: [
+  false, false, false, # x, y, z
+  false, false, true, # roll, pitch, yaw
+  false, false, false, # vx, vy, vz
+  false, false, false, # vroll, vpitch, vyaw
+  false, false, false # ax, ay, az
+]
+odom5_differential: false
 
 imu0: /bbase/imu/data
 imu0_config: [
   false, false, false, # x, y, z
-  true, true, false, # roll, pitch, yaw
+  false, false, false, # roll, pitch, yaw
   false, false, false, # vx, vy, vz
-  true, true, true, # vroll, vpitch, vyaw
+  false, false, true, # vroll, vpitch, vyaw
   false, false, false # ax, ay, az
 ]
 imu0_differential: false
@@ -40,4 +82,3 @@ map_frame: map
 world_frame: map
 
 predict_to_current_time: true
-two_d_mode: true

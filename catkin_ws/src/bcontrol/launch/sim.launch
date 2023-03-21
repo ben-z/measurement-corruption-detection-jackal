@@ -35,13 +35,20 @@
 
     /gazebo/odom_global is published by the ros_p3d Gazebo plugin.
   -->
-  <node name="global_odom_msg_throttle" pkg="topic_tools" type="throttle" args="messages /gazebo/odom_global 1.0 /global_localization/robot/odom" />
-
+  <node name="gazebo_odom_throttle" pkg="topic_tools" type="throttle" args="messages /gazebo/odom_global 1.0 /gazebo/odom_global/throttled" />
   <!-- Publish ground truth tf for debugging -->
   <node name="ground_truth_tf" pkg="message_to_tf" type="message_to_tf" output="screen">
     <param name="child_frame_id" value="ground_truth_base_link"/>
     <param name="odometry_topic" value="/gazebo/odom_global"/>
   </node>
+
+  <!--
+    Republish the platform-specific odometry topic as a platform-agnostic topic.
+    Also does the following:
+    - Injects pose covariance into the global odometry message
+    - Set child_frame_id to base_link
+  -->
+  <node name="global_odom_publisher" pkg="topic_tools" type="transform" required="true" args="/gazebo/odom_global/throttled /global_localization/robot/odom nav_msgs/Odometry 'm.child_frame_id=&quot;base_link&quot;; m.pose.covariance=[0.01, 0, 0, 0, 0, 0, 0, 0.01, 0, 0, 0, 0, 0, 0, 1e6, 0, 0, 0, 0, 0, 0, 1e6, 0, 0, 0, 0, 0, 0, 1e6, 0, 0, 0, 0, 0, 0, 0.03]; m'" />
 
   <!-- Relay IMU messages to our hardware-agnostic topic -->
   <node name="imu_relay" pkg="topic_tools" type="relay" args="/imu/data /bbase/imu/data" />

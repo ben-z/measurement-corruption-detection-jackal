@@ -14,8 +14,16 @@
     <arg name="vicon_world_frame" value="map"/>
     <arg name="max_publish_frequency" value="100.0"/>
   </include>
-  <!-- throttle position measurements to mimic GPS rate. Also relays the topic to a hardware-agnostic topic -->
-  <node name="vicon_odom_msg_throttle" pkg="topic_tools" type="throttle" args="messages /vicon/ben_jackal2/ben_jackal2/odom 1.0 /global_localization/robot/odom" />
+  <!-- throttle position measurements to mimic GPS rate -->
+  <node name="vicon_throttle" pkg="topic_tools" type="throttle" args="messages /vicon/ben_jackal2/ben_jackal2/odom 1.0 /vicon/ben_jackal2/ben_jackal2/odom/throttled" />
+
+  <!--
+    Republish the platform-specific odometry topic as a platform-agnostic topic.
+    Also does the following:
+    - Injects pose covariance into the global odometry message
+    - Set child_frame_id to base_link
+  -->
+  <node name="global_odom_publisher" pkg="topic_tools" type="transform" required="true" args="/vicon/ben_jackal2/ben_jackal2/odom/throttled /global_localization/robot/odom nav_msgs/Odometry 'm.child_frame_id=&quot;base_link&quot;; m.pose.covariance=[0.01, 0, 0, 0, 0, 0, 0, 0.01, 0, 0, 0, 0, 0, 0, 1e6, 0, 0, 0, 0, 0, 0, 1e6, 0, 0, 0, 0, 0, 0, 1e6, 0, 0, 0, 0, 0, 0, 0.03]; m'" />
 
   <!-- Relay IMU messages to our hardware-agnostic topic -->
   <node name="imu_relay" pkg="topic_tools" type="relay" args="/imu_um7/data /bbase/imu/data" />
