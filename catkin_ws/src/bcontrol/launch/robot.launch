@@ -9,11 +9,8 @@
   <include file="$(find brobohub)/launch/um7.launch"/>
 
   <!-- VICON (for positioning) -->
-  <include file="$(find vicon_bridge)/launch/vicon.launch" if="$(arg launch_vicon)">
-    <arg name="datastream_hostport" value="129.97.71.87:801"/>
-    <arg name="vicon_world_frame" value="map"/>
-    <arg name="max_publish_frequency" value="100.0"/>
-  </include>
+  <include file="$(find brobohub)/launch/vicon.launch" if="$(arg launch_vicon)" />
+
   <!-- throttle position measurements to mimic GPS rate -->
   <node name="vicon_throttle" pkg="topic_tools" type="throttle" args="messages /vicon/ben_jackal2/ben_jackal2/odom 1.0 /vicon/ben_jackal2/ben_jackal2/odom/throttled" />
 
@@ -23,7 +20,8 @@
     - Injects pose covariance into the global odometry message
     - Set child_frame_id to base_link
   -->
-  <node name="global_odom_publisher" pkg="topic_tools" type="transform" required="true" args="/vicon/ben_jackal2/ben_jackal2/odom/throttled /global_localization/robot/odom nav_msgs/Odometry 'm.child_frame_id=&quot;base_link&quot;; m.pose.covariance=[0.2, 0, 0, 0, 0, 0, 0, 0.2, 0, 0, 0, 0, 0, 0, 1e6, 0, 0, 0, 0, 0, 0, 1e6, 0, 0, 0, 0, 0, 0, 1e6, 0, 0, 0, 0, 0, 0, 0.09]; m'" />
+  <node name="global_odom_publisher" pkg="topic_tools" type="transform" required="true"
+    args="/vicon/ben_jackal2/ben_jackal2/odom/throttled /global_localization/robot/odom nav_msgs/Odometry 'm.child_frame_id=&quot;base_link&quot;; m.pose.covariance=[0.2, 0, 0, 0, 0, 0, 0, 0.2, 0, 0, 0, 0, 0, 0, 1e6, 0, 0, 0, 0, 0, 0, 1e6, 0, 0, 0, 0, 0, 0, 1e6, 0, 0, 0, 0, 0, 0, 0.09]; m'" />
 
   <!-- Relay IMU messages to our hardware-agnostic topic -->
   <node name="imu_relay" pkg="topic_tools" type="relay" args="/imu_um7/data /bbase/imu/data" />
