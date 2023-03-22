@@ -16,7 +16,6 @@ from transform_frames import TransformFrames
 
 NODE_NAME = 'bcontrol'
 RADIUS = 2 # meters
-VELOCITY = 0.5 # m/s
 CONTROLLER_HZ = 10 # Hz
 CONTROLLER_PERIOD = 1 / CONTROLLER_HZ # seconds
 # If the odometry message is older than this, it is considered invalid.

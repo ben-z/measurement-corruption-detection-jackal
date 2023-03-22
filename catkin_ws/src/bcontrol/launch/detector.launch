@@ -1,6 +1,7 @@
 <launch>
   <arg name="platform" doc="The environment of the launch site. `sim` or `robot`" />
   <arg name="debug" default="false" doc="Enable debug mode" />
+  <arg name="open_loop" default="false" doc="Keep the loop open (don't let detector results affect downstream modules)" />
 
   <group unless="$(eval arg('platform') in ['sim', 'robot'])">
     <node pkg="bcontrol" type="terminate.py" name="terminate" output="screen" args="'Invalid argument: platform'" required="true" />
@@ -12,5 +13,6 @@
 
   <node pkg="bcontrol" type="detector.py" name="bdetect_node" output="screen" unless="$(eval arg('debug'))">
     <rosparam command="load" file="$(find bcontrol)/config/bdetect.yaml" />
+    <remap from="/bdetect/sensor_validity" to="/bdetect/sensor_validity_staging" unless="$(eval arg('open_loop'))" />
   </node>
 </launch>

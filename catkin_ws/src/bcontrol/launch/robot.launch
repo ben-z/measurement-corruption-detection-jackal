@@ -23,7 +23,7 @@
     - Injects pose covariance into the global odometry message
     - Set child_frame_id to base_link
   -->
-  <node name="global_odom_publisher" pkg="topic_tools" type="transform" required="true" args="/vicon/ben_jackal2/ben_jackal2/odom/throttled /global_localization/robot/odom nav_msgs/Odometry 'm.child_frame_id=&quot;base_link&quot;; m.pose.covariance=[0.01, 0, 0, 0, 0, 0, 0, 0.01, 0, 0, 0, 0, 0, 0, 1e6, 0, 0, 0, 0, 0, 0, 1e6, 0, 0, 0, 0, 0, 0, 1e6, 0, 0, 0, 0, 0, 0, 0.03]; m'" />
+  <node name="global_odom_publisher" pkg="topic_tools" type="transform" required="true" args="/vicon/ben_jackal2/ben_jackal2/odom/throttled /global_localization/robot/odom nav_msgs/Odometry 'm.child_frame_id=&quot;base_link&quot;; m.pose.covariance=[0.2, 0, 0, 0, 0, 0, 0, 0.2, 0, 0, 0, 0, 0, 0, 1e6, 0, 0, 0, 0, 0, 0, 1e6, 0, 0, 0, 0, 0, 0, 1e6, 0, 0, 0, 0, 0, 0, 0.09]; m'" />
 
   <!-- Relay IMU messages to our hardware-agnostic topic -->
   <node name="imu_relay" pkg="topic_tools" type="relay" args="/imu_um7/data /bbase/imu/data" />
