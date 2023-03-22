@@ -1,5 +1,6 @@
 <?xml version="1.0"?>
 <launch>
+<!-- Launch file for the UM7 IMU -->
 
 <node pkg="um7" type="um7_driver" name="um7_driver">
 <param name="port" type="string" value="/dev/clearpath/um7"/>
