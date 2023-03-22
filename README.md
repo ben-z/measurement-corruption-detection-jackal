@@ -150,10 +150,11 @@ rosrun bcontrol generate_detector_pipeline_launch_file.py $(rospack find bcontro
 # Launch the stack
 roslaunch bcontrol stack.launch platform:=sim # or
 roslaunch bcontrol stack.launch platform:=sim enable_detector:=false
-roslaunch bcontrol detector.launch platform:=sim # or
-roslaunch bcontrol detector.launch platform:=sim debug:=true # for interactive debugging
 rosrun bcontrol solver_server.py # or
 rosrun bcontrol solver_server_debug.py # for interactive debugging
+roslaunch bcontrol detector.launch platform:=sim # or
+roslaunch bcontrol detector.launch platform:=robot open_loop:=true # or
+roslaunch bcontrol detector.launch platform:=sim debug:=true # for interactive debugging
 ```
 
 Note that by default, only 1 interactive debugging node can be run at a time. To run multiple interactive debugging nodes, we need to change the hard-coded port number in the corresponding debug files.

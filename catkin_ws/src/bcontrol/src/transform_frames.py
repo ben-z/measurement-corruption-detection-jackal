@@ -31,7 +31,7 @@ class TransformFrames():
             raise Exception(f'Cannot find transformation from {source_frame} to {target_frame}') from e
         return trans     # Type: TransformStamped
 
-    def pose_transform(self, pose_array: PoseArray, target_frame: str='odom') -> PoseArray:
+    def pose_array_transform(self, pose_array: PoseArray, target_frame: str='odom') -> PoseArray:
         ''' pose_array: will be transformed to target_frame '''
         trans = self.get_transform( pose_array.header.frame_id, target_frame, pose_array.header.stamp )
         new_header = Header(frame_id=target_frame, stamp=pose_array.header.stamp) 

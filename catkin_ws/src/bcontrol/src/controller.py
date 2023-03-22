@@ -21,6 +21,10 @@ CONTROLLER_PERIOD = 1 / CONTROLLER_HZ # seconds
 # If the odometry message is older than this, it is considered invalid.
 ODOM_MSG_TIMEOUT = CONTROLLER_PERIOD # seconds
 
+# How often to transform the path to the odom frame
+PATH_TRANSFORMATION_HZ = 10 # Hz
+PATH_TRANSFORMATION_PERIOD = 1 / PATH_TRANSFORMATION_HZ # seconds
+
 # Another layer of limits are set in the configuration file for jackal_control
 MAX_LINEAR_VELOCITY = 1.0 # m/s
 MAX_ANGULAR_VELOCITY = 2.0 # rad/s
@@ -29,6 +33,9 @@ LOOKAHEAD_M = 0.5 # meters
 
 class State(TypedDict):
     odom_msg: Optional[Odometry]
+    path_id: int
+    transformed_path_id: int
+    path_msg: Optional[PoseArray]
     path: Optional[Path]
     closest_path_point: Optional[PathPoint]
     transform_frames: Optional[TransformFrames]
@@ -36,6 +43,9 @@ class State(TypedDict):
 
 state: State = {
     'odom_msg': None,
+    'path_id': -1,
+    'transformed_path_id': -1,
+    'path_msg': None,
     'path': None,
     'closest_path_point': None,
     'transform_frames': None,
@@ -43,34 +53,45 @@ state: State = {
 }
 
 def odom_callback(odom_msg: Odometry):
-    transform_frames = state["transform_frames"]
-    if transform_frames is None:
-        rospy.logerr("No transform listener available. Cannot transform the odometry message to the odom frame.")
-        return
-
-    # TODO: transform the path into the odom frame instead.
-    # Transform the odometry message to the map frame
-    try: 
-        odom_msg_map = transform_frames.odom_transform(odom_msg, target_frame="map")
-    except Exception as e:
-        rospy.logerr(f"Error transforming the odometry message to the odom frame: {e}")
-        return
-
     with state['lock']:
-        state['odom_msg'] = odom_msg_map
+        state['odom_msg'] = odom_msg
 
 def planner_path_callback(path_msg: PoseArray):
-    new_path = Path.from_pose_array(path_msg, closed=PLANNER_PATH_CLOSED)
-    # TODO: if the raw path didn't change, then simply transform it again.
-    # Otherwise, recompute the path and closest point.
-    # Alternatively, run another loop that transforms the path at set intervals.
-    # May need a reentrant lock?
     with state['lock']:
-        if new_path == state['path']:
+        if state['path_msg'] and path_msg.poses == state['path_msg'].poses:
             rospy.logdebug("Received the same path as before. Ignoring it.")
             return
+        state['path_msg'] = path_msg
+        
+def transform_path_callback(event: rospy.timer.TimerEvent):
+    with state['lock']:
+        path_id = state['path_id']
+        transformed_path_id = state['transformed_path_id']
+        path_msg = state['path_msg']
+        transform_frames = state['transform_frames']
+
+    assert transform_frames is not None, "No transform listener available. Cannot transform the path to the odom frame."
+
+    if path_msg is None:
+        rospy.logwarn_throttle(1, "No path received yet. Not transforming it.")
+        return
+
+    # Transform the path to the odom frame
+    try:
+        path_msg_odom = transform_frames.pose_array_transform(path_msg, target_frame="odom")
+    except Exception as e:
+        rospy.logerr(f"Error transforming the path to the odom frame: {e}")
+        return
+
+    new_path = Path.from_pose_array(path_msg_odom, closed=PLANNER_PATH_CLOSED)
+
+    with state['lock']:
         state['path'] = new_path
-        state['closest_path_point'] = None # reset the closest path point now that we have a new path
+    
+        if path_id != transformed_path_id:
+            rospy.loginfo("Path updated. Resetting the closest path point.")
+            state['closest_path_point'] = None # reset the closest path point now that we have a new path
+            state['transformed_path_id'] = path_id
 
 def pub_cmd_vel(cmd_vel_pub, linear_vel, angular_vel):
     """
@@ -144,7 +165,7 @@ def tick_controller(cmd_vel_pub, lookahead_pub):
     
     rospy.logdebug(f"dpos: {dpos[0]:.2f}, {dpos[1]:.2f} m, target_heading {target_heading:.2f} heading {heading:.2f} dheading: {dheading:.2f} rad ({math.degrees(dheading):.2f} deg) linvel: {linear_velocity:.2f} m/s angvel: {angular_velocity:.2f} rad/s ({math.degrees(angular_velocity):.2f} deg/s))")
 
-    lookahead_pub.publish(pathpoints_to_pose_array([lookahead], path, frame_id="map"))
+    lookahead_pub.publish(pathpoints_to_pose_array([lookahead], path, frame_id="odom"))
     pub_cmd_vel(cmd_vel_pub, linear_velocity, angular_velocity)
     
 def main():
@@ -161,6 +182,7 @@ def main():
     # Define subscribers and publishers
     rospy.Subscriber('/odometry/local_filtered', Odometry, odom_callback)
     rospy.Subscriber('/bplan/path', PoseArray, planner_path_callback)
+    rospy.Timer(rospy.Duration.from_sec(PATH_TRANSFORMATION_PERIOD), transform_path_callback)
     cmd_vel_pub = rospy.Publisher('/cmd_vel', Twist, queue_size=1)
     lookahead_pub = rospy.Publisher('/bcontrol/lookahead', PoseArray, queue_size=1)
 
