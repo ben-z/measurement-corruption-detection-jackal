@@ -68,8 +68,8 @@ def get_linear_differential_drive_model(state: np.ndarray, input: np.ndarray, dt
     a, alpha = input
 
     A = np.eye(5) + dt * np.array([
-        [0, 0, 0, v * np.cos(theta), 0],
-        [0, 0, 0, v * np.sin(theta), 0],
+        [0, 0, -v*np.sin(theta), np.cos(theta), 0],
+        [0, 0, v*np.cos(theta), np.sin(theta), 0],
         [0, 0, 0, 0, 1],
         [0, 0, 0, 0, 0],
         [0, 0, 0, 0, 0]
