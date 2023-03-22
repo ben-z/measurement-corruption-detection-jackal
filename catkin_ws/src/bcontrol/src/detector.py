@@ -13,7 +13,7 @@ from typing import Optional, TypedDict, List, Any, Callable
 from threading import Lock
 from planner import PLANNER_PATH_CLOSED
 from enum import Enum
-from detector_utils import ModelConfig, SensorConfig, SensorType, InputConfig, ModelType, MODEL_STATE, DifferentialDriveStates, KinematicBicycleStates, DetectorData, imu_msg_to_state, odometry_msg_to_state, get_model_states, get_model_inputs, accel_stamped_msg_to_input, linearize_model, get_angular_mask, get_all_measured_states
+from detector_utils import ModelConfig, SensorConfig, SensorType, InputConfig, ModelType, MODEL_STATE, DifferentialDriveStates, KinematicBicycleStates, DetectorData, imu_msg_to_state, odometry_msg_to_state, get_model_states, get_model_inputs, accel_stamped_msg_to_input, linearize_model, get_angular_mask, get_all_measured_states, state_to_pose_msg
 from copy import deepcopy
 from diagnostic_msgs.msg import DiagnosticArray, DiagnosticStatus, KeyValue
 from solver_utils import get_evolution_matrices, optimize_l0, optimize_l1, get_l1_objective_fn, get_input_effect_on_state
@@ -65,6 +65,8 @@ class State(TypedDict):
     diagnostics_pub: Optional[rospy.Publisher]
     diagnostics_lock: Lock
     transform_frames: Optional[TransformFrames]
+    data_pub: Optional[rospy.Publisher]
+    solve_data_pub: Optional[rospy.Publisher]
 
 state: State = {
     'estimate': None,
@@ -82,6 +84,8 @@ state: State = {
     'diagnostics_pub': None,
     'diagnostics_lock': Lock(),
     'transform_frames': None,
+    'data_pub': None,
+    'solve_data_pub': None,
 }
 
 def odom_callback(estimate: Odometry):
@@ -248,6 +252,7 @@ def update_loop(event: rospy.timer.TimerEvent):
     Gather data from the sensors for the C, Y, and U matrices
     """
     assert state['detector_data'] is not None, "Detector data should be initialized before the loop starts"
+    assert state['data_pub'] is not None, "Data publisher should be initialized before the loop starts"
 
     # Populate the diagnostics message
     diag_msg = DiagnosticStatus()
@@ -347,19 +352,40 @@ def update_loop(event: rospy.timer.TimerEvent):
         state['detector_data']['sensors_present'] = state['detector_data']['sensors_present'][-N:]
         state['detector_data']['inputs_present'] = state['detector_data']['inputs_present'][-N:]
 
+    # Publish the current data for debugging
+    publish_detector_data(state['data_pub'])
+
     if diag_msg.message == "":
         diag_msg.message = "ok"
 
     with state['diagnostics_lock']:
         state['diagnostics']['update_loop'] = diag_msg
 
-    # TODO: Publish the current sensor pass/fail status
+def publish_detector_data(pub: rospy.Publisher, detector_data: Optional[DetectorData] = None):
+    """
+    Publish the current data for debugging
+    """
+    if detector_data is None:
+        with state['detector_data_lock']:
+            detector_data = deepcopy(state['detector_data'])
+    
+    assert detector_data is not None, "Detector data should be initialized before this function is called"
+    
+    msg = PoseArray()
+    msg.header.stamp = rospy.Time.now()
+    msg.header.frame_id = detector_data['config']['solve_frame']
+    msg.poses = [state_to_pose_msg(x, detector_data['config']['model_type']) for x in detector_data['X']]
+
+    pub.publish(msg)
+
 
 def solve_loop(event: rospy.timer.TimerEvent):
     """
     Solve the optimization problem to determine whether each sensor is corrupted.
     """
     assert state['detector_data'] is not None, "Detector data should be initialized before the loop starts"
+    assert state['sensor_validity_pub'] is not None, "Sensor validity publisher should be initialized before the loop starts"
+    assert state['solve_data_pub'] is not None, "Solve data publisher should be initialized before the loop starts"
 
     # Populate the diagnostics message
     diag_msg = DiagnosticStatus()
@@ -375,6 +401,8 @@ def solve_loop(event: rospy.timer.TimerEvent):
 
     with state['detector_data_lock']:
         detector_data = deepcopy(state['detector_data'])
+
+    publish_detector_data(state['solve_data_pub'], detector_data)
 
     model_config = detector_data['config']
     q = sum([len(s['measured_states']) for s in model_config['sensors']])
@@ -499,6 +527,7 @@ def diagnostics_loop(event: rospy.timer.TimerEvent):
 
     diagarr_msg = DiagnosticArray()
     diagarr_msg.header.stamp = rospy.Time.now()
+    diagarr_msg.status = []
 
     for key, diag in state['diagnostics'].items():
         with state['diagnostics_lock']:
@@ -522,6 +551,8 @@ def main():
 
     state['sensor_validity_pub'] = rospy.Publisher('/bdetect/sensor_validity', UInt8MultiArray, queue_size=1)
     state['diagnostics_pub'] = rospy.Publisher('/diagnostics', DiagnosticArray, queue_size=10)
+    state['data_pub'] = rospy.Publisher('/bdetect/data', PoseArray, queue_size=1)
+    state['solve_data_pub'] = rospy.Publisher('/bdetect/solve_data', PoseArray, queue_size=1)
 
     # Load the configuration and check its type
     config: ModelConfig = typeguard.check_type(rospy.get_param('~bdetect'), ModelConfig)
@@ -537,12 +568,12 @@ def main():
 
     # The detector loop has 2 stages:
     # 1. Update: Gather data from the sensors and construct the C, Y, and U matrices
-    rospy.Timer(rospy.Duration(config['dt']), update_loop)
+    rospy.Timer(rospy.Duration.from_sec(config['dt']), update_loop)
     # 2. Solve: Solve the optimization problem
-    rospy.Timer(rospy.Duration(DETECTOR_SOLVE_PERIOD), solve_loop)
+    rospy.Timer(rospy.Duration.from_sec(DETECTOR_SOLVE_PERIOD), solve_loop)
 
     # Publish the diagnostics messages
-    rospy.Timer(rospy.Duration(min(config['dt'], DETECTOR_SOLVE_PERIOD)), diagnostics_loop)
+    rospy.Timer(rospy.Duration.from_sec(min(config['dt'], DETECTOR_SOLVE_PERIOD)), diagnostics_loop)
 
     rospy.spin()
 

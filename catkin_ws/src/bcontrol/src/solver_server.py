@@ -23,9 +23,9 @@ def run_solver(req, worker_pool):
     Phi = np.array(req.Phi).reshape((q*N, n), order='F')
     Y = np.array(req.Y).reshape((q*N,), order='F')
     if len(req.eps) == 1:
-        eps = np.array(req.eps) * np.ones((n, 1))
-    elif len(req.eps) == n:
-        eps = np.array(req.eps).reshape((n, 1), order='F')
+        eps = np.array(req.eps) * np.ones((q, 1))
+    elif len(req.eps) == q:
+        eps = np.array(req.eps).reshape((q, 1), order='F')
     else:
         raise ValueError(f"Invalid eps {req.eps}")
     solver = req.solver

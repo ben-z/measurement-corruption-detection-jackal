@@ -2,10 +2,11 @@ import numpy as np
 
 from enum import Enum
 from typing import List, TypedDict, Union, Optional, Type
+from std_msgs.msg import Header
 from nav_msgs.msg import Odometry
 from sensor_msgs.msg import Imu
-from geometry_msgs.msg import Quaternion, AccelStamped
-from tf.transformations import euler_from_quaternion
+from geometry_msgs.msg import Quaternion, AccelStamped, PoseWithCovariance, TwistWithCovariance, Pose, Twist, Point, Vector3
+from tf.transformations import euler_from_quaternion, quaternion_from_euler
 from utils import flatten
 import genpy
 
@@ -129,6 +130,70 @@ def odometry_msg_to_state(odometry_message: Odometry, model_type: ModelType) -> 
     else:
         raise Exception(f"Unknown model type {model_type}")
 
+def state_to_odometry_msg(state: np.ndarray, model_type: ModelType, header: Header) -> Odometry:
+    """
+    Converts a state vector to an Odometry message.
+    UNMEASURED is used for states that are not measured.
+    """
+    if model_type == ModelType.DIFFERENTIAL_DRIVE:
+        x, y, theta, v, omega = state
+        return Odometry(
+            header=header,
+            child_frame_id="base_link",
+            pose=PoseWithCovariance(
+                pose=Pose(
+                    position=Point(x, y, 0),
+                    orientation=Quaternion(*quaternion_from_euler(0, 0, theta))
+                )
+            ),
+            twist=TwistWithCovariance(
+                twist=Twist(
+                    linear=Vector3(v, 0, 0),
+                    angular=Vector3(0, 0, omega)
+                )
+            )
+        )
+    elif model_type == ModelType.KINEMATIC_BICYCLE:
+        x, y, theta, v, steering_angle = state
+        return Odometry(
+            header=header,
+            child_frame_id="base_link",
+            pose=PoseWithCovariance(
+                pose=Pose(
+                    position=Point(x, y, 0),
+                    orientation=Quaternion(*quaternion_from_euler(0, 0, theta))
+                )
+            ),
+            twist=TwistWithCovariance(
+                twist=Twist(
+                    linear=Vector3(v, 0, 0),
+                    angular=Vector3(0, 0, 0)
+                )
+            )
+        )
+    else:
+        raise Exception(f"Unknown model type {model_type}")
+
+def state_to_pose_msg(state: np.ndarray, model_type: ModelType) -> Pose:
+    """
+    Converts a state vector to a Pose message.
+    UNMEASURED is used for states that are not measured.
+    """
+    if model_type == ModelType.DIFFERENTIAL_DRIVE:
+        x, y, theta, v, omega = state
+        return Pose(
+            position=Point(x, y, 0),
+            orientation=Quaternion(*quaternion_from_euler(0, 0, theta))
+        )
+    elif model_type == ModelType.KINEMATIC_BICYCLE:
+        x, y, theta, v, steering_angle = state
+        return Pose(
+            position=Point(x, y, 0),
+            orientation=Quaternion(*quaternion_from_euler(0, 0, theta))
+        )
+    else:
+        raise Exception(f"Unknown model type {model_type}")
+
 def imu_msg_to_state(imu_message: Imu, model_type: ModelType) -> np.ndarray:
     """
     Converts an IMU message to a state vector.
@@ -181,6 +246,7 @@ class SensorType(str, Enum):
     IMU = "IMU"
 
 class SensorConfig(TypedDict):
+    name: str
     topic: str
     type: SensorType
     measured_states: List[MODEL_STATE]
@@ -200,6 +266,7 @@ class InputType(str, Enum):
     ACCEL_STAMPED = "ACCEL_STAMPED"
 
 class InputConfig(TypedDict):
+    name: str
     topic: str
     type: InputType
     measured_inputs: List[MODEL_INPUT]
