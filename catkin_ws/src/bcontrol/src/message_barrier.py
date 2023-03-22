@@ -3,15 +3,15 @@
 import rospy
 import tf
 from nav_msgs.msg import Odometry
+from sensor_msgs.msg import Imu
 from typing import Any
 import numpy as np
 from std_msgs.msg import UInt8MultiArray
 from threading import Lock
 
-NODE_NAME = "sensor_barricade"
+NODE_NAME = "message_barrier"
 
 state = {
-    "corruption_msg": None,
     "pub": None,
     "sensor_validity_msg": None,
     "sensor_idx": None,
@@ -19,7 +19,7 @@ state = {
     "sensor_validity_lock": Lock(),
 }
 
-def odom_callback(msg: Odometry):
+def msg_callback(msg: Any):
     assert state["pub"] is not None, "The publisher is not initialized yet"
     assert state["sensor_idx"] is not None, "The sensor_idx must be set"
 
@@ -69,14 +69,17 @@ def main():
     
     rospy.loginfo(f"{topic_name=} {message_type=}")
 
-    state['sensor_validity_final_pub'] = rospy.Publisher("/sensor_barricade/sensor_validity_final", UInt8MultiArray, queue_size=1)
+    state['sensor_validity_final_pub'] = rospy.Publisher(f"/{NODE_NAME}/sensor_validity_final", UInt8MultiArray, queue_size=1)
 
     rospy.Subscriber("/bdetect/sensor_validity", UInt8MultiArray, sensor_validity_callback)
     rospy.Timer(rospy.Duration(1), sensor_validity_final_pub_callback)
 
     if message_type == "nav_msgs/Odometry":
         state['pub'] = rospy.Publisher(topic_name + "/uncorrupted", Odometry, queue_size=1)
-        rospy.Subscriber(topic_name, Odometry, odom_callback)
+        rospy.Subscriber(topic_name, Odometry, msg_callback)
+    elif message_type == "sensor_msgs/Imu":
+        state["pub"] = rospy.Publisher(topic_name + "/uncorrupted", Imu, queue_size=1)
+        rospy.Subscriber(topic_name, Imu, msg_callback)
     else:
         rospy.logerr(f"Message type {message_type} not supported")
         return

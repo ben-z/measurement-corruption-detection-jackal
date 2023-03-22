@@ -663,6 +663,13 @@ def make_srv_enum_lookup_dict(srv):
     """
     return {getattr(srv,k): k for k in dir(srv) if getattr(srv,k).__class__ == int}
 
+def assert_and_remove_suffix(s, suffix):
+    """
+    Assert that a string ends with a given suffix, and return the string without the suffix.
+    """
+
+    assert s.endswith(suffix), f"Expected {s} to end with {suffix}"
+    return s[:-len(suffix)]
 
 if __name__ == "__main__":
     test_wrap_angle()

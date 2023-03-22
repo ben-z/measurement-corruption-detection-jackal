@@ -13,6 +13,7 @@ dir_path = os.path.dirname(os.path.realpath(__file__))
 sys.path.append(f'{dir_path}/../src')
 
 from detector_utils import sensor_type_to_msg_type
+from utils import assert_and_remove_suffix
 
 
 def make_extactor_code(message_type, state):
@@ -57,14 +58,16 @@ def make_extactor_code(message_type, state):
     code += "m1"
     return code
 
-def create_nodes(sensor):
+def create_extractor_nodes(sensor):
     topic = sensor['topic']
     message_type = sensor_type_to_msg_type(sensor['type'])._type
     message_package = message_type.split("/")[0]
     if message_package not in ['nav_msgs', 'sensor_msgs', 'geometry_msgs']:
         raise Exception(f"Message package {message_package} not supported")
 
-    nodes = []
+    nodes = [
+        Comment("The extractor nodes split a sensor topic into multiple topics. This allows us to work with individual signals from a sensor."),
+    ]
 
     for state in sensor['measured_states']:
         topic_out = f"{topic}/{state}"
@@ -83,12 +86,70 @@ def create_nodes(sensor):
     return nodes
 
 
+def create_corruptor_nodes(sensor):
+    topic = assert_and_remove_suffix(sensor['topic'], "/vulnerable")
+    message_type = sensor_type_to_msg_type(sensor['type'])._type
+
+    elem = Element(
+        "node",
+        {
+            "name": f"{sensor['name']}_corruptor",
+            "pkg": "bcontrol",
+            "type": "message_corruptor.py",
+            "required": "true",
+        },
+    )
+    SubElement(elem, "param", {"name": "topic_name", "value": topic})
+    SubElement(elem, "param", {"name": "message_type", "value": message_type})
+
+    return [
+        Comment("The corruptor node allows programmatic corruption of sensor messages"),
+        elem,
+    ]
+
+
+def create_barrier_nodes(sensor, signal_idx_base: int):
+    topic = sensor['topic']
+    message_type = sensor_type_to_msg_type(sensor['type'])._type
+    message_package = message_type.split("/")[0]
+    if message_package not in ['nav_msgs', 'sensor_msgs', 'geometry_msgs']:
+        raise Exception(f"Message package {message_package} not supported")
+
+    nodes = [
+        Comment("The barrier nodes listen to the sensor validity topic and stop passing through sensor messages if the sensor is invalid."),
+    ]
+
+    for signal_idx, state in enumerate(sensor['measured_states']):
+        node = Element(
+            "node",
+            {
+                "name": f"{sensor['name']}_{state.lower()}_barrier",
+                "pkg": "bcontrol",
+                "type": "message_barrier.py",
+                "required": "true",
+            },
+        )
+        SubElement(node, "param", {"name": "topic_name", "value": f"{topic}/{state}"})
+        SubElement(node, "param", {"name": "message_type", "value": message_type})
+        SubElement(node, "param", {"name": "sensor_idx", "value": str(signal_idx_base + signal_idx)})
+
+        nodes.append(node)
+
+    return nodes
+
 def generate_launch_file(config, raw_config):
     launch = Element("launch")
     launch.append(Comment(f"This file is generated from the following configuration:\n{raw_config}"))
 
+    signal_idx_base = 0
+
     for sensor in config["bdetect"]["sensors"]:
-        launch.extend(create_nodes(sensor))
+        launch.append(Comment(f"Sensor: {sensor['name']}"))
+        launch.extend(create_corruptor_nodes(sensor))
+        launch.extend(create_extractor_nodes(sensor))
+        launch.extend(create_barrier_nodes(sensor, signal_idx_base))
+
+        signal_idx_base += len(sensor['measured_states'])
 
     return minidom.parseString(tostring(launch)).toprettyxml(indent="  ")
 

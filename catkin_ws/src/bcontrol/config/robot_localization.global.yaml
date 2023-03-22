@@ -34,7 +34,7 @@ odom2_config: [
 odom2_differential: false
 
 # Global odometry
-odom3: /global_localization/robot/odom
+odom3: /global_localization/robot/odom/vulnerable/X/uncorrupted
 odom3_config: [
   true, false, false, # x, y, z
   false, false, false, # roll, pitch, yaw
@@ -45,7 +45,7 @@ odom3_config: [
 odom3_differential: false
 
 # Global odometry
-odom4: /global_localization/robot/odom
+odom4: /global_localization/robot/odom/vulnerable/Y/uncorrupted
 odom4_config: [
   false, true, false, # x, y, z
   false, false, false, # roll, pitch, yaw
@@ -56,7 +56,7 @@ odom4_config: [
 odom4_differential: false
 
 # Global odometry
-odom5: /global_localization/robot/odom
+odom5: /global_localization/robot/odom/vulnerable/ORIENTATION/uncorrupted
 odom5_config: [
   false, false, false, # x, y, z
   false, false, true, # roll, pitch, yaw
@@ -66,7 +66,7 @@ odom5_config: [
 ]
 odom5_differential: false
 
-imu0: /bbase/imu/data
+imu0: "/bbase/imu/data/vulnerable/ANGULAR_VELOCITY/uncorrupted"
 imu0_config: [
   false, false, false, # x, y, z
   false, false, false, # roll, pitch, yaw

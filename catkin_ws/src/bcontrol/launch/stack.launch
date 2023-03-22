@@ -16,38 +16,11 @@
     <arg name="platform" value="$(arg platform)" />
   </include>
 
-  <!-- Launch message corruption nodes. TODO: automate the creation of this. -->
-  <node name="global_odom_corruption" pkg="bcontrol" type="message_corruptor.py" required="true">
-    <param name="topic_name" value="/global_localization/robot/odom"/>
-    <param name="message_type" value="nav_msgs/Odometry"/>
-  </node>
-  <node name="wheel_odom_corruption" pkg="bcontrol" type="message_corruptor.py" required="true">
-    <param name="topic_name" value="/jackal_velocity_controller/odom"/>
-    <param name="message_type" value="nav_msgs/Odometry"/>
-  </node>
-  <!-- TODO: add IMU corruption -->
-
+  <!-- Launch nodes that support the detector pipeline -->
   <include file="$(find bcontrol)/launch/detector_pipeline.generated.launch" />
 
   <!-- Publish a zero odometry message. This is useful for setting the lateral velocity to 0 in robot_localization. -->
   <node name="zero_odom_publisher" pkg="topic_tools" type="transform" required="true" args="/jackal_velocity_controller/odom /zero_odom nav_msgs/Odometry 'nav_msgs.msg.Odometry(header=m.header,child_frame_id=m.child_frame_id)' --import nav_msgs" />
-
-  <!-- Launch barricade nodes. TODO: automatically generate this based on the configuration -->
-  <node name="global_odom_passthrough" pkg="bcontrol" type="sensor_barricade.py" required="true">
-    <param name="topic_name" value="/global_localization/robot/odom/vulnerable"/>
-    <param name="message_type" value="nav_msgs/Odometry"/>
-    <param name="sensor_idx" value="2"/>
-  </node>
-  <node name="wheel_odom_velocity_passthrough" pkg="bcontrol" type="sensor_barricade.py" required="true">
-    <param name="topic_name" value="/jackal_velocity_controller/odom/vulnerable/VELOCITY"/>
-    <param name="message_type" value="nav_msgs/Odometry"/>
-    <param name="sensor_idx" value="3"/>
-  </node>
-  <node name="wheel_odom_angular_velocity_passthrough" pkg="bcontrol" type="sensor_barricade.py" required="true">
-    <param name="topic_name" value="/jackal_velocity_controller/odom/vulnerable/ANGULAR_VELOCITY"/>
-    <param name="message_type" value="nav_msgs/Odometry"/>
-    <param name="sensor_idx" value="4"/>
-  </node>
 
   <!--
     Publish the map->odom transform based on global position messages.

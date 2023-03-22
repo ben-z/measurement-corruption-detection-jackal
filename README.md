@@ -140,15 +140,14 @@ catkin build
 Start the simulation and the stack:
 
 ```bash
-# Generate a launch file for the extractors
-rosrun bcontrol generate_detector_pipeline_launch_file.py $(rospack find bcontrol)/config/bdetect.yaml $(rospack find bcontrol)/launch/detector_pipeline.generated.launch
 # Launch the simulation
 VGL_DISPLAY=egl0 DISPLAY=:1.0 ENABLE_EKF=false vglrun roslaunch bcontrol sim.launch
 # Launch visualizations
 VGL_DISPLAY=egl0 DISPLAY=:1.0 vglrun roslaunch bcontrol visualization.launch
+# Generate a launch file for the extractors
+rosrun bcontrol generate_detector_pipeline_launch_file.py $(rospack find bcontrol)/config/bdetect.yaml $(rospack find bcontrol)/launch/detector_pipeline.generated.launch
 # Launch the stack
-roslaunch bcontrol stack.launch platform:=sim
-# Or launch the stack and detector separately
+roslaunch bcontrol stack.launch platform:=sim # or
 roslaunch bcontrol stack.launch platform:=sim enable_detector:=false
 roslaunch bcontrol detector.launch platform:=sim # or
 roslaunch bcontrol detector.launch platform:=sim debug:=true # for interactive debugging

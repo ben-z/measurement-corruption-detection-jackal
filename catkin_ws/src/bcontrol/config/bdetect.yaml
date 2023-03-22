@@ -19,7 +19,7 @@ bdetect:
         - "VELOCITY"
         - "ANGULAR_VELOCITY"
     - name: "imu"
-      topic: "/bbase/imu/data"
+      topic: "/bbase/imu/data/vulnerable"
       type: "IMU"
       measured_states:
         - "ANGULAR_VELOCITY"

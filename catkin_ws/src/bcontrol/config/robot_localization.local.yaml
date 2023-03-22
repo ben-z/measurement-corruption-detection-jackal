@@ -37,7 +37,7 @@ odom2_differential: false
 # TODO: Transform the global odometry to the robot's frame, then
 # split it into 3 measurements, x, y, and yaw. In this way, we can control
 # the attack on each independently.
-odom3: /global_localization/robot/odom
+odom3: /global_localization/robot/odom/vulnerable/X/uncorrupted
 odom3_config: [
   true, false, false, # x, y, z
   false, false, false, # roll, pitch, yaw
@@ -51,7 +51,7 @@ odom3_differential: true
 # TODO: Transform the global odometry to the robot's frame, then
 # split it into 3 measurements, x, y, and yaw. In this way, we can control
 # the attack on each independently.
-odom4: /global_localization/robot/odom
+odom4: /global_localization/robot/odom/vulnerable/Y/uncorrupted
 odom4_config: [
   false, true, false, # x, y, z
   false, false, false, # roll, pitch, yaw
@@ -65,7 +65,7 @@ odom4_differential: true
 # TODO: Transform the global odometry to the robot's frame, then
 # split it into 3 measurements, x, y, and yaw. In this way, we can control
 # the attack on each independently.
-odom5: /global_localization/robot/odom
+odom5: /global_localization/robot/odom/vulnerable/ORIENTATION/uncorrupted
 odom5_config: [
   false, false, false, # x, y, z
   false, false, true, # roll, pitch, yaw
@@ -75,7 +75,7 @@ odom5_config: [
 ]
 odom5_differential: true
 
-imu0: /bbase/imu/data
+imu0: "/bbase/imu/data/vulnerable/ANGULAR_VELOCITY/uncorrupted"
 imu0_config: [
   false, false, false, # x, y, z
   false, false, false, # roll, pitch, yaw
