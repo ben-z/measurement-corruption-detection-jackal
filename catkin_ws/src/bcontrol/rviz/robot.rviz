@@ -8,9 +8,9 @@ Panels:
         - /RobotModel1/Links1
         - /TF1
         - /TF1/Frames1
-        - /Odometry (Local, Filtered)1/Shape1
-        - /Odometry (Global, Filtered)1/Shape1
-        - /Odometry (Global, Gazebo Ground Truth)1/Shape1
+        - /GT Odom (VICON)1/Shape1
+        - /Odom (Local, Filtered)1/Shape1
+        - /Odom (Global, Filtered)1/Shape1
       Splitter Ratio: 0.6397058963775635
     Tree Height: 725
   - Class: rviz/Selection
@@ -210,84 +210,14 @@ Visualization Manager:
         Value: false
       Enabled: true
       Keep: 100
-      Name: Odometry (Local, Filtered)
+      Name: GT Odom (Gazebo)
       Position Tolerance: 0.10000000149011612
       Queue Size: 10
       Shape:
         Alpha: 0.5
         Axes Length: 1
         Axes Radius: 0.10000000149011612
-        Color: 255; 25; 0
-        Head Length: 0.05000000074505806
-        Head Radius: 0.029999999329447746
-        Shaft Length: 0.05000000074505806
-        Shaft Radius: 0.009999999776482582
-        Value: Arrow
-      Topic: /odometry/local_filtered
-      Unreliable: false
-      Value: true
-    - Angle Tolerance: 0.10000000149011612
-      Class: rviz/Odometry
-      Covariance:
-        Orientation:
-          Alpha: 0.5
-          Color: 255; 255; 127
-          Color Style: Unique
-          Frame: Local
-          Offset: 1
-          Scale: 1
-          Value: true
-        Position:
-          Alpha: 0.30000001192092896
-          Color: 204; 51; 204
-          Scale: 1
-          Value: true
-        Value: false
-      Enabled: false
-      Keep: 100
-      Name: Odometry (Global, Filtered)
-      Position Tolerance: 0.10000000149011612
-      Queue Size: 10
-      Shape:
-        Alpha: 0.5
-        Axes Length: 1
-        Axes Radius: 0.10000000149011612
-        Color: 6; 10; 255
-        Head Length: 0.05000000074505806
-        Head Radius: 0.029999999329447746
-        Shaft Length: 0.05000000074505806
-        Shaft Radius: 0.009999999776482582
-        Value: Arrow
-      Topic: /odometry/global_filtered
-      Unreliable: false
-      Value: false
-    - Angle Tolerance: 0.10000000149011612
-      Class: rviz/Odometry
-      Covariance:
-        Orientation:
-          Alpha: 0.5
-          Color: 255; 255; 127
-          Color Style: Unique
-          Frame: Local
-          Offset: 1
-          Scale: 1
-          Value: true
-        Position:
-          Alpha: 0.30000001192092896
-          Color: 204; 51; 204
-          Scale: 1
-          Value: true
-        Value: false
-      Enabled: true
-      Keep: 100
-      Name: Odometry (Global, Gazebo Ground Truth)
-      Position Tolerance: 0.10000000149011612
-      Queue Size: 10
-      Shape:
-        Alpha: 0.5
-        Axes Length: 1
-        Axes Radius: 0.10000000149011612
-        Color: 210; 75; 255
+        Color: 0; 255; 0
         Head Length: 0.05000000074505806
         Head Radius: 0.029999999329447746
         Shaft Length: 0.05000000074505806
@@ -313,16 +243,16 @@ Visualization Manager:
           Scale: 1
           Value: true
         Value: false
-      Enabled: true
+      Enabled: false
       Keep: 100
-      Name: Odometry (Global, VICON Ground Truth)
+      Name: GT Odom (VICON)
       Position Tolerance: 0.10000000149011612
       Queue Size: 10
       Shape:
         Alpha: 0.5
         Axes Length: 1
         Axes Radius: 0.10000000149011612
-        Color: 210; 75; 255
+        Color: 0; 255; 0
         Head Length: 0.05000000074505806
         Head Radius: 0.029999999329447746
         Shaft Length: 0.05000000074505806
@@ -330,7 +260,7 @@ Visualization Manager:
         Value: Arrow
       Topic: /vicon/ben_jackal2/ben_jackal2/odom
       Unreliable: false
-      Value: true
+      Value: false
     - Angle Tolerance: 0.10000000149011612
       Class: rviz/Odometry
       Covariance:
@@ -350,7 +280,7 @@ Visualization Manager:
         Value: false
       Enabled: true
       Keep: 5
-      Name: Odometry (Global, Raw)
+      Name: Odom (Global, Raw)
       Position Tolerance: 0.10000000149011612
       Queue Size: 10
       Shape:
@@ -364,6 +294,110 @@ Visualization Manager:
         Shaft Radius: 0.009999999776482582
         Value: Arrow
       Topic: /global_localization/robot/odom
+      Unreliable: false
+      Value: true
+    - Angle Tolerance: 0.10000000149011612
+      Class: rviz/Odometry
+      Covariance:
+        Orientation:
+          Alpha: 0.5
+          Color: 255; 255; 127
+          Color Style: Unique
+          Frame: Local
+          Offset: 1
+          Scale: 1
+          Value: true
+        Position:
+          Alpha: 0.30000001192092896
+          Color: 204; 51; 204
+          Scale: 1
+          Value: true
+        Value: false
+      Enabled: false
+      Keep: 100
+      Name: Odom (Local, Filtered)
+      Position Tolerance: 0.10000000149011612
+      Queue Size: 10
+      Shape:
+        Alpha: 0.5
+        Axes Length: 1
+        Axes Radius: 0.10000000149011612
+        Color: 255; 25; 0
+        Head Length: 0.05000000074505806
+        Head Radius: 0.029999999329447746
+        Shaft Length: 0.05000000074505806
+        Shaft Radius: 0.009999999776482582
+        Value: Arrow
+      Topic: /odometry/local_filtered
+      Unreliable: false
+      Value: false
+    - Angle Tolerance: 0.10000000149011612
+      Class: rviz/Odometry
+      Covariance:
+        Orientation:
+          Alpha: 0.5
+          Color: 255; 255; 127
+          Color Style: Unique
+          Frame: Local
+          Offset: 1
+          Scale: 1
+          Value: true
+        Position:
+          Alpha: 0.30000001192092896
+          Color: 204; 51; 204
+          Scale: 1
+          Value: true
+        Value: false
+      Enabled: false
+      Keep: 100
+      Name: Odom (Global, Filtered)
+      Position Tolerance: 0.10000000149011612
+      Queue Size: 10
+      Shape:
+        Alpha: 0.5
+        Axes Length: 1
+        Axes Radius: 0.10000000149011612
+        Color: 6; 10; 255
+        Head Length: 0.05000000074505806
+        Head Radius: 0.029999999329447746
+        Shaft Length: 0.05000000074505806
+        Shaft Radius: 0.009999999776482582
+        Value: Arrow
+      Topic: /odometry/global_filtered
+      Unreliable: false
+      Value: false
+    - Alpha: 1
+      Arrow Length: 0.30000001192092896
+      Axes Length: 0.30000001192092896
+      Axes Radius: 0.009999999776482582
+      Class: rviz/PoseArray
+      Color: 170; 0; 255
+      Enabled: true
+      Head Length: 0.07000000029802322
+      Head Radius: 0.029999999329447746
+      Name: Detector Data
+      Queue Size: 10
+      Shaft Length: 0.05000000074505806
+      Shaft Radius: 0.009999999776482582
+      Shape: Arrow (3D)
+      Topic: /bdetect/data
+      Unreliable: false
+      Value: true
+    - Alpha: 1
+      Arrow Length: 0.30000001192092896
+      Axes Length: 0.30000001192092896
+      Axes Radius: 0.009999999776482582
+      Class: rviz/PoseArray
+      Color: 255; 0; 255
+      Enabled: true
+      Head Length: 0.07000000029802322
+      Head Radius: 0.029999999329447746
+      Name: Detector Data (Solver)
+      Queue Size: 10
+      Shaft Length: 0.05000000074505806
+      Shaft Radius: 0.019999999552965164
+      Shape: Arrow (3D)
+      Topic: /bdetect/solve_data
       Unreliable: false
       Value: true
   Enabled: true
@@ -391,7 +425,7 @@ Visualization Manager:
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Scale: 219.42416381835938
+      Scale: 146.5785675048828
       Target Frame: <Fixed Frame>
       X: 0
       Y: 0
