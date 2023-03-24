@@ -11,7 +11,7 @@ from time import sleep
 from utils import Path, generate_figure_eight_approximation, generate_ellipse_approximation, rotate_points, lookahead_resample, typeguard, add_timer_event_to_diag_status, wrap_angle, make_srv_enum_lookup_dict
 from typing import Optional, TypedDict, List, Any, Callable
 from threading import Lock
-from planner import PLANNER_PATH_CLOSED
+from planner import PLANNER_PATH_CLOSED, RADIUS
 from enum import Enum
 from detector_utils import ModelConfig, SensorConfig, SensorType, InputConfig, ModelType, MODEL_STATE, DifferentialDriveStates, KinematicBicycleStates, DetectorData, imu_msg_to_state, odometry_msg_to_state, get_model_states, get_model_inputs, accel_stamped_msg_to_input, linearize_model, get_angular_mask, get_all_measured_states, state_to_pose_msg
 from copy import deepcopy
@@ -481,7 +481,7 @@ def solve_loop(event: rospy.timer.TimerEvent):
     desired_positions = np.array([pp.point for pp in desired_path_points])
     desired_headings = [path.get_heading_at_point(pp) for pp in desired_path_points]
     desired_velocities = [VELOCITY] * N
-    CIRCLE_RADIUS = 2.0 # FIXME: This should be passed to us in a message.
+    CIRCLE_RADIUS = RADIUS # FIXME: This should be passed to us in a message and be time-varying
     desired_angular_velocities = [VELOCITY / CIRCLE_RADIUS] * N
     desired_state_trajectory = np.vstack([desired_positions.T, desired_headings, desired_velocities, desired_angular_velocities])
     desired_trajectory = (block_diag(*Cs) @ desired_state_trajectory.reshape((n*N,),order='F')).reshape((q,N), order='F')
