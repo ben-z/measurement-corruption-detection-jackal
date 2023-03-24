@@ -206,8 +206,8 @@ def optimize_l0(n: int, q: int, N: int, Phi: np.ndarray, Y: np.ndarray, eps: np.
 
     smallest_feasible_solns = [(soln, ss) for (soln, ss) in feasible_solns if len(ss) == len(feasible_solns[0][1])]
 
-    if len(smallest_feasible_solns) > 1:
-        raise AmbiguousSolutionError("Multiple solutions found", smallest_feasible_solns)
+    if len(smallest_feasible_solns) > max_num_corruptions:
+        raise AmbiguousSolutionError(f"Expected at most {max_num_corruptions} corruptions, but got {len(smallest_feasible_solns)} corruptions.", smallest_feasible_solns)
 
     # sensor validity
     sensor_validity = np.ones(q, dtype=bool)

@@ -14,7 +14,8 @@ odom0_config: [
 odom0_differential: false
 
 # odometry from the wheel encoders
-odom1: "/jackal_velocity_controller/odom/vulnerable/VELOCITY/uncorrupted"
+odom1: /jackal_velocity_controller/odom/vulnerable/VELOCITY/uncorrupted
+# odom1: /jackal_velocity_controller/odom
 odom1_config: [
   false, false, false, # x, y, z
   false, false, false, # roll, pitch, yaw
@@ -23,7 +24,8 @@ odom1_config: [
   false, false, false # ax, ay, az
 ]
 odom1_differential: false
-odom2: "/jackal_velocity_controller/odom/vulnerable/ANGULAR_VELOCITY/uncorrupted"
+odom2: /jackal_velocity_controller/odom/vulnerable/ANGULAR_VELOCITY/uncorrupted
+# odom2: /jackal_velocity_controller/odom
 odom2_config: [
   false, false, false, # x, y, z
   false, false, false, # roll, pitch, yaw
@@ -38,6 +40,7 @@ odom2_differential: false
 # split it into 3 measurements, x, y, and yaw. In this way, we can control
 # the attack on each independently.
 odom3: /global_localization/robot/odom/vulnerable/X/uncorrupted
+# odom3: /global_localization/robot/odom
 odom3_config: [
   true, false, false, # x, y, z
   false, false, false, # roll, pitch, yaw
@@ -52,6 +55,7 @@ odom3_differential: true
 # split it into 3 measurements, x, y, and yaw. In this way, we can control
 # the attack on each independently.
 odom4: /global_localization/robot/odom/vulnerable/Y/uncorrupted
+# odom4: /global_localization/robot/odom
 odom4_config: [
   false, true, false, # x, y, z
   false, false, false, # roll, pitch, yaw
@@ -66,6 +70,7 @@ odom4_differential: true
 # split it into 3 measurements, x, y, and yaw. In this way, we can control
 # the attack on each independently.
 odom5: /global_localization/robot/odom/vulnerable/ORIENTATION/uncorrupted
+# odom5: /global_localization/robot/odom
 odom5_config: [
   false, false, false, # x, y, z
   false, false, true, # roll, pitch, yaw
@@ -76,6 +81,7 @@ odom5_config: [
 odom5_differential: true
 
 imu0: "/bbase/imu/data/vulnerable/ANGULAR_VELOCITY/uncorrupted"
+# imu0: "/bbase/imu/data"
 imu0_config: [
   false, false, false, # x, y, z
   false, false, false, # roll, pitch, yaw

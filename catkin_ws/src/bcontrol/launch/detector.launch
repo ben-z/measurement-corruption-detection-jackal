@@ -13,6 +13,7 @@
 
   <node pkg="bcontrol" type="detector.py" name="bdetect_node" output="screen" unless="$(eval arg('debug'))">
     <rosparam command="load" file="$(find bcontrol)/config/bdetect.yaml" />
-    <remap from="/bdetect/sensor_validity" to="/bdetect/sensor_validity_staging" unless="$(eval arg('open_loop'))" />
   </node>
+
+  <node name="sensor_validity_relay" pkg="topic_tools" type="relay" args="/bdetect/sensor_validity /message_barrier/sensor_validity_input" unless="$(eval arg('open_loop'))" />
 </launch>

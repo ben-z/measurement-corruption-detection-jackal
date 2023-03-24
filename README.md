@@ -328,7 +328,7 @@ twist:
     0.0, 0.0, 0.0, 0.0, 0.0, 0.0]" 
 ```
 
-Make the robot think it is moving 0.4m/s slower than it actually is:
+Make the robot think it is moving 0.4m/s faster than it actually is:
 
 ```bash
 rostopic pub /jackal_velocity_controller/odom/corruption nav_msgs/Odometry "header:
@@ -347,7 +347,7 @@ pose:
     0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
 twist:
   twist:
-    linear: {x: -0.4, y: 0.0, z: 0.0}
+    linear: {x: 0.4, y: 0.0, z: 0.0}
     angular: {x: 0.0, y: 0.0, z: 0.0}
   covariance: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
     0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,

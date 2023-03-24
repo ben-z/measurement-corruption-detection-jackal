@@ -1,7 +1,7 @@
 bdetect:
   model_type: "DIFFERENTIAL_DRIVE"
-  N: 40 # The measurement window size (the number of timesteps)
-  dt: 0.1 # The discretization timestep of the model. Sensor measurements are sampled at this rate.
+  N: 80 # The measurement window size (the number of timesteps)
+  dt: 0.05 # The discretization timestep of the model. Sensor measurements are sampled at this rate.
   max_update_delay: 0.2 # The maximum delay of the update loop. If the update loop is more delayed than this, all measurements are dropped.
   solve_frame: "map" # The frame in which the solver operates
   sensors:

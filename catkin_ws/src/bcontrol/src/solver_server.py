@@ -23,9 +23,9 @@ def run_solver(req, worker_pool):
     Phi = np.array(req.Phi).reshape((q*N, n), order='F')
     Y = np.array(req.Y).reshape((q*N,), order='F')
     if len(req.eps) == 1:
-        eps = np.array(req.eps) * np.ones((q, 1))
+        eps = np.array(req.eps) * np.ones((q,))
     elif len(req.eps) == q:
-        eps = np.array(req.eps).reshape((q, 1), order='F')
+        eps = np.array(req.eps).reshape((q,), order='F')
     else:
         raise ValueError(f"Invalid eps {req.eps}")
     solver = req.solver
@@ -54,15 +54,30 @@ def run_solver(req, worker_pool):
             rospy.logerr(f"No solution: {e}")
             status = RunSolverResponse.NO_SOLUTION
     elif solver == RunSolverRequest.L1:
-        prob, x0_hat_cp = optimize_l1(n, q, N, Phi, Y, eps, sensor_protection)
-        if prob.status in ["optimal", "optimal_inaccurate"]:
-            status = RunSolverResponse.SUCCESS
-            x0_hat = x0_hat_cp.value.tolist()
-            expanded_optimizer = (Y - Phi @ x0_hat_cp.value).reshape((q, N), order='F')
-            sensor_malfunction_max_magnitude = np.abs(expanded_optimizer).max(axis=1).tolist()
-        else:
-            rospy.logwarn(f"Solve failed: {prob=}")
-            status = RunSolverResponse.OTHER_FAILURE
+        try:
+            prob, x0_hat_cp = optimize_l1(n, q, N, Phi, Y, eps, sensor_protection)
+            if prob.status in ["optimal", "optimal_inaccurate"]:
+                status = RunSolverResponse.SUCCESS
+                x0_hat = x0_hat_cp.value.tolist()
+                expanded_optimizer = (Y - Phi @ x0_hat_cp.value).reshape((q, N), order='F')
+                sensor_malfunction_max_magnitude_np = np.abs(expanded_optimizer).max(axis=1)
+                sensor_malfunction_max_magnitude = sensor_malfunction_max_magnitude_np.tolist()
+
+                sensor_validity_np = (sensor_malfunction_max_magnitude_np <= eps).astype(np.bool)
+                sensor_validity = sensor_validity_np.tolist()
+
+                corrupted_indices = np.where(sensor_validity_np == False)
+                if len(corrupted_indices[0]) > max_num_corruptions:
+                    raise AmbiguousSolutionError(f"Expected at most {max_num_corruptions} corruptions, but got {len(corrupted_indices)} corruptions.", corrupted_indices)
+            else:
+                rospy.logwarn(f"Solve failed: {prob=}")
+                status = RunSolverResponse.OTHER_FAILURE
+        except AmbiguousSolutionError as e:
+            rospy.logerr(f"Ambiguous solution: {e}")
+            status = RunSolverResponse.AMBIGUOUS_SOLUTION
+        except NoSolutionError as e:
+            rospy.logerr(f"No solution: {e}")
+            status = RunSolverResponse.NO_SOLUTION
     else:
         raise ValueError(f"Unknown solver {solver}")
     
@@ -71,6 +86,7 @@ def run_solver(req, worker_pool):
     rospy.loginfo(f"Solver {solver} returning {RES_ENUM_TO_STR[status]}")
     rospy.loginfo(f"x0_hat={np.array(x0_hat)}, {sensor_validity=}")
     rospy.loginfo(f"expanded_optimizer=\n{expanded_optimizer}")
+    rospy.loginfo(f"sensor_validity={sensor_validity}")
     rospy.loginfo(f"sensor_malfunction_max_magnitude={np.array(sensor_malfunction_max_magnitude)}")
     
     rospy.logwarn("==============================================================================================================")

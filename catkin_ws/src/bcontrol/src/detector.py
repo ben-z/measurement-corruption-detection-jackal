@@ -24,7 +24,7 @@ from bcontrol.srv import RunSolver, RunSolverRequest, RunSolverResponse
 RUN_SOLVER_RESPONSE_ENUM_TO_STR = make_srv_enum_lookup_dict(RunSolverResponse)
 
 NODE_NAME = 'bdetect'
-DETECTOR_SOLVE_HZ = 1.0 # Hz
+DETECTOR_SOLVE_HZ = 5 # Hz
 DETECTOR_SOLVE_PERIOD = 1.0 / DETECTOR_SOLVE_HZ # seconds
 # TODO: this should be encoded in the target path
 VELOCITY = 0.5 # m/s
@@ -481,7 +481,7 @@ def solve_loop(event: rospy.timer.TimerEvent):
     desired_positions = np.array([pp.point for pp in desired_path_points])
     desired_headings = [path.get_heading_at_point(pp) for pp in desired_path_points]
     desired_velocities = [VELOCITY] * N
-    CIRCLE_RADIUS = 2.0
+    CIRCLE_RADIUS = 2.0 # FIXME: This should be passed to us in a message.
     desired_angular_velocities = [VELOCITY / CIRCLE_RADIUS] * N
     desired_state_trajectory = np.vstack([desired_positions.T, desired_headings, desired_velocities, desired_angular_velocities])
     desired_trajectory = (block_diag(*Cs) @ desired_state_trajectory.reshape((n*N,),order='F')).reshape((q,N), order='F')
@@ -530,7 +530,8 @@ def solve_loop(event: rospy.timer.TimerEvent):
         # prob, x0_hat = optimize_l0(n, q, N, Phi, Y)
         run_solver = rospy.ServiceProxy("run_solver", RunSolver)
         # TODO: generate eps and sensor_protection from configuration
-        resp = run_solver(n=n, q=q, N=N, Phi=Phi.ravel(order='F'), Y=Y, eps=[0.2],
+        # The eps values are generated from observing the maximum error for each sensor after the optimization
+        resp = run_solver(n=n, q=q, N=N, Phi=Phi.ravel(order='F'), Y=Y, eps=[0.04,0.04,0.1,0.02,0.25,0.25],
                           solver=RunSolverRequest.L1, max_num_corruptions=1, sensor_protection=[1,1,0,0,0,0])
 
         if resp.status != RunSolverResponse.SUCCESS:
@@ -566,8 +567,7 @@ def solve_loop(event: rospy.timer.TimerEvent):
     state['sensor_validity_pub'].publish(sensor_validity_msg)
     sensor_malfunction_max_magnitude_msg = Float32MultiArray()
     sensor_malfunction_max_magnitude_msg.data = malfunction_max_magnitude
-    state['sensor_malfunction_max_magnitude_pub'].publish()
-
+    state['sensor_malfunction_max_magnitude_pub'].publish(sensor_malfunction_max_magnitude_msg)
 
     rospy.logwarn(f"Solved (sensor_validity: {sensor_validity})===============================")
 
@@ -608,7 +608,7 @@ def main():
     rospy.Subscriber('/bplan/path', PoseArray, planner_path_callback)
 
     state['sensor_validity_pub'] = rospy.Publisher('/bdetect/sensor_validity', UInt8MultiArray, queue_size=1)
-    state['sensor_malfunction_max_magnitude_pub'] = rospy.Publisher('/bdetect/sensor_validity', UInt8MultiArray, queue_size=1)
+    state['sensor_malfunction_max_magnitude_pub'] = rospy.Publisher('/bdetect/sensor_malfunction_max_magnitude', Float32MultiArray, queue_size=1)
     state['diagnostics_pub'] = rospy.Publisher('/diagnostics', DiagnosticArray, queue_size=10)
     state['data_pub'] = rospy.Publisher('/bdetect/data', PoseArray, queue_size=1)
     state['solve_data_pub'] = rospy.Publisher('/bdetect/solve_data', PoseArray, queue_size=1)
