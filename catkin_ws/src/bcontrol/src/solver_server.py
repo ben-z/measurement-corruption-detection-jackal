@@ -30,6 +30,7 @@ def run_solver(req, worker_pool):
         raise ValueError(f"Invalid eps {req.eps}")
     solver = req.solver
     max_num_corruptions = req.max_num_corruptions
+    x0_regularization_lambda = req.x0_regularization_lambda
     sensor_protection = np.array(req.sensor_protection, dtype=np.bool)
 
     rospy.loginfo(f"Running solver {solver} with {n=} {q=} {N=} {Phi.shape=} {Y.shape=} {eps.shape=} {max_num_corruptions=}")
@@ -40,8 +41,13 @@ def run_solver(req, worker_pool):
     sensor_malfunction_max_magnitude = []
     if solver == RunSolverRequest.L0:
         try:
-            (prob, x0_hat_cp), sensor_validity_np = optimize_l0(n, q, N, Phi, Y, eps,
-                worker_pool=worker_pool, max_num_corruptions=max_num_corruptions, sensor_protection=sensor_protection)
+            (prob, x0_hat_cp), sensor_validity_np = optimize_l0(
+                n, q, N, Phi, Y, eps,
+                worker_pool=worker_pool,
+                max_num_corruptions=max_num_corruptions,
+                sensor_protection=sensor_protection,
+                x0_regularization_lambda=x0_regularization_lambda,
+            )
             status = RunSolverResponse.SUCCESS
             x0_hat = x0_hat_cp.value.tolist()
             sensor_validity = sensor_validity_np.tolist()
@@ -55,7 +61,11 @@ def run_solver(req, worker_pool):
             status = RunSolverResponse.NO_SOLUTION
     elif solver == RunSolverRequest.L1:
         try:
-            prob, x0_hat_cp = optimize_l1(n, q, N, Phi, Y, eps, sensor_protection)
+            prob, x0_hat_cp = optimize_l1(
+                n, q, N, Phi, Y, eps,
+                sensor_protection=sensor_protection,
+                x0_regularization_lambda=x0_regularization_lambda,
+            )
             if prob.status in ["optimal", "optimal_inaccurate"]:
                 status = RunSolverResponse.SUCCESS
                 x0_hat = x0_hat_cp.value.tolist()

@@ -53,7 +53,7 @@ def get_evolution_matrices(As, Cs):
     return np.concatenate(state_evolution_matrix_list), np.concatenate(output_evolution_matrix_list)
 
 
-def optimize_l1(n, q, N, Phi, Y, eps: np.ndarray = 0.2, sensor_protection: np.ndarray = None):
+def optimize_l1(n, q, N, Phi, Y, eps: np.ndarray = 0.2, sensor_protection: np.ndarray = None, x0_regularization_lambda: float = 0.0):
     # solves the l1/l2 norm minimization problem
     # n: int - number of states
     # q: int - number of outputs
@@ -75,7 +75,7 @@ def optimize_l1(n, q, N, Phi, Y, eps: np.ndarray = 0.2, sensor_protection: np.nd
     # Note that cp uses fortran ordering (column-major), this is different from numpy,
     # which uses c ordering (row-major)
     optimizer_reshaped = cp.reshape(optimizer, (q, N))
-    optimizer_final = cp.mixed_norm(optimizer_reshaped, p=2, q=1)
+    optimizer_final = cp.mixed_norm(optimizer_reshaped, p=2, q=1) + x0_regularization_lambda * cp.norm(x0_hat)
     # Equivalent to optimizer_final = cp.norm1(cp.norm(optimizer_reshaped, axis=1))
 
     # add sensor protection constraints
@@ -164,7 +164,12 @@ def to_mask(l: List[int], q: int) -> np.ndarray:
     mask[l] = 1
     return mask
 
-def optimize_l0(n: int, q: int, N: int, Phi: np.ndarray, Y: np.ndarray, eps: np.ndarray = 0.2, worker_pool: Pool = None, max_num_corruptions: int = -1, sensor_protection: np.ndarray = None):
+def optimize_l0(n: int, q: int, N: int, Phi: np.ndarray, Y: np.ndarray, eps: np.ndarray = 0.2,
+    worker_pool: Pool = None,
+    max_num_corruptions: int = -1,
+    sensor_protection: np.ndarray = None,
+    x0_regularization_lambda: float = 0.0,
+):
     # solves the l0 minimization problem
     # n: int - number of states
     # q: int - number of outputs
@@ -190,12 +195,12 @@ def optimize_l0(n: int, q: int, N: int, Phi: np.ndarray, Y: np.ndarray, eps: np.
         solns = worker_pool.starmap(
             optimize_l0_subproblem,
             # TODO: change the 1 to the maximum number of sensors that can be corrupted
-            [(n, q, N, Phi, Y, corrupted_indices, eps)
+            [(n, q, N, Phi, Y, corrupted_indices, eps, x0_regularization_lambda)
                 for corrupted_indices in sensor_candidates]
         )
     else:
         # Sequential version
-        solns = [optimize_l0_subproblem(n, q, N, Phi, Y, corrupted_indices, eps)
+        solns = [optimize_l0_subproblem(n, q, N, Phi, Y, corrupted_indices, eps, x0_regularization_lambda)
                  for corrupted_indices in sensor_candidates]
     
     # Go through the solutions and return the first one that is feasible.
@@ -216,7 +221,7 @@ def optimize_l0(n: int, q: int, N: int, Phi: np.ndarray, Y: np.ndarray, eps: np.
     return smallest_feasible_solns[0][0], sensor_validity
 
 
-def optimize_l0_subproblem(n, q, N, Phi, Y, attacked_sensor_indices, eps):
+def optimize_l0_subproblem(n, q, N, Phi, Y, attacked_sensor_indices, eps, x0_regularization_lambda: float = 0.0):
     x0_hat = cp.Variable(n)
     num_valid_sensors = q - len(attacked_sensor_indices)
 
@@ -226,7 +231,7 @@ def optimize_l0_subproblem(n, q, N, Phi, Y, attacked_sensor_indices, eps):
     # make it so that we don't minimize the attacked sensors' magnitudes
     optimizer = valid_sensors_matrix @ optimizer_full
     optimizer_reshaped = cp.reshape(optimizer, (num_valid_sensors, N))
-    optimizer_final = cp.mixed_norm(optimizer_reshaped, p=2, q=1)
+    optimizer_final = cp.mixed_norm(optimizer_reshaped, p=2, q=1) + x0_regularization_lambda * cp.norm(x0_hat)
 
     # Support both scalar eps and eps per sensor
     if np.isscalar(eps):

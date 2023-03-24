@@ -60,5 +60,5 @@
   </include>
 
   <!-- Plotting and visualization -->
-  <node name="foxglove_bridge" pkg="foxglove_bridge" type="foxglove_bridge" output="screen" />
+  <node name="foxglove_bridge" pkg="foxglove_bridge" type="foxglove_bridge" output="screen" respawn="True"/>
 </launch>

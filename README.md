@@ -142,9 +142,11 @@ Start the simulation and the stack:
 
 ```bash
 # Launch the simulation
-VGL_DISPLAY=egl0 DISPLAY=:1.0 ENABLE_EKF=false vglrun roslaunch bcontrol sim.launch
+VGL_DISPLAY=egl0 DISPLAY=:1.0 ENABLE_EKF=false vglrun roslaunch bcontrol sim.launch # with GPU, or
+DISPLAY=:1.0 ENABLE_EKF=false roslaunch bcontrol sim.launch # without GPU
 # Launch visualizations
-VGL_DISPLAY=egl0 DISPLAY=:1.0 vglrun roslaunch bcontrol visualization.launch
+VGL_DISPLAY=egl0 DISPLAY=:1.0 vglrun roslaunch bcontrol visualization.launch # with GPU, or
+DISPLAY=:1.0 roslaunch bcontrol visualization.launch # without GPU
 # Generate a launch file for the extractors
 rosrun bcontrol generate_detector_pipeline_launch_file.py $(rospack find bcontrol)/config/bdetect.yaml $(rospack find bcontrol)/launch/detector_pipeline.generated.launch
 # Launch the stack
@@ -153,7 +155,7 @@ roslaunch bcontrol stack.launch platform:=sim enable_detector:=false
 rosrun bcontrol solver_server.py # or
 rosrun bcontrol solver_server_debug.py # for interactive debugging
 roslaunch bcontrol detector.launch platform:=sim # or
-roslaunch bcontrol detector.launch platform:=robot open_loop:=true # or
+roslaunch bcontrol detector.launch platform:=sim open_loop:=true # or
 roslaunch bcontrol detector.launch platform:=sim debug:=true # for interactive debugging
 ```
 
@@ -276,9 +278,10 @@ I had to run `sudo modprobe -r iwlwifi && sudo modprobe iwlwifi` every time afte
 
 #### Corruption message examples
 
-Add -1 radians to the yaw of the robot's odometry message ([angle converter](https://www.andre-gaschler.com/rotationconverter/)):
+Add to the yaw of the robot's odometry message ([angle converter](https://www.andre-gaschler.com/rotationconverter/)):
 
 ```bash
+# -60 degs
 rostopic pub /global_localization/robot/odom/corruption nav_msgs/Odometry "header:
   seq: 0
   stamp:
@@ -290,6 +293,75 @@ pose:
   pose:
     position: {x: 0.0, y: 0.0, z: 0.0}
     orientation: {x: 0.0, y: 0.0, z: -0.5, w: 0.8660254 }
+  covariance: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+    0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+    0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+twist:
+  twist:
+    linear: {x: 0.0, y: 0.0, z: 0.0}
+    angular: {x: 0.0, y: 0.0, z: 0.0}
+  covariance: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+    0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+    0.0, 0.0, 0.0, 0.0, 0.0, 0.0]" 
+
+# -30 degs
+rostopic pub /global_localization/robot/odom/corruption nav_msgs/Odometry "header:
+  seq: 0
+  stamp:
+    secs: 0
+    nsecs: 0
+  frame_id: ''
+child_frame_id: ''
+pose:
+  pose:
+    position: {x: 0.0, y: 0.0, z: 0.0}
+    orientation: {x: 0.0, y: 0.0, z: -0.258819, w: 0.9659258 }
+  covariance: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+    0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+    0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+twist:
+  twist:
+    linear: {x: 0.0, y: 0.0, z: 0.0}
+    angular: {x: 0.0, y: 0.0, z: 0.0}
+  covariance: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+    0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+    0.0, 0.0, 0.0, 0.0, 0.0, 0.0]" 
+
+# -15 degs
+rostopic pub /global_localization/robot/odom/corruption nav_msgs/Odometry "header:
+  seq: 0
+  stamp:
+    secs: 0
+    nsecs: 0
+  frame_id: ''
+child_frame_id: ''
+pose:
+  pose:
+    position: {x: 0.0, y: 0.0, z: 0.0}
+    orientation: {x: 0.0, y: 0.0, z: -0.1305262, w: 0.9914449 }
+  covariance: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+    0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+    0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+twist:
+  twist:
+    linear: {x: 0.0, y: 0.0, z: 0.0}
+    angular: {x: 0.0, y: 0.0, z: 0.0}
+  covariance: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+    0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+    0.0, 0.0, 0.0, 0.0, 0.0, 0.0]" 
+
+# -7.5 degs
+rostopic pub /global_localization/robot/odom/corruption nav_msgs/Odometry "header:
+  seq: 0
+  stamp:
+    secs: 0
+    nsecs: 0
+  frame_id: ''
+child_frame_id: ''
+pose:
+  pose:
+    position: {x: 0.0, y: 0.0, z: 0.0}
+    orientation: {x: 0.0, y: 0.0, z: -0.0654031, w: 0.9978589 }
   covariance: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
     0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
     0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
@@ -406,6 +478,36 @@ twist:
     0.0, 0.0, 0.0, 0.0, 0.0, 0.0]" 
 ```
 
+Corrupt the IMU:
+
+```bash
+rostopic pub /bbase/imu/data/corruption sensor_msgs/Imu "header:
+  seq: 0
+  stamp: {secs: 0, nsecs: 0}
+  frame_id: ''
+orientation: {x: 0.0, y: 0.0, z: 0.0, w: 0.0}
+orientation_covariance: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+angular_velocity: {x: 0.0, y: 0.0, z: 0.5}
+angular_velocity_covariance: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+linear_acceleration: {x: 0.0, y: 0.0, z: 0.0}
+linear_acceleration_covariance: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]"
+```
+
+Restore the IMU:
+
+```bash
+rostopic pub /bbase/imu/data/corruption sensor_msgs/Imu "header:
+  seq: 0
+  stamp: {secs: 0, nsecs: 0}
+  frame_id: ''
+orientation: {x: 0.0, y: 0.0, z: 0.0, w: 0.0}
+orientation_covariance: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+angular_velocity: {x: 0.0, y: 0.0, z: 0.0}
+angular_velocity_covariance: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+linear_acceleration: {x: 0.0, y: 0.0, z: 0.0}
+linear_acceleration_covariance: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]"
+```
+
 Manually publish to `/bdetect/sensor_validity`:
   
 ```bash
@@ -415,6 +517,6 @@ rostopic pub /bdetect/sensor_validity std_msgs/UInt8MultiArray "data: [1,1,1,1,1
 View the current sensor validity:
 
 ```bash
-rostopic echo /sensor_barricade/sensor_validity_final
+rostopic echo /sensor_barrier/sensor_validity_final
 ```
 
