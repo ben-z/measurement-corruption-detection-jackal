@@ -6,7 +6,8 @@ import time
 import multiprocessing as mp
 from multiprocessing import cpu_count, Pool
 from multiprocessing.pool import ThreadPool
-# mp.set_start_method('spawn', force=True)
+import rospy
+from typing import List
 
 def get_evolution_matrices(As, Cs):
     """
@@ -52,7 +53,7 @@ def get_evolution_matrices(As, Cs):
     return np.concatenate(state_evolution_matrix_list), np.concatenate(output_evolution_matrix_list)
 
 
-def optimize_l1(n, q, N, Phi, Y):
+def optimize_l1(n, q, N, Phi, Y, eps: np.ndarray = 0.2, sensor_protection: np.ndarray = None):
     # solves the l1/l2 norm minimization problem
     # n: int - number of states
     # q: int - number of outputs
@@ -64,6 +65,9 @@ def optimize_l1(n, q, N, Phi, Y):
     assert Phi.shape == (q*N, n)
     assert Y.shape == (q*N,)
 
+    if sensor_protection is None:
+        sensor_protection = np.zeros(q, dtype=np.bool)
+
     x0_hat = cp.Variable(n)
     # define the expression that we want to run l1/l2 optimization on
     optimizer = Y - np.matmul(Phi, x0_hat)
@@ -74,11 +78,22 @@ def optimize_l1(n, q, N, Phi, Y):
     optimizer_final = cp.mixed_norm(optimizer_reshaped, p=2, q=1)
     # Equivalent to optimizer_final = cp.norm1(cp.norm(optimizer_reshaped, axis=1))
 
+    # add sensor protection constraints
+    constraints = []
+    for i in range(q):
+        if sensor_protection[i]:
+            # optimizer_final += cp.norm(optimizer_reshaped[i, :]) / eps[i]
+            constraints.append(optimizer_reshaped[i, :] <= eps[i])
+            constraints.append(optimizer_reshaped[i, :] >= -eps[i])
+
     obj = cp.Minimize(optimizer_final)
 
     # Form and solve problem.
-    prob = cp.Problem(obj)
+    prob = cp.Problem(obj, constraints)
     prob.solve(verbose=False)  # Returns the optimal value.
+
+    if 'optimal' not in prob.status:
+        raise NoSolutionError("No solution found")
 
     return (prob, x0_hat)
 
@@ -140,8 +155,16 @@ class AmbiguousSolutionError(Exception):
         super().__init__(message)
         self.solutions = solutions
     
+def to_mask(l: List[int], q: int) -> np.ndarray:
+    # l: list of indices to be masked
+    # q: size of the mask
+    # returns: numpy.ndarray
 
-def optimize_l0(n: int, q: int, N: int, Phi: np.ndarray, Y: np.ndarray, eps: np.ndarray = 0.2, worker_pool: Pool = None, max_num_corruptions: int = -1):
+    mask = np.zeros(q, dtype=np.bool)
+    mask[l] = 1
+    return mask
+
+def optimize_l0(n: int, q: int, N: int, Phi: np.ndarray, Y: np.ndarray, eps: np.ndarray = 0.2, worker_pool: Pool = None, max_num_corruptions: int = -1, sensor_protection: np.ndarray = None):
     # solves the l0 minimization problem
     # n: int - number of states
     # q: int - number of outputs
@@ -155,9 +178,12 @@ def optimize_l0(n: int, q: int, N: int, Phi: np.ndarray, Y: np.ndarray, eps: np.
 
     if max_num_corruptions < 0:
         max_num_corruptions = q
+    
+    if sensor_protection is None:
+        sensor_protection = np.zeros(q, dtype=np.bool)
 
     # Candidate sets of corrupted sensors, in increasing order of size of the set
-    sensor_candidates = [list(s) for s in powerset(range(q)) if len(s) <= max_num_corruptions]
+    sensor_candidates = [list(s) for s in powerset(range(q)) if len(s) <= max_num_corruptions and not np.logical_and(to_mask(list(s), q), sensor_protection).any()]
 
     if worker_pool:
         # Parallel version with multiprocessing.Pool
@@ -197,10 +223,9 @@ def optimize_l0_subproblem(n, q, N, Phi, Y, attacked_sensor_indices, eps):
     optimizer_full = Y - np.matmul(Phi, x0_hat)
     valid_sensors_I = np.delete(np.eye(q), attacked_sensor_indices, axis=0)
     valid_sensors_matrix = block_diag(*[valid_sensors_I]*N)
+    # make it so that we don't minimize the attacked sensors' magnitudes
     optimizer = valid_sensors_matrix @ optimizer_full
     optimizer_reshaped = cp.reshape(optimizer, (num_valid_sensors, N))
-    # # zero-out the attacked sensors
-    # optimizer_reshaped[attacked_sensor_indices,:] = 0
     optimizer_final = cp.mixed_norm(optimizer_reshaped, p=2, q=1)
 
     # Support both scalar eps and eps per sensor
@@ -221,5 +246,11 @@ def optimize_l0_subproblem(n, q, N, Phi, Y, attacked_sensor_indices, eps):
 
     print(
         f"Solved l0 subproblem in {end-start:.2f} seconds. Indices: {attacked_sensor_indices}, status: {prob.status}, value: {prob.value}")
+
+    if 'optimal' in prob.status and attacked_sensor_indices == [2]:
+        rospy.logwarn("Special output")
+        expanded_optimizer = (Y - Phi @ x0_hat.value).reshape((q, N), order='F')
+        rospy.logwarn(f"x0_hat={x0_hat.value}")
+        rospy.logwarn(f"expanded_optimizer=\n{expanded_optimizer}")
 
     return (prob, x0_hat)

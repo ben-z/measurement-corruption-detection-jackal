@@ -276,7 +276,7 @@ I had to run `sudo modprobe -r iwlwifi && sudo modprobe iwlwifi` every time afte
 
 #### Corruption message examples
 
-Add 0.5 radians to the yaw of the robot's odometry message ([angle converter](https://www.andre-gaschler.com/rotationconverter/)):
+Add -1 radians to the yaw of the robot's odometry message ([angle converter](https://www.andre-gaschler.com/rotationconverter/)):
 
 ```bash
 rostopic pub /global_localization/robot/odom/corruption nav_msgs/Odometry "header:
@@ -289,7 +289,7 @@ child_frame_id: ''
 pose:
   pose:
     position: {x: 0.0, y: 0.0, z: 0.0}
-    orientation: {x: 0.0, y: 0.0, z: 0.247404, w: 0.9689124}
+    orientation: {x: 0.0, y: 0.0, z: -0.5, w: 0.8660254 }
   covariance: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
     0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
     0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
@@ -328,7 +328,7 @@ twist:
     0.0, 0.0, 0.0, 0.0, 0.0, 0.0]" 
 ```
 
-Make the robot think it is moving 2m/s slower than it actually is:
+Make the robot think it is moving 0.4m/s slower than it actually is:
 
 ```bash
 rostopic pub /jackal_velocity_controller/odom/corruption nav_msgs/Odometry "header:
@@ -347,8 +347,34 @@ pose:
     0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
 twist:
   twist:
-    linear: {x: -0.2, y: 0.0, z: 0.0}
+    linear: {x: -0.4, y: 0.0, z: 0.0}
     angular: {x: 0.0, y: 0.0, z: 0.0}
+  covariance: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+    0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+    0.0, 0.0, 0.0, 0.0, 0.0, 0.0]" 
+```
+
+Make the robot think it's turning 0.4rad/s faster than it actually is:
+
+```bash
+rostopic pub /jackal_velocity_controller/odom/corruption nav_msgs/Odometry "header:
+  seq: 0
+  stamp:
+    secs: 0
+    nsecs: 0
+  frame_id: ''
+child_frame_id: ''
+pose:
+  pose:
+    position: {x: 0.0, y: 0.0, z: 0.0}
+    orientation: {x: 0.0, y: 0.0, z: 0.0, w: 0.0}
+  covariance: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+    0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+    0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+twist:
+  twist:
+    linear: {x: 0.0, y: 0.0, z: 0.0}
+    angular: {x: 0.0, y: 0.0, z: 0.4}
   covariance: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
     0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
     0.0, 0.0, 0.0, 0.0, 0.0, 0.0]" 

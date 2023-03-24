@@ -3,7 +3,7 @@
 import rospy
 import math
 import numpy as np
-from std_msgs.msg import UInt8MultiArray
+from std_msgs.msg import UInt8MultiArray, Float32MultiArray
 from nav_msgs.msg import Odometry
 from geometry_msgs.msg import PoseArray, AccelStamped
 from sensor_msgs.msg import Imu
@@ -26,8 +26,10 @@ RUN_SOLVER_RESPONSE_ENUM_TO_STR = make_srv_enum_lookup_dict(RunSolverResponse)
 NODE_NAME = 'bdetect'
 DETECTOR_SOLVE_HZ = 1.0 # Hz
 DETECTOR_SOLVE_PERIOD = 1.0 / DETECTOR_SOLVE_HZ # seconds
+# TODO: this should be encoded in the target path
+VELOCITY = 0.5 # m/s
 
-np.set_printoptions(precision=4, suppress=True, linewidth=200)
+np.set_printoptions(precision=4, suppress=True, linewidth=400)
 
 # TODO: Implement the detector
 # Inputs: odom from IMU, x, y, orientation from GPS, path from the planner
@@ -54,26 +56,31 @@ class Diagnostics(TypedDict):
 
 class State(TypedDict):
     estimate: Optional[Odometry]
-    path: Optional[Path]
+    path_msg: Optional[PoseArray]
     lock: Lock
     sensors: List[SensorState]
     inputs: List[InputState]
+    model_config: Optional[ModelConfig]
     detector_data: Optional[DetectorData]
     detector_data_lock: Lock
     sensor_validity_pub: Optional[rospy.Publisher]
+    sensor_malfunction_max_magnitude_pub: Optional[rospy.Publisher]
     diagnostics: Diagnostics
     diagnostics_pub: Optional[rospy.Publisher]
     diagnostics_lock: Lock
     transform_frames: Optional[TransformFrames]
     data_pub: Optional[rospy.Publisher]
     solve_data_pub: Optional[rospy.Publisher]
+    # used to keep track of the time debt of the update loop, because the difference between the expected and actual time does not go down.
+    update_loop_time_debt: float # seconds
 
 state: State = {
     'estimate': None,
-    'path': None,
+    'path_msg': None,
     'lock': Lock(),
     'sensors': [],
     'inputs': [],
+    'model_config': None,
     'detector_data': None,
     'detector_data_lock': Lock(),
     'sensor_validity_pub': None,
@@ -86,6 +93,8 @@ state: State = {
     'transform_frames': None,
     'data_pub': None,
     'solve_data_pub': None,
+    'update_loop_time_debt': 0.0,
+    'sensor_malfunction_max_magnitude_pub': None,
 }
 
 def odom_callback(estimate: Odometry):
@@ -94,19 +103,7 @@ def odom_callback(estimate: Odometry):
 
 def planner_path_callback(path_msg: PoseArray):
     with state['lock']:
-        state['path'] = Path.from_pose_array(path_msg, closed=PLANNER_PATH_CLOSED)
-
-def tick_detector():
-    with state['lock']:
-        estimate = state['estimate']
-        path = state['path']
-    
-    if estimate is None or path is None:
-        rospy.logwarn(f"Detector: waiting for inputs (availability: estimate={not not estimate}, path={not not path})")
-        return
-    
-    rospy.loginfo(f"Detector: got inputs (estimate={estimate}, path={path})")
-
+        state['path_msg'] = path_msg
 
 def construct_C_block(model_type: ModelType, measured_states: List[MODEL_STATE]):
     """
@@ -251,7 +248,7 @@ def update_loop(event: rospy.timer.TimerEvent):
     """
     Gather data from the sensors for the C, Y, and U matrices
     """
-    assert state['detector_data'] is not None, "Detector data should be initialized before the loop starts"
+    assert state['model_config'] is not None, "Model config should be initialized before the loop starts"
     assert state['data_pub'] is not None, "Data publisher should be initialized before the loop starts"
 
     # Populate the diagnostics message
@@ -262,12 +259,23 @@ def update_loop(event: rospy.timer.TimerEvent):
     diag_msg.values = []
     add_timer_event_to_diag_status(diag_msg, event)
 
-    if event.last_duration and event.last_duration > state['detector_data']['config']['dt']:
+    if event.last_duration and event.last_duration > state['model_config']['dt']:
         diag_msg.level = max(DiagnosticStatus.WARN, diag_msg.level)
         diag_msg.message += "Last update loop took longer than the update period\n"
 
-    N = state['detector_data']['config']['N']
-    model_type = state['detector_data']['config']['model_type']
+    if event.current_real - event.current_expected > rospy.Duration.from_sec(state['model_config']['max_update_delay'] + state['update_loop_time_debt']):
+        late_sec = (event.current_real - event.current_expected).to_sec()
+        late_sec_without_debt = late_sec - state['update_loop_time_debt']
+        msg = f"Update loop is running late (expected at {event.current_expected.to_sec() + state['update_loop_time_debt']:.2f}, but running at {event.current_real.to_sec():.2f}, diff={late_sec_without_debt:.4f}s)! Wiping the data and starting over"
+        rospy.logerr(msg)
+        diag_msg.level = max(DiagnosticStatus.ERROR, diag_msg.level)
+        diag_msg.message += msg + "\n"
+        with state['detector_data_lock']:
+            state['detector_data'] = None
+        state['update_loop_time_debt'] = late_sec
+
+    N = state['model_config']['N']
+    model_type = state['model_config']['model_type']
     C_blocks = []
     Y_blocks = []
     u = np.zeros((len(get_model_inputs(model_type)), 1))
@@ -337,6 +345,9 @@ def update_loop(event: rospy.timer.TimerEvent):
         Y = np.hstack(Y_blocks).T
         assert C.shape[0] == Y.shape[0], "C and Y should have the same number of rows"
 
+        if state['detector_data'] is None:
+            state['detector_data'] = DetectorData(C=[], Y=[], U=[], X=[], sensors_present=[], inputs_present=[])
+
         state['detector_data']['C'].append(C)
         state['detector_data']['Y'].append(Y)
         state['detector_data']['U'].append(u)
@@ -365,16 +376,21 @@ def publish_detector_data(pub: rospy.Publisher, detector_data: Optional[Detector
     """
     Publish the current data for debugging
     """
+    assert state['model_config'] is not None, "Model config should be initialized before this function is called"
+
     if detector_data is None:
         with state['detector_data_lock']:
             detector_data = deepcopy(state['detector_data'])
     
-    assert detector_data is not None, "Detector data should be initialized before this function is called"
+    if detector_data is None:
+        rospy.loginfo("Waiting for detector data to be available before publishing")
+        return
+
     
     msg = PoseArray()
     msg.header.stamp = rospy.Time.now()
-    msg.header.frame_id = detector_data['config']['solve_frame']
-    msg.poses = [state_to_pose_msg(x, detector_data['config']['model_type']) for x in detector_data['X']]
+    msg.header.frame_id = state['model_config']['solve_frame']
+    msg.poses = [state_to_pose_msg(x, state['model_config']['model_type']) for x in detector_data['X']]
 
     pub.publish(msg)
 
@@ -383,8 +399,10 @@ def solve_loop(event: rospy.timer.TimerEvent):
     """
     Solve the optimization problem to determine whether each sensor is corrupted.
     """
-    assert state['detector_data'] is not None, "Detector data should be initialized before the loop starts"
+    assert state['model_config'] is not None, "Model config should be initialized before the loop starts"
+    assert state['transform_frames'] is not None, "Transform frames should be initialized before the loop starts"
     assert state['sensor_validity_pub'] is not None, "Sensor validity publisher should be initialized before the loop starts"
+    assert state['sensor_malfunction_max_magnitude_pub'] is not None, "Sensor malfunction max magnitude publisher should be initialized before the loop starts"
     assert state['solve_data_pub'] is not None, "Solve data publisher should be initialized before the loop starts"
 
     # Populate the diagnostics message
@@ -395,22 +413,40 @@ def solve_loop(event: rospy.timer.TimerEvent):
     diag_msg.values = []
     add_timer_event_to_diag_status(diag_msg, event)
 
+    # Check if the last loop took too long
     if event.last_duration and event.last_duration > DETECTOR_SOLVE_PERIOD:
         diag_msg.level = max(DiagnosticStatus.WARN, diag_msg.level)
-        diag_msg.message += "Last update loop took longer than the update period\n"
+        diag_msg.message += "Last solve loop took longer than the update period\n"
 
+    # Get the data
     with state['detector_data_lock']:
         detector_data = deepcopy(state['detector_data'])
+        path_msg_original = state['path_msg']
+        transform_frames = state['transform_frames']
+
+    if path_msg_original is None:
+        rospy.loginfo("Waiting for a path message in the solve loop. Skipping this iteration.")
+        return
 
     publish_detector_data(state['solve_data_pub'], detector_data)
 
-    model_config = detector_data['config']
+    model_config = state['model_config']
+
+    # Prepare the path
+    try:
+        path_msg = transform_frames.pose_array_transform(path_msg_original, model_config['solve_frame'])
+    except Exception as e:
+        rospy.logerr(f"Failed to transform the path to the solve frame. Skipping this solve iteration. Error: {e}")
+        return
+    path = Path.from_pose_array(path_msg, closed=PLANNER_PATH_CLOSED)
+
+    # Prepare the data
     q = sum([len(s['measured_states']) for s in model_config['sensors']])
     p = len(get_model_inputs(model_config['model_type']))
     n = len(get_model_states(model_config['model_type']))
     N = model_config['N']
 
-    if len(detector_data['C']) < N:
+    if detector_data is None or len(detector_data['C']) < N:
         diag_msg.message += "Waiting for sufficient data\n"
         with state['diagnostics_lock']:
             state['diagnostics']['solve_loop'] = diag_msg
@@ -435,6 +471,21 @@ def solve_loop(event: rospy.timer.TimerEvent):
     measured_states = get_all_measured_states(model_config['sensors'])
     angular_outputs_mask = get_angular_mask(model_config['model_type'], measured_states)
 
+    # Find the closest point on the path to the current state
+    closest_point = path.get_closest_point(detector_data['X'][-1][:2])
+    stride = VELOCITY * model_config['dt']
+    # populate the desired trajectory in terms of path points
+    desired_path_points = [closest_point]
+    for i in range(N-1):
+        desired_path_points.insert(0, path.walk(desired_path_points[0], -stride))
+    desired_positions = np.array([pp.point for pp in desired_path_points])
+    desired_headings = [path.get_heading_at_point(pp) for pp in desired_path_points]
+    desired_velocities = [VELOCITY] * N
+    CIRCLE_RADIUS = 2.0
+    desired_angular_velocities = [VELOCITY / CIRCLE_RADIUS] * N
+    desired_state_trajectory = np.vstack([desired_positions.T, desired_headings, desired_velocities, desired_angular_velocities])
+    desired_trajectory = (block_diag(*Cs) @ desired_state_trajectory.reshape((n*N,),order='F')).reshape((q,N), order='F')
+
     # Linearize the model
     As = []
     Bs = []
@@ -444,7 +495,8 @@ def solve_loop(event: rospy.timer.TimerEvent):
         As.append(A)
         Bs.append(B)
     
-    desired_trajectory = np.vstack([C@x for C, x in zip(Cs, Xs)]).T
+    # TODO: The inputs used here need to be the deviation from the nominal inputs
+    # When we linearize our model about a circular path, the nominal inputs are zero, so this is fine
     input_effects = (block_diag(*Cs) @ get_input_effect_on_state(As, Bs, us).reshape((n*N,), order='F')).reshape((q, N), order='F')
 
     print("Xs")
@@ -477,8 +529,9 @@ def solve_loop(event: rospy.timer.TimerEvent):
     try:
         # prob, x0_hat = optimize_l0(n, q, N, Phi, Y)
         run_solver = rospy.ServiceProxy("run_solver", RunSolver)
+        # TODO: generate eps and sensor_protection from configuration
         resp = run_solver(n=n, q=q, N=N, Phi=Phi.ravel(order='F'), Y=Y, eps=[0.2],
-                          solver=RunSolverRequest.L0, max_num_corruptions=1)
+                          solver=RunSolverRequest.L1, max_num_corruptions=1, sensor_protection=[1,1,0,0,0,0])
 
         if resp.status != RunSolverResponse.SUCCESS:
             msg = f"Solver failed: {RUN_SOLVER_RESPONSE_ENUM_TO_STR[resp.status]}"
@@ -488,6 +541,7 @@ def solve_loop(event: rospy.timer.TimerEvent):
             return
         x0_hat = np.array(resp.x0_hat)
         sensor_validity = resp.sensor_validity
+        malfunction_max_magnitude = resp.malfunction_max_magnitude
     except rospy.ServiceException as e:
         rospy.logerr(f"Service call failed: {e}")
         diag_msg.message += f"Service call failed: {e}"
@@ -510,8 +564,12 @@ def solve_loop(event: rospy.timer.TimerEvent):
     sensor_validity_msg = UInt8MultiArray()
     sensor_validity_msg.data = sensor_validity
     state['sensor_validity_pub'].publish(sensor_validity_msg)
+    sensor_malfunction_max_magnitude_msg = Float32MultiArray()
+    sensor_malfunction_max_magnitude_msg.data = malfunction_max_magnitude
+    state['sensor_malfunction_max_magnitude_pub'].publish()
 
-    rospy.logwarn(f"Solved ===============================")
+
+    rospy.logwarn(f"Solved (sensor_validity: {sensor_validity})===============================")
 
     if diag_msg.message == "":
         diag_msg.message = "ok"
@@ -546,10 +604,11 @@ def main():
     state['transform_frames'] = TransformFrames()
 
     # Use the current estimate of the robot's state and the planned path for linearization
-    rospy.Subscriber('/odometry/local_filtered', Odometry, odom_callback)
+    rospy.Subscriber('/odometry/global_filtered', Odometry, odom_callback)
     rospy.Subscriber('/bplan/path', PoseArray, planner_path_callback)
 
     state['sensor_validity_pub'] = rospy.Publisher('/bdetect/sensor_validity', UInt8MultiArray, queue_size=1)
+    state['sensor_malfunction_max_magnitude_pub'] = rospy.Publisher('/bdetect/sensor_validity', UInt8MultiArray, queue_size=1)
     state['diagnostics_pub'] = rospy.Publisher('/diagnostics', DiagnosticArray, queue_size=10)
     state['data_pub'] = rospy.Publisher('/bdetect/data', PoseArray, queue_size=1)
     state['solve_data_pub'] = rospy.Publisher('/bdetect/solve_data', PoseArray, queue_size=1)
@@ -558,7 +617,7 @@ def main():
     config: ModelConfig = typeguard.check_type(rospy.get_param('~bdetect'), ModelConfig)
     rospy.loginfo(f"{NODE_NAME}: loaded configuration {config}")
 
-    state['detector_data'] = DetectorData(config=config, C=[], Y=[], U=[], X=[], sensors_present=[], inputs_present=[])
+    state['model_config'] = config
 
     # Create subscriptions for each sensor
     create_subscriptions(config)

@@ -1,8 +1,9 @@
 bdetect:
   model_type: "DIFFERENTIAL_DRIVE"
-  N: 20 # The measurement window size (the number of timesteps)
+  N: 40 # The measurement window size (the number of timesteps)
   dt: 0.1 # The discretization timestep of the model. Sensor measurements are sampled at this rate.
-  solve_frame: "odom" # The frame in which the solver operates
+  max_update_delay: 0.2 # The maximum delay of the update loop. If the update loop is more delayed than this, all measurements are dropped.
+  solve_frame: "map" # The frame in which the solver operates
   sensors:
     - name: "global_odometry"
       topic: "/global_localization/robot/odom/vulnerable"
@@ -11,18 +12,20 @@ bdetect:
         - "X"
         - "Y"
         - "ORIENTATION"
-      transform_to_solve_frame: true
+      transform_to_solve_frame: false
     - name: "local_odometry"
       topic: "/jackal_velocity_controller/odom/vulnerable"
       type: "ODOMETRY"
       measured_states:
         - "VELOCITY"
         - "ANGULAR_VELOCITY"
+      transform_to_solve_frame: false
     - name: "imu"
       topic: "/bbase/imu/data/vulnerable"
       type: "IMU"
       measured_states:
         - "ANGULAR_VELOCITY"
+      transform_to_solve_frame: false
   inputs:
     - name: "cmd_vel"
       topic: "/jackal_velocity_controller/cmd_accel_out"

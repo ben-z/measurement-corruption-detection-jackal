@@ -275,12 +275,12 @@ class ModelConfig(TypedDict):
     model_type: ModelType
     N: int
     dt: float
+    max_update_delay: float
     sensors: List[SensorConfig]
     inputs: List[InputConfig]
     solve_frame: str
 
 class DetectorData(TypedDict):
-    config: ModelConfig
     C: List[np.ndarray]
     Y: List[np.ndarray]
     U: List[np.ndarray]

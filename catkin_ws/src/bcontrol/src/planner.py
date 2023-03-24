@@ -4,7 +4,7 @@ import rospy
 import math
 from geometry_msgs.msg import PoseArray
 from time import sleep
-from utils import Path, generate_figure_eight_approximation, generate_ellipse_approximation, rotate_points, lookahead_resample
+from utils import Path, generate_figure_eight_approximation, generate_ellipse_approximation, rotate_points, lookahead_resample, generate_circle_approximation
 
 NODE_NAME = 'bplan'
 RADIUS = 2 # meters
@@ -17,7 +17,8 @@ PLANNER_BASE_PATH_CLOSED = True
 PLANNER_PATH_CLOSED = PLANNER_BASE_PATH_CLOSED
   
 def tick_planner(path_pub):
-    path = Path(rotate_points(generate_figure_eight_approximation([0,0], 2, 100), 0), closed=PLANNER_BASE_PATH_CLOSED)
+    # path = Path(rotate_points(generate_figure_eight_approximation([0,0], 2, 100), 0), closed=PLANNER_BASE_PATH_CLOSED)
+    path = Path(generate_circle_approximation([0,0], 2, 100), closed=PLANNER_BASE_PATH_CLOSED)
 
     path_msg = path.to_pose_array()
     path_pub.publish(path_msg)

@@ -13,10 +13,10 @@ jackal_velocity_controller:
 
   # Publish the actual control command
   publish_cmd: True
-  publish_cmd_rate: 10.0
+  publish_cmd_rate: 100.0
   # Publish the acceleration command
   publish_cmd_accel: True
-  publish_cmd_accel_rate: 10.0
+  publish_cmd_accel_rate: 100.0
   # Publish the state of the controller
   publish_wheel_joint_controller_state: True
 

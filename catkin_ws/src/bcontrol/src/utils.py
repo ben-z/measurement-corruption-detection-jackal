@@ -211,7 +211,7 @@ class Path:
             pose_array.poses.append(pose)
         return pose_array
     
-    def walk(self, starting_point: PathPoint, length_m: float):
+    def walk(self, starting_point: PathPoint, length_m: float) -> PathPoint:
         """
         Walks along the path starting at the given point.
         Arguments:
@@ -230,7 +230,7 @@ class Path:
             segments = list(zip(self.path[:-1], self.path[1:]))
 
         # The maximum number of iterations to prevent infinite loops
-        max_iterations = len(segments) * math.ceil(length_m / self.length)
+        max_iterations = len(segments) * math.ceil(abs(length_m) / self.length)
         completed_iterations = 0
 
         while True:

@@ -15,6 +15,7 @@ float64[] Y # shape: (qN,)
 float64[] eps # shape: (1,) or (q,)
 int8 solver # enum Solver
 int32 max_num_corruptions # maximum number of corruptions to solve for. -1 means no limit
+bool[] sensor_protection # shape: (q,). Denotes whether each sensor is protected
 
 ---
 # Response
@@ -26,6 +27,7 @@ int8 AMBIGUOUS_SOLUTION=52
 int8 OTHER_FAILURE=53
 # === End enum SolutionStatus
 
-float64[] x0_hat
-bool[] sensor_validity
 int8 status # SolutionStatus enum
+float64[] x0_hat # shape: (n,)
+bool[] sensor_validity # shape: (q,)
+float32[] malfunction_max_magnitude # shape: (q,)

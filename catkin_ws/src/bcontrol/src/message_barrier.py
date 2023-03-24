@@ -71,7 +71,7 @@ def main():
 
     state['sensor_validity_final_pub'] = rospy.Publisher(f"/{NODE_NAME}/sensor_validity_final", UInt8MultiArray, queue_size=1)
 
-    rospy.Subscriber("/bdetect/sensor_validity", UInt8MultiArray, sensor_validity_callback)
+    rospy.Subscriber(f"/{NODE_NAME}/sensor_validity_input", UInt8MultiArray, sensor_validity_callback)
     rospy.Timer(rospy.Duration(1), sensor_validity_final_pub_callback)
 
     if message_type == "nav_msgs/Odometry":

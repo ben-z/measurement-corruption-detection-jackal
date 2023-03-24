@@ -1,0 +1,4 @@
+@lxpanel --profile LXDE
+@pcmanfm --desktop --profile LXDE
+# Disable the screensaver (on by default)
+# @xscreensaver -no-splash
