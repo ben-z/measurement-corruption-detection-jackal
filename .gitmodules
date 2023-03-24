@@ -19,3 +19,7 @@
 [submodule "catkin_ws/src/topic_tools"]
 	path = catkin_ws/src/topic_tools
 	url = git@github.com:ben-z/topic_tools.git
+[submodule "catkin_ws/src/robot_localization"]
+	path = catkin_ws/src/robot_localization
+	url = git@github.com:ben-z/robot_localization.git
+
