@@ -36,14 +36,11 @@ odom2_config: [
 odom2_differential: false
 
 # Use the global odometry in differential mode
-# TODO: Transform the global odometry to the robot's frame, then
-# split it into 3 measurements, x, y, and yaw. In this way, we can control
-# the attack on each independently.
-odom3: /global_localization/robot/odom/vulnerable/X/uncorrupted
-# odom3: /global_localization/robot/odom
+odom3: /global_localization/robot/odom/vulnerable/ORIENTATION/uncorrupted
+# odom5: /global_localization/robot/odom
 odom3_config: [
-  true, false, false, # x, y, z
-  false, false, false, # roll, pitch, yaw
+  false, false, false, # x, y, z
+  false, false, true, # roll, pitch, yaw
   false, false, false, # vx, vy, vz
   false, false, false, # vroll, vpitch, vyaw
   false, false, false # ax, ay, az
@@ -51,34 +48,17 @@ odom3_config: [
 odom3_differential: true
 
 # Use the global odometry in differential mode
-# TODO: Transform the global odometry to the robot's frame, then
-# split it into 3 measurements, x, y, and yaw. In this way, we can control
-# the attack on each independently.
-odom4: /global_localization/robot/odom/vulnerable/Y/uncorrupted
-# odom4: /global_localization/robot/odom
+# We have a running assumption that x and y don't malfunction, so it's okay to use
+# both the x and y measurements here.
+odom4: /global_localization/robot/odom/vulnerable
 odom4_config: [
-  false, true, false, # x, y, z
+  true, true, false, # x, y, z
   false, false, false, # roll, pitch, yaw
   false, false, false, # vx, vy, vz
   false, false, false, # vroll, vpitch, vyaw
   false, false, false # ax, ay, az
 ]
 odom4_differential: true
-
-# Use the global odometry in differential mode
-# TODO: Transform the global odometry to the robot's frame, then
-# split it into 3 measurements, x, y, and yaw. In this way, we can control
-# the attack on each independently.
-odom5: /global_localization/robot/odom/vulnerable/ORIENTATION/uncorrupted
-# odom5: /global_localization/robot/odom
-odom5_config: [
-  false, false, false, # x, y, z
-  false, false, true, # roll, pitch, yaw
-  false, false, false, # vx, vy, vz
-  false, false, false, # vroll, vpitch, vyaw
-  false, false, false # ax, ay, az
-]
-odom5_differential: true
 
 imu0: "/bbase/imu/data/vulnerable/ANGULAR_VELOCITY/uncorrupted"
 # imu0: "/bbase/imu/data"
@@ -96,3 +76,4 @@ base_link_frame: base_link
 world_frame: odom
 
 predict_to_current_time: true
+history_length: 10.0 # seconds

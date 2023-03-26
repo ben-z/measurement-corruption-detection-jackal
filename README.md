@@ -98,12 +98,18 @@ source ./devel/setup.bash
 # Generate a launch file for the extractors
 rosrun bcontrol generate_detector_pipeline_launch_file.py $(rospack find bcontrol)/config/bdetect.yaml $(rospack find bcontrol)/launch/detector_pipeline.generated.launch
 ENABLE_EKF=false roslaunch bcontrol robot.launch
-roslaunch bcontrol stack.launch platform:=robot enable_detector:=false
+# Launch the stack without the detector
+roslaunch bcontrol stack.launch enable_detector:=false
+
+# Launch the detector (Choose one of the following)
+roslaunch bcontrol detector.launch # or
+roslaunch bcontrol detector.launch open_loop:=true # or
+roslaunch bcontrol detector.launch debug:=true # for interactive debugging, or
+roslaunch bcontrol detector.launch launch_solver_server:=false # to disable the solver server (launch it separately)
+
+# Launch the solver server (Choose one of the following)
 rosrun bcontrol solver_server.py # or
 rosrun bcontrol solver_server_debug.py # for interactive debugging
-roslaunch bcontrol detector.launch platform:=robot # or
-roslaunch bcontrol detector.launch platform:=robot open_loop:=true # or
-roslaunch bcontrol detector.launch platform:=robot debug:=true # for interactive debugging
 ```
 
 Note that by default, only 1 interactive debugging node can be run at a time. To run multiple interactive debugging nodes, we need to change the hard-coded port number in the corresponding debug files.
@@ -149,14 +155,18 @@ VGL_DISPLAY=egl0 DISPLAY=:1.0 vglrun roslaunch bcontrol visualization.launch # w
 DISPLAY=:1.0 roslaunch bcontrol visualization.launch # without GPU
 # Generate a launch file for the extractors
 rosrun bcontrol generate_detector_pipeline_launch_file.py $(rospack find bcontrol)/config/bdetect.yaml $(rospack find bcontrol)/launch/detector_pipeline.generated.launch
-# Launch the stack
-roslaunch bcontrol stack.launch platform:=sim # or
-roslaunch bcontrol stack.launch platform:=sim enable_detector:=false
+# Launch the stack without the detector
+roslaunch bcontrol stack.launch enable_detector:=false
+
+# Launch the detector (Choose one of the following)
+roslaunch bcontrol detector.launch # or
+roslaunch bcontrol detector.launch open_loop:=true # or
+roslaunch bcontrol detector.launch debug:=true # for interactive debugging, or
+roslaunch bcontrol detector.launch launch_solver_server:=false # to disable the solver server (launch it separately)
+
+# Launch the solver server (Choose one of the following)
 rosrun bcontrol solver_server.py # or
 rosrun bcontrol solver_server_debug.py # for interactive debugging
-roslaunch bcontrol detector.launch platform:=sim # or
-roslaunch bcontrol detector.launch platform:=sim open_loop:=true # or
-roslaunch bcontrol detector.launch platform:=sim debug:=true # for interactive debugging
 ```
 
 Note that by default, only 1 interactive debugging node can be run at a time. To run multiple interactive debugging nodes, we need to change the hard-coded port number in the corresponding debug files.
@@ -508,10 +518,10 @@ linear_acceleration: {x: 0.0, y: 0.0, z: 0.0}
 linear_acceleration_covariance: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]"
 ```
 
-Manually publish to `/bdetect/sensor_validity`:
+Manually set the sensor validity:
   
 ```bash
-rostopic pub /bdetect/sensor_validity std_msgs/UInt8MultiArray "data: [1,1,1,1,1,1]"
+rostopic pub /message_barrier/sensor_validity_input std_msgs/UInt8MultiArray "data: [1,1,1,1,1,1]"
 ```
 
 View the current sensor validity:

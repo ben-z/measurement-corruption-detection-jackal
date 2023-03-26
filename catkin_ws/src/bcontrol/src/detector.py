@@ -535,6 +535,8 @@ def solve_loop(event: rospy.timer.TimerEvent):
                           solver=RunSolverRequest.L1, max_num_corruptions=1, sensor_protection=[1,1,0,0,0,0],
                           x0_regularization_lambda=1)
 
+        diag_msg.values.append(KeyValue(key="Solver status", value=RUN_SOLVER_RESPONSE_ENUM_TO_STR[resp.status]))
+
         if resp.status != RunSolverResponse.SUCCESS:
             msg = f"Solver failed: {RUN_SOLVER_RESPONSE_ENUM_TO_STR[resp.status]}"
             rospy.logerr(msg)

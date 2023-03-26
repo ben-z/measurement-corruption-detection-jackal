@@ -1,8 +1,4 @@
 <launch>
-  <arg name="platform" doc="The environment of the launch site. `sim` or `robot`" />
-  <group unless="$(eval arg('platform') in ['sim', 'robot'])">
-    <node pkg="bcontrol" type="terminate.py" name="terminate" output="screen" args="'Invalid argument: platform'" required="true" />
-  </group>
   <arg name="enable_detector" default="true" doc="Enable the detector node" />
 
   <!-- Launch the controller -->
@@ -12,15 +8,21 @@
   <node pkg="bcontrol" type="planner.py" name="bplan_node" output="log" required="true"/>
 
   <!-- Launch the detector -->
-  <include file="$(find bcontrol)/launch/detector.launch" if="$(eval arg('enable_detector'))">
-    <arg name="platform" value="$(arg platform)" />
-  </include>
+  <include file="$(find bcontrol)/launch/detector.launch" if="$(eval arg('enable_detector'))" />
 
   <!-- Launch nodes that support the detector pipeline -->
   <include file="$(find bcontrol)/launch/detector_pipeline.generated.launch" />
 
   <!-- Publish a zero odometry message. This is useful for setting the lateral velocity to 0 in robot_localization. -->
   <node name="zero_odom_publisher" pkg="topic_tools" type="transform" required="true" args="/jackal_velocity_controller/odom /zero_odom nav_msgs/Odometry 'nav_msgs.msg.Odometry(header=m.header,child_frame_id=m.child_frame_id)' --import nav_msgs" />
+
+  <!-- Publish the global localization message in the odom frame. -->
+  <node name="global_localization_odom_republisher" pkg="bcontrol" type="tf_republish.py" required="true" output="screen">
+    <param name="topic" value="/global_localization/robot/odom/vulnerable"/>
+    <param name="output_topic" value="/global_localization/robot/odom/vulnerable/odom_frame"/>
+    <param name="target_frame" value="odom"/>
+    <param name="message_type" value="nav_msgs.msg.Odometry"/>
+  </node>
 
   <!--
     Publish the map->odom transform based on global position messages.
@@ -37,7 +39,7 @@
   </node> -->
 
   <!-- EKF (global) -->
-  <node pkg="robot_localization" type="ekf_localization_node" name="ekf_localization_global" required="true">
+  <node pkg="robot_localization" type="ekf_localization_node" name="ekf_localization_global" clear_params="true" required="true" output="screen">
     <rosparam command="load" file="$(find bcontrol)/config/robot_localization.global.yaml" />
     <remap from="odometry/filtered" to="/odometry/global_filtered" />
   </node>

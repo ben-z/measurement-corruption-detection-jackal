@@ -36,11 +36,11 @@ odom2_config: [
 odom2_differential: false
 
 # Global odometry
-odom3: /global_localization/robot/odom/vulnerable/X/uncorrupted
+odom3: /global_localization/robot/odom/vulnerable/ORIENTATION/uncorrupted
 # odom3: /global_localization/robot/odom
 odom3_config: [
-  true, false, false, # x, y, z
-  false, false, false, # roll, pitch, yaw
+  false, false, false, # x, y, z
+  false, false, true, # roll, pitch, yaw
   false, false, false, # vx, vy, vz
   false, false, false, # vroll, vpitch, vyaw
   false, false, false # ax, ay, az
@@ -48,10 +48,10 @@ odom3_config: [
 odom3_differential: false
 
 # Global odometry
-odom4: /global_localization/robot/odom/vulnerable/Y/uncorrupted
+odom4: /global_localization/robot/odom/vulnerable/X/uncorrupted
 # odom4: /global_localization/robot/odom
 odom4_config: [
-  false, true, false, # x, y, z
+  true, false, false, # x, y, z
   false, false, false, # roll, pitch, yaw
   false, false, false, # vx, vy, vz
   false, false, false, # vroll, vpitch, vyaw
@@ -60,11 +60,11 @@ odom4_config: [
 odom4_differential: false
 
 # Global odometry
-odom5: /global_localization/robot/odom/vulnerable/ORIENTATION/uncorrupted
+odom5: /global_localization/robot/odom/vulnerable/Y/uncorrupted
 # odom5: /global_localization/robot/odom
 odom5_config: [
-  false, false, false, # x, y, z
-  false, false, true, # roll, pitch, yaw
+  false, true, false, # x, y, z
+  false, false, false, # roll, pitch, yaw
   false, false, false, # vx, vy, vz
   false, false, false, # vroll, vpitch, vyaw
   false, false, false # ax, ay, az
@@ -88,3 +88,4 @@ map_frame: map
 world_frame: map
 
 predict_to_current_time: true
+history_length: 10.0 # seconds

@@ -132,6 +132,9 @@ def create_barrier_nodes(sensor, signal_idx_base: int):
         SubElement(node, "param", {"name": "topic_name", "value": f"{topic}/{state}"})
         SubElement(node, "param", {"name": "message_type", "value": message_type})
         SubElement(node, "param", {"name": "sensor_idx", "value": str(signal_idx_base + signal_idx)})
+        SubElement(node, "rosparam", {"command": "load", "file": "$(find bcontrol)/config/bdetect.yaml"})
+        SubElement(node, "param", {"name": "enable_ekf_rollback", "value": "true"})
+        SubElement(node, "param", {"name": "cooldown_duration", "value": "2.0"}) # seconds
 
         nodes.append(node)
 

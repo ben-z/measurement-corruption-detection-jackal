@@ -8,6 +8,9 @@ from typing import Any
 import numpy as np
 from std_msgs.msg import UInt8MultiArray
 from threading import Lock
+from robot_localization.srv import ClearTopicData, ClearTopicDataRequest, ClearTopicDataResponse
+from detector_utils import ModelConfig
+from utils import typeguard
 
 NODE_NAME = "message_barrier"
 
@@ -17,6 +20,11 @@ state = {
     "sensor_idx": None,
     "sensor_validity_final_pub": None,
     "sensor_validity_lock": Lock(),
+    "topic_name": None,
+    "detector_window_duration": None,
+    "enable_ekf_rollback": None,
+    "last_change_time": None,
+    "cooldown_duration": None,
 }
 
 def msg_callback(msg: Any):
@@ -41,13 +49,56 @@ def sensor_validity_callback(msg: UInt8MultiArray):
     # if state['sensor_validity_msg']:
     #     # combine the two messages (take the logical AND)
     #     msg.data = [a and b for a,b in zip(msg.data, state['sensor_validity_msg'].data)]
+    now = rospy.Time.now()
+    with state['sensor_validity_lock']:
+        old_msg = state["sensor_validity_msg"]
 
-    validity = list(msg.data)
-    # assume angular velocity is good (HACK)
-    # validity[4] = 1
-    msg.data = validity
+    validity = np.array(list(msg.data), dtype=bool)
+
+    if old_msg is None:
+        old_validity = np.array([True] * len(validity), dtype=bool)
+    else:
+        old_validity = np.array(list(old_msg.data), dtype=bool)
+
+    # Check to see which sensors have changed from valid to invalid
+    became_invalid = np.logical_and(old_validity, np.logical_not(validity))
+    became_valid = np.logical_and(np.logical_not(old_validity), validity)
+
+    if np.sum(became_invalid) + np.sum(became_valid) == 0:
+        rospy.logdebug("No sensor_validity change detected.")
+        if state['sensor_validity_msg'] is None:
+            with state['sensor_validity_lock']:
+                state["sensor_validity_msg"] = msg
+        return
+
+    # Check to see if the cooldown is still active
+    cooldown_secs_left = 0 if state['last_change_time'] is None else (state['last_change_time'] - now).to_sec() + state['cooldown_duration']
+    if cooldown_secs_left > 0:
+        rospy.logwarn(f"sensor_validity changed: {became_invalid=} {became_valid=} but cooldown is still active ({cooldown_secs_left:.2f} secs left). Ignoring change.")
+        return
+
+    rospy.logwarn(f"sensor_validity changed: {became_invalid=} {became_valid=}")
+    state['last_change_time'] = now
+
+    msg.data = validity.tolist()
     with state['sensor_validity_lock']:
         state["sensor_validity_msg"] = msg
+
+    if state["enable_ekf_rollback"] and became_invalid[state['sensor_idx']]:
+        # This sensor became invalid
+        rospy.logwarn(f"sensor {state['sensor_idx']} became invalid. Performing EKF rollback")
+        # Tell EKF to wipe this sensor data
+        # for service in ['/ekf_localization_global/clear_topic_data', '/ekf_localization_local/clear_topic_data']:
+        for service in ['/ekf_localization_global/clear_topic_data', '/ekf_localization_local/clear_topic_data']:
+            rospy.logwarn(f"Calling service {service} to clear {state['topic_name']}/uncorrupted")
+            rospy.wait_for_service(service)
+            try:
+                clear_topic_data = rospy.ServiceProxy(service, ClearTopicData)
+                clear_topic_data(topic=state["topic_name"] + "/uncorrupted", starting_time=now - rospy.Duration.from_sec(state['detector_window_duration']))
+            except rospy.ServiceException as e:
+                rospy.logerr(f"Service call failed: {e}")
+            except Exception as e:
+                rospy.logerr(f"Unexpected error: {e}")
 
 def sensor_validity_final_pub_callback(event: rospy.timer.TimerEvent):
     with state['sensor_validity_lock']:
@@ -64,15 +115,20 @@ def main():
     topic_name: str = rospy.get_param("~topic_name")
     message_type: str = rospy.get_param("~message_type")
     sensor_idx: str = rospy.get_param("~sensor_idx")
+    bdetect_config: ModelConfig = typeguard.check_type(rospy.get_param('~bdetect'), ModelConfig)
     
+    state['topic_name'] = topic_name
     state['sensor_idx'] = int(sensor_idx)
+    state['detector_window_duration'] = bdetect_config['N'] * bdetect_config['dt']
+    state['enable_ekf_rollback'] = rospy.get_param('~enable_ekf_rollback')
+    state['cooldown_duration'] = float(rospy.get_param('~cooldown_duration'))
     
     rospy.loginfo(f"{topic_name=} {message_type=}")
 
     state['sensor_validity_final_pub'] = rospy.Publisher(f"/{NODE_NAME}/sensor_validity_final", UInt8MultiArray, queue_size=1)
 
     rospy.Subscriber(f"/{NODE_NAME}/sensor_validity_input", UInt8MultiArray, sensor_validity_callback)
-    rospy.Timer(rospy.Duration(1), sensor_validity_final_pub_callback)
+    rospy.Timer(rospy.Duration.from_sec(1.0/5.0), sensor_validity_final_pub_callback)
 
     if message_type == "nav_msgs/Odometry":
         state['pub'] = rospy.Publisher(topic_name + "/uncorrupted", Odometry, queue_size=1)

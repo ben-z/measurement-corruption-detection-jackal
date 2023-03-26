@@ -1,17 +1,15 @@
 <launch>
-  <arg name="platform" doc="The environment of the launch site. `sim` or `robot`" />
   <arg name="debug" default="false" doc="Enable debug mode" />
   <arg name="open_loop" default="false" doc="Keep the loop open (don't let detector results affect downstream modules)" />
+  <arg name="launch_solver_server" default="true" doc="Launch the solver server" />
 
-  <group unless="$(eval arg('platform') in ['sim', 'robot'])">
-    <node pkg="bcontrol" type="terminate.py" name="terminate" output="screen" args="'Invalid argument: platform'" required="true" />
-  </group>
+  <node pkg="bcontrol" type="solver_server.py" name="solver_server" if="$(eval arg('launch_solver_server'))" />
 
   <node pkg="bcontrol" type="detector_debug.py" name="bdetect_node" output="screen" if="$(eval arg('debug'))">
     <rosparam command="load" file="$(find bcontrol)/config/bdetect.yaml" />
   </node>
 
-  <node pkg="bcontrol" type="detector.py" name="bdetect_node" output="screen" unless="$(eval arg('debug'))">
+  <node pkg="bcontrol" type="detector.py" name="bdetect_node" unless="$(eval arg('debug'))">
     <rosparam command="load" file="$(find bcontrol)/config/bdetect.yaml" />
   </node>
 
