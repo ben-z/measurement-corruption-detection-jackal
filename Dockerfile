@@ -56,9 +56,13 @@ WORKDIR /workspace
 ENTRYPOINT ["/usr/local/bin/fixuid"]
 CMD ["sleep", "infinity"]
 
-FROM nvidia/cudagl:11.4.2-base-ubuntu20.04 as sim
+FROM nvidia/cudagl:11.0-base-ubuntu20.04 as sim
 
 ENV DEBIAN_FRONTEND=noninteractive
+
+# Workaround for the nvidia key rotation issue:
+# https://forums.developer.nvidia.com/t/notice-cuda-linux-repository-key-rotation/212771/10
+RUN rm /etc/apt/sources.list.d/cuda.list
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
 	gcc g++ wget curl vim git python3 python3-pip gnupg2 lsb-release
