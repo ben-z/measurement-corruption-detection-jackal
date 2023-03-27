@@ -531,7 +531,9 @@ def solve_loop(event: rospy.timer.TimerEvent):
         run_solver = rospy.ServiceProxy("run_solver", RunSolver)
         # TODO: generate eps and sensor_protection from configuration
         # The eps values are generated from observing the maximum error for each sensor after the optimization
-        resp = run_solver(n=n, q=q, N=N, Phi=Phi.ravel(order='F'), Y=Y, eps=[0.05,0.05,0.15,0.02,0.25,0.25],
+        sim_eps = [0.05,0.05,0.15,0.02,0.25,0.25]
+        robot_eps = [0.08,0.08,0.17,0.16,0.25,0.25]
+        resp = run_solver(n=n, q=q, N=N, Phi=Phi.ravel(order='F'), Y=Y, eps=robot_eps,
                           solver=RunSolverRequest.L1, max_num_corruptions=1, sensor_protection=[1,1,0,0,0,0],
                           x0_regularization_lambda=1)
 

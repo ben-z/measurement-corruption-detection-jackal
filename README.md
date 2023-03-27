@@ -436,7 +436,7 @@ twist:
     0.0, 0.0, 0.0, 0.0, 0.0, 0.0]" 
 ```
 
-Make the robot think it's turning 0.4rad/s faster than it actually is:
+Make the robot think it's turning -0.4rad/s faster than it actually is:
 
 ```bash
 rostopic pub /jackal_velocity_controller/odom/corruption nav_msgs/Odometry "header:
@@ -456,7 +456,7 @@ pose:
 twist:
   twist:
     linear: {x: 0.0, y: 0.0, z: 0.0}
-    angular: {x: 0.0, y: 0.0, z: 0.4}
+    angular: {x: 0.0, y: 0.0, z: -0.4}
   covariance: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
     0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
     0.0, 0.0, 0.0, 0.0, 0.0, 0.0]" 
@@ -497,7 +497,7 @@ rostopic pub /bbase/imu/data/corruption sensor_msgs/Imu "header:
   frame_id: ''
 orientation: {x: 0.0, y: 0.0, z: 0.0, w: 0.0}
 orientation_covariance: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
-angular_velocity: {x: 0.0, y: 0.0, z: 0.5}
+angular_velocity: {x: 0.0, y: 0.0, z: -0.5}
 angular_velocity_covariance: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
 linear_acceleration: {x: 0.0, y: 0.0, z: 0.0}
 linear_acceleration_covariance: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]"
@@ -530,3 +530,30 @@ View the current sensor validity:
 rostopic echo /sensor_barrier/sensor_validity_final
 ```
 
+
+## Recording notes
+
+2023-03-27 Video Recording (closed loop)
+- Attack IMU angvel, successfully detected and handled
+- Attack wheel odom angvel, successfully detected and handled
+- Attack velocity, successfully detected and handled
+- Attack heading (-60deg), successfully detected and handled
+- Attack heading (-30deg), didn't detect
+- Attack heading (-30deg), successfully detected and handled
+- Attack heading (-15deg), didn't detect, then falsely detected IMU angvel corruption
+- Attack heading (-15deg), didn't detect. Falsely detected IMU angvel corruption after stopping the attack.
+- Attack heading (-15deg), didn't detect.
+- Attack heading (-7.5deg), didn't detect, then falsely detected wheel odom angvel corruption, then falsely detected IMU angvel corruption
+
+
+2023-03-27 Video Recording (open loop)
+- Attack IMU angvel, successfully detected
+- Attack wheel odom angvel, successfully detected, though there's no obvious behaviour change. Are we not fusing the wheel odom properly?
+- Attack velocity, successfully detected
+- Attack heading (-60deg), didn't detect
+- Attack heading (-60deg), successfully detected
+- Attack heading (-30deg), didn't detect
+- Attack heading (-30deg), successfully detected
+- Attack heading (-15deg), didn't detect, then falsely detected IMU angvel corruption
+- Attack heading (-15deg), successfully detected, then falsely detected IMU angvel corruption. This is open loop so it's probably due to the unhandled corruption.
+- Attack heading (-7.5deg), didn't detect, then falsely detected IMU angvel corruption and (x corruption?). When stopping the attack, it falsely detected wheel odom velocity corruption.
