@@ -1,7 +1,7 @@
 <launch>
   <!-- Launch file for VICON (for positioning) -->
   <include file="$(find vicon_bridge)/launch/vicon.launch">
-    <arg name="datastream_hostport" value="129.97.71.120:801"/>
+    <arg name="datastream_hostport" value="129.97.71.101:801"/>
     <arg name="vicon_world_frame" value="map"/>
     <arg name="max_publish_frequency" value="100.0"/>
   </include>
