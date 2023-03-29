@@ -78,7 +78,7 @@ def run_solver(req, worker_pool):
 
                 corrupted_indices = np.where(sensor_validity_np == False)
                 if len(corrupted_indices[0]) > max_num_corruptions:
-                    raise AmbiguousSolutionError(f"Expected at most {max_num_corruptions} corruption(s), but got {len(corrupted_indices[0])} corruption(s).", corrupted_indices)
+                    raise AmbiguousSolutionError(f"Expected at most {max_num_corruptions} corruption(s), but got {len(corrupted_indices[0])} corruption(s). {corrupted_indices=}", corrupted_indices)
             else:
                 rospy.logwarn(f"Solve failed: {prob=}")
                 status = RunSolverResponse.OTHER_FAILURE

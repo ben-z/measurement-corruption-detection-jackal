@@ -20,7 +20,7 @@ from solver_utils import get_evolution_matrices, optimize_l0, optimize_l1, get_l
 from transform_frames import TransformFrames
 from scipy.linalg import block_diag
 from bcontrol.srv import RunSolver, RunSolverRequest, RunSolverResponse
-from bcontrol.msg import PathMsg
+from bcontrol.msg import Path as PathMsg
 
 RUN_SOLVER_RESPONSE_ENUM_TO_STR = make_srv_enum_lookup_dict(RunSolverResponse)
 
@@ -439,7 +439,7 @@ def solve_loop(event: rospy.timer.TimerEvent):
     except Exception as e:
         rospy.logerr(f"Failed to transform the path to the solve frame. Skipping this solve iteration. Error: {e}")
         return
-    path = Path.from_pose_array(path_msg, closed=PLANNER_PATH_CLOSED)
+    path = Path.from_path_msg(path_msg, closed=PLANNER_PATH_CLOSED)
 
     # Prepare the data
     q = sum([len(s['measured_states']) for s in model_config['sensors']])
@@ -481,11 +481,20 @@ def solve_loop(event: rospy.timer.TimerEvent):
         desired_path_points.insert(0, path.walk(desired_path_points[0], -stride))
     desired_positions = np.array([pp.point for pp in desired_path_points])
     desired_headings = [path.get_heading_at_point(pp) for pp in desired_path_points]
-    desired_velocities = [VELOCITY] * N
-    CIRCLE_RADIUS = RADIUS # FIXME: This should be passed to us in a message and be time-varying
-    desired_angular_velocities = [VELOCITY / CIRCLE_RADIUS] * N
+    desired_velocities = [path.get_velocity_at_point(pp) for pp in desired_path_points]
+    assert set(desired_velocities) == {VELOCITY}, "The desired velocities should be constant (for now)"
+    desired_angular_velocities = [path.get_curvature_at_point(pp) * path.get_velocity_at_point(pp) for pp in desired_path_points]
     desired_state_trajectory = np.vstack([desired_positions.T, desired_headings, desired_velocities, desired_angular_velocities])
     desired_trajectory = (block_diag(*Cs) @ desired_state_trajectory.reshape((n*N,),order='F')).reshape((q,N), order='F')
+    desired_lin_accel = [0] * N # because we currently assume constant velocity
+    desired_ang_accel = [path.get_dK_ds_at_point(pp) * path.get_velocity_at_point(pp) for pp in desired_path_points] # dK/dt
+
+    u_deviation = [u - np.array([desired_lin_accel[i], desired_ang_accel[i]]).reshape((2,1)) for i, u in enumerate(us)]
+
+    # TODO: debug
+    rospy.logwarn(f"ud={np.vstack([desired_lin_accel, desired_ang_accel])}")
+    rospy.logwarn(f"us={np.hstack(us)}")
+    rospy.logwarn(f"du={np.hstack(u_deviation)}")
 
     # Linearize the model
     As = []
@@ -498,7 +507,7 @@ def solve_loop(event: rospy.timer.TimerEvent):
     
     # TODO: The inputs used here need to be the deviation from the nominal inputs
     # When we linearize our model about a circular path, the nominal inputs are zero, so this is fine
-    input_effects = (block_diag(*Cs) @ get_input_effect_on_state(As, Bs, us).reshape((n*N,), order='F')).reshape((q, N), order='F')
+    input_effects = (block_diag(*Cs) @ get_input_effect_on_state(As, Bs, u_deviation).reshape((n*N,), order='F')).reshape((q, N), order='F')
 
     print("Xs")
     print(np.vstack(Xs).T)
@@ -533,9 +542,10 @@ def solve_loop(event: rospy.timer.TimerEvent):
         # TODO: generate eps and sensor_protection from configuration
         # The eps values are generated from observing the maximum error for each sensor after the optimization
         sim_eps = [0.05,0.05,0.15,0.02,0.25,0.25]
-        robot_eps = [0.08,0.08,0.17,0.16,0.25,0.25]
-        resp = run_solver(n=n, q=q, N=N, Phi=Phi.ravel(order='F'), Y=Y, eps=robot_eps,
-                          solver=RunSolverRequest.L1, max_num_corruptions=1, sensor_protection=[1,1,0,0,0,0],
+        robot_circle_eps = [0.08,0.08,0.17,0.16,0.25,0.25]
+        robot_figure8_eps = [0.5]
+        resp = run_solver(n=n, q=q, N=N, Phi=Phi.ravel(order='F'), Y=Y, eps=robot_circle_eps,
+                          solver=RunSolverRequest.L1, max_num_corruptions=4, sensor_protection=[1,1,0,0,0,0],
                           x0_regularization_lambda=1)
 
         diag_msg.values.append(KeyValue(key="Solver status", value=RUN_SOLVER_RESPONSE_ENUM_TO_STR[resp.status]))

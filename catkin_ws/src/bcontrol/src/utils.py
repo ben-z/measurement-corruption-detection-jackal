@@ -3,7 +3,7 @@ import math
 import numpy as np
 from numpy.testing import assert_allclose
 from geometry_msgs.msg import Pose, PoseArray, Quaternion
-from tf.transformations import quaternion_from_euler
+from tf.transformations import quaternion_from_euler, euler_from_quaternion
 from dataclasses import dataclass
 from geometry_msgs.msg import Twist
 from scipy.interpolate import interp1d
@@ -95,7 +95,10 @@ class Path:
         """
         Returns a new Path object created from the given PathMsg.
         """
-        args = [path_msg.poses, path_msg.headings, path_msg.curvatures, path_msg.dK_ds_list, path_msg.velocities]
+        points = [(pose.position.x, pose.position.y) for pose in path_msg.poses]
+        headings = [euler_from_quaternion([pose.orientation.x, pose.orientation.y, pose.orientation.z, pose.orientation.w])[2] for pose in path_msg.poses]
+        velocities = [tw.linear.x for tw in path_msg.twists]
+        args = [points, headings, path_msg.curvatures, path_msg.dK_ds_list, velocities]
 
         if closed is None:
             return cls(*args)
@@ -150,6 +153,36 @@ class Path:
             raise ValueError('PathPoint object must have a segment_idx attribute.')
 
         return self.headings[path_point.segment_idx]
+
+    def get_velocity_at_point(self, path_point):
+        """
+        Returns the velocity of the path at the given point.
+        """
+        if path_point.segment_idx is None:
+            raise ValueError('PathPoint object must have a segment_idx attribute.')
+
+        if not self.velocities:
+            raise ValueError(f'Path does not have velocities. {self.velocities=}')
+
+        return self.velocities[path_point.segment_idx]
+    
+    def get_curvature_at_point(self, path_point):
+        """
+        Returns the curvature of the path at the given point.
+        """
+        if path_point.segment_idx is None:
+            raise ValueError('PathPoint object must have a segment_idx attribute.')
+
+        return self.curvatures[path_point.segment_idx]
+    
+    def get_dK_ds_at_point(self, path_point):
+        """
+        Returns the dK_ds of the path at the given point.
+        """
+        if path_point.segment_idx is None:
+            raise ValueError('PathPoint object must have a segment_idx attribute.')
+
+        return self.dK_ds_list[path_point.segment_idx]
 
     def get_closest_point(self, point):
         """

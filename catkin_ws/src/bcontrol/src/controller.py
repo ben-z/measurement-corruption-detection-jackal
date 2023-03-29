@@ -84,7 +84,7 @@ def transform_path_callback(event: rospy.timer.TimerEvent):
         rospy.logerr(f"Error transforming the path to the odom frame: {e}")
         return
 
-    new_path = Path.from_pose_array(path_msg_odom, closed=PLANNER_PATH_CLOSED)
+    new_path = Path.from_path_msg(path_msg_odom, closed=PLANNER_PATH_CLOSED)
 
     with state['lock']:
         state['path'] = new_path

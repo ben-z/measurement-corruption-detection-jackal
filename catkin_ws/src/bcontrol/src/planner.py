@@ -19,7 +19,8 @@ PLANNER_PATH_CLOSED = PLANNER_BASE_PATH_CLOSED
   
 def tick_planner(path_pub, pose_array_pub):
     # Figure 8
-    points, headings, curvatures, dK_ds_list = generate_figure_eight_approximation([0,0], 4, 2, 100)
+    # points, headings, curvatures, dK_ds_list = generate_figure_eight_approximation([0,0], 4, 2, 100)
+    points, headings, curvatures, dK_ds_list = generate_figure_eight_approximation([0,0], 5, 2.6, 100)
     path = Path(points, headings, curvatures, dK_ds_list, velocities=[VELOCITY]*len(points), closed=PLANNER_BASE_PATH_CLOSED)
 
     # Circle
