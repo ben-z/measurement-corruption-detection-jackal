@@ -7,13 +7,16 @@ from tf.transformations import quaternion_from_euler
 from dataclasses import dataclass
 from geometry_msgs.msg import Twist
 from scipy.interpolate import interp1d
-from typing import List, Tuple, Union, Any
+from typing import List, Tuple, Union, Any, Optional
 import typeguard as _typeguard
 from typeguard import checker_lookup_functions, TypeCheckerCallable, TypeCheckMemo, TypeCheckError
 from enum import Enum
 from diagnostic_msgs.msg import DiagnosticStatus, KeyValue
 import rospy
 from itertools import chain, combinations
+from numpy import sin, cos
+from math import atan2, sqrt
+from bcontrol.msg import Path as PathMsg
 
 @dataclass
 class PathPoint:
@@ -30,34 +33,50 @@ class Path:
     The Path object represents a path that can be followed by a robot.
     """
     
-    def __init__(self, path: List[Tuple[float,float]], closed=False):
+    def __init__(self,
+        points: List[Tuple[float,float]],
+        headings: Optional[List[float]] = None,
+        curvatures: Optional[List[float]] = None,
+        dK_ds_list: Optional[List[float]] = None,
+        velocities: Optional[List[float]] = None,
+        closed=False
+    ):
         """
         Arguments:
             path: A list of points, each point is a tuple (x, y). The path is linearly interpolated.
             closed: Whether the path is closed. If the path is closed, the robot will return to the start point when it reaches the end point.
         """
-        self.path = path
+        self.points = points
         self.length = 0
         self.lengths = []
-        self.headings = []
+        self.headings = headings or []
+        self.curvatures = curvatures or ([0] * len(points))
+        self.dK_ds_list = dK_ds_list or ([0] * len(points))
+        self.velocities = velocities or []
         self.closed = closed
-        for i in range(len(self.path) - 1):
+        for i in range(len(self.points) - 1):
             # Calculate the length of each path segment
-            self.lengths.append(np.linalg.norm(np.array(self.path[i + 1]) - np.array(self.path[i])))
+            self.lengths.append(np.linalg.norm(np.array(self.points[i + 1]) - np.array(self.points[i])))
             # Calculate the total length of the path
             self.length += self.lengths[-1]
 
-        # Calculate the heading of each path segment
-        for i in range(len(self.path) - 1):
-            self.headings.append(np.arctan2(self.path[i + 1][1] - self.path[i][1], self.path[i + 1][0] - self.path[i][0]))
+        if self.headings == []:
+            # Heading is not provided. Calculate the heading of each path segment
+            for i in range(len(self.points) - 1):
+                self.headings.append(np.arctan2(self.points[i + 1][1] - self.points[i][1], self.points[i + 1][0] - self.points[i][0]))
+            if closed:
+                # Add the heading of the last point to the first point
+                self.headings.append(np.arctan2(self.points[0][1] - self.points[-1][1], self.points[0][0] - self.points[-1][0]))
+            else:
+                # Repeat the last heading if the path is not closed
+                self.headings.append(self.headings[-1])
+        
+        assert self.headings, f"Headings is {self.headings}"
         
         if closed:
             # Add the length of the last point to the first point
-            self.lengths.append(np.linalg.norm(np.array(self.path[0]) - np.array(self.path[-1])))
+            self.lengths.append(np.linalg.norm(np.array(self.points[0]) - np.array(self.points[-1])))
             self.length += self.lengths[-1]
-
-            # Add the heading of the last point to the first point
-            self.headings.append(np.arctan2(self.path[0][1] - self.path[-1][1], self.path[0][0] - self.path[-1][0]))
     
     @classmethod
     def from_pose_array(cls, pose_array, closed: Union[bool,None] = None):
@@ -69,13 +88,24 @@ class Path:
             path.append([pose.position.x, pose.position.y])
         if closed is None:
             return cls(path)
-        return cls(path, closed)
+        return cls(path, closed=closed)
+    
+    @classmethod
+    def from_path_msg(cls, path_msg: PathMsg, closed: Optional[bool] = None):
+        """
+        Returns a new Path object created from the given PathMsg.
+        """
+        args = [path_msg.poses, path_msg.headings, path_msg.curvatures, path_msg.dK_ds_list, path_msg.velocities]
+
+        if closed is None:
+            return cls(*args)
+        return cls(*args, closed=closed)
         
     def __eq__(self, other: object) -> bool:
         if not isinstance(other, Path):
             return NotImplemented
         
-        return self.path == other.path and self.closed == other.closed
+        return self.points == other.points and self.closed == other.closed
         
     def get_point(self, progress_m=None, progress_pct=None):
         """
@@ -106,7 +136,7 @@ class Path:
                 return PathPoint(
                     segment_progress_m=progress_m,
                     segment_idx=i,
-                    point=get_point_on_segment(progress_m, self.path[i], self.path[(i + 1) % len(self.path)], segment_length)
+                    point=get_point_on_segment(progress_m, self.points[i], self.points[(i + 1) % len(self.points)], segment_length)
                 )
             progress_m -= segment_length
         
@@ -140,9 +170,9 @@ class Path:
         closest_dist = None
 
         if self.closed:
-            segments = zip(self.path, self.path[1:] + [self.path[0]])
+            segments = zip(self.points, self.points[1:] + [self.points[0]])
         else:
-            segments = zip(self.path[:-1], self.path[1:])
+            segments = zip(self.points[:-1], self.points[1:])
 
         for i, (p0, p1) in enumerate(segments):
             p = get_closest_point_on_segment(point, p0, p1)
@@ -165,9 +195,9 @@ class Path:
             raise ValueError('PathPoint object must have a segment_idx attribute.')
 
         if self.closed:
-            segments = list(zip(self.path, self.path[1:] + [self.path[0]]))
+            segments = list(zip(self.points, self.points[1:] + [self.points[0]]))
         else:
-            segments = list(zip(self.path[:-1], self.path[1:]))
+            segments = list(zip(self.points[:-1], self.points[1:]))
 
         assert path_point.segment_idx < len(segments), f"PathPoint segment_idx {path_point.segment_idx} is out of bounds for path with {len(segments)} segments."
 
@@ -198,18 +228,45 @@ class Path:
         Returns a PoseArray representation of the path.
         """
         if query_slice is None:
-            query_slice = slice(0, len(self.path))
+            query_slice = slice(0, len(self.points))
 
         pose_array = PoseArray()
         pose_array.header.frame_id = 'map'
-        for i, p in enumerate(self.path[query_slice]):
+        for i, p in enumerate(self.points[query_slice]):
             pose = Pose()
             pose.position.x = p[0]
             pose.position.y = p[1]
-            heading = self.headings[i] if i < len(self.headings) else self.headings[-1]
+            heading = self.headings[i]
             pose.orientation = Quaternion(*quaternion_from_euler(0, 0, heading))
             pose_array.poses.append(pose)
         return pose_array
+    
+    def to_path_msg(self, query_slice=None):
+        """
+        Returns a Path message representation of the path.
+        """
+        if query_slice is None:
+            query_slice = slice(0, len(self.points))
+        
+        path_msg = PathMsg()
+        path_msg.header.frame_id = 'map'
+        for i, p in enumerate(self.points[query_slice]):
+            pose = Pose()
+            pose.position.x = p[0]
+            pose.position.y = p[1]
+            heading = self.headings[i]
+            pose.orientation = Quaternion(*quaternion_from_euler(0, 0, heading))
+            path_msg.poses.append(pose)
+
+            if self.velocities:
+                twist = Twist()
+                twist.linear.x = self.velocities[i]
+                path_msg.twists.append(twist)
+            
+            path_msg.curvatures.append(self.curvatures[i])
+            path_msg.dK_ds_list.append(self.dK_ds_list[i])
+
+        return path_msg
     
     def walk(self, starting_point: PathPoint, length_m: float) -> PathPoint:
         """
@@ -225,9 +282,9 @@ class Path:
 
         # Walk along the path until we have walked the given distance
         if self.closed:
-            segments = list(zip(self.path, self.path[1:] + [self.path[0]]))
+            segments = list(zip(self.points, self.points[1:] + [self.points[0]]))
         else:
-            segments = list(zip(self.path[:-1], self.path[1:]))
+            segments = list(zip(self.points[:-1], self.points[1:]))
 
         # The maximum number of iterations to prevent infinite loops
         max_iterations = len(segments) * math.ceil(abs(length_m) / self.length)
@@ -275,35 +332,74 @@ def generate_circle_approximation(center, radius, num_points):
         center: The center of the circle.
         radius: The radius of the circle.
         num_points: The number of points to generate. The more points, the more accurate the approximation.
-    Returns a list of points on the circle.
+    Returns:
+        points: A list of points on the figure eight shape.
+        headings: A list of headings (θ) at each point.
+        curvatures: A list of curvatures (κ) at each point.
+        dK_ds_list: A list of dκ_ds at each point. Where κ is the curvature and s is the arc length.
+    
+    Derivation: https://github.com/ben-z/research-sensor-attack/blob/e20c7b02cf6aca6c18c37976550c03606919192a/curves.py#L173-L191
     """
+    a = radius
 
     points = []
+    headings = []
+    curvatures = []
+    dK_ds_list = []
     for i in range(num_points):
-        angle = 2 * math.pi * i / num_points
+        t = 2 * math.pi * i / num_points
         points.append([
-            center[0] + radius * math.cos(angle),
-            center[1] + radius * math.sin(angle)
+            center[0] + a * math.cos(t),
+            center[1] + a * math.sin(t)
         ])
-    return points
+        headings.append(atan2(a*cos(t), -a*sin(t)))
+        # This could be simplified to 1/a, but we leave it as is for consistency with the derivation.
+        curvatures.append(1/sqrt(a**2*sin(t)**2 + a**2*cos(t)**2))
+        dK_ds_list.append(0) # circles have constant curvature
+    return points, headings, curvatures, dK_ds_list
 
-# Generated by ChatGPT
-def generate_figure_eight_approximation(center, radius, num_points):
+def generate_figure_eight_approximation(center, length, width, num_points):
     """
     Generates a list of points on a figure eight shape.
     Arguments:
         center: The center of the figure eight shape.
-        radius: The distance from the center to the middle of the figure eight shape.
+        length: The length of the figure eight shape.
+        width: The width of the figure eight shape.
         num_points: The number of points to generate. The more points, the more accurate the approximation.
-    Returns a list of points on the figure eight shape.
+    Returns:
+        points: A list of points on the figure eight shape.
+        headings: A list of headings (θ) at each point.
+        curvatures: A list of curvatures (κ) at each point.
+        dK_ds_list: A list of dκ_ds at each point. Where κ is the curvature and s is the arc length.
+
+    The formula used to generate the points is:
+        x = a * sin(t)
+        y = b * sin(2t)/2
+    where a = length / 2 and b = width.
+
+    Supplementary visualization:
+    https://www.desmos.com/calculator/fciqxay3p2
+    Derivation:
+    https://github.com/ben-z/research-sensor-attack/blob/e20c7b02cf6aca6c18c37976550c03606919192a/curves.py#L153-L171
     """
+    a = length / 2
+    b = width
+
     points = []
+    headings = []
+    curvatures = []
+    dK_ds_list = []
     for i in range(num_points):
-        angle = 2 * math.pi * i / num_points
-        x = center[0] + radius * math.sin(angle)
-        y = center[1] + radius * (math.sin(angle * 2) / 2)
+        # t is an arbitrary parameter that is used to generate the points
+        # The result is known as an arbitrary-speed curve
+        t = 2 * math.pi * i / num_points
+        x = center[0] + a * math.sin(t)
+        y = center[1] + b * (math.sin(t * 2) / 2)
         points.append([x, y])
-    return points
+        headings.append(atan2(b * cos(t * 2), a * cos(t)))
+        curvatures.append((a*b*sin(t)*cos(2*t) - 2*a*b*sin(2*t)*cos(t))/(a**2*cos(t)**2 + b**2*cos(2*t)**2)**(3/2))
+        dK_ds_list.append((-3*a*b*cos(t)*cos(2*t)/(a**2*cos(t)**2 + b**2*cos(2*t)**2)**(3/2) + (3*a**2*sin(t)*cos(t) + 6*b**2*sin(2*t)*cos(2*t))*(a*b*sin(t)*cos(2*t) - 2*a*b*sin(2*t)*cos(t))/(a**2*cos(t)**2 + b**2*cos(2*t)**2)**(5/2))/sqrt(a**2*cos(t)**2 + b**2*cos(2*t)**2))
+    return points, headings, curvatures, dK_ds_list
 
 # Generated by ChatGPT
 def generate_ellipse_approximation(center, a, b, num_points, theta=0):

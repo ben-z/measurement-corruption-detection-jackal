@@ -20,6 +20,7 @@ from solver_utils import get_evolution_matrices, optimize_l0, optimize_l1, get_l
 from transform_frames import TransformFrames
 from scipy.linalg import block_diag
 from bcontrol.srv import RunSolver, RunSolverRequest, RunSolverResponse
+from bcontrol.msg import PathMsg
 
 RUN_SOLVER_RESPONSE_ENUM_TO_STR = make_srv_enum_lookup_dict(RunSolverResponse)
 
@@ -56,7 +57,7 @@ class Diagnostics(TypedDict):
 
 class State(TypedDict):
     estimate: Optional[Odometry]
-    path_msg: Optional[PoseArray]
+    path_msg: Optional[PathMsg]
     lock: Lock
     sensors: List[SensorState]
     inputs: List[InputState]
@@ -434,7 +435,7 @@ def solve_loop(event: rospy.timer.TimerEvent):
 
     # Prepare the path
     try:
-        path_msg = transform_frames.pose_array_transform(path_msg_original, model_config['solve_frame'])
+        path_msg = transform_frames.path_msg_transform(path_msg_original, model_config['solve_frame'])
     except Exception as e:
         rospy.logerr(f"Failed to transform the path to the solve frame. Skipping this solve iteration. Error: {e}")
         return
@@ -610,7 +611,7 @@ def main():
 
     # Use the current estimate of the robot's state and the planned path for linearization
     rospy.Subscriber('/odometry/global_filtered', Odometry, odom_callback)
-    rospy.Subscriber('/bplan/path', PoseArray, planner_path_callback)
+    rospy.Subscriber('/bplan/path', PathMsg, planner_path_callback)
 
     state['sensor_validity_pub'] = rospy.Publisher('/bdetect/sensor_validity', UInt8MultiArray, queue_size=1)
     state['sensor_malfunction_max_magnitude_pub'] = rospy.Publisher('/bdetect/sensor_malfunction_max_magnitude', Float32MultiArray, queue_size=1)

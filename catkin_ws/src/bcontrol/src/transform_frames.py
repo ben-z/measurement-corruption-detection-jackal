@@ -13,6 +13,7 @@ from geometry_msgs.msg import Pose, Point, Quaternion, PoseArray, PoseStamped, P
 from std_msgs.msg import Header
 import tf2_ros, tf2_geometry_msgs
 from nav_msgs.msg import Odometry
+from bcontrol.msg import Path as PathMsg
 
 class TransformFrames():
     def __init__(self):
@@ -41,6 +42,17 @@ class TransformFrames():
             pose_t = tf2_geometry_msgs.do_transform_pose(pose_s, trans)
             pose_array_transformed.poses.append( pose_t.pose )
         return pose_array_transformed
+
+    def path_msg_transform(self, path_msg: PathMsg, target_frame: str='odom') -> PathMsg:
+        trans = self.get_transform( path_msg.header.frame_id, target_frame, path_msg.header.stamp )
+        new_header = Header(frame_id=target_frame, stamp=path_msg.header.stamp)
+        path_msg_transformed = PathMsg(header=new_header, twists=path_msg.twists, curvatures=path_msg.curvatures, dK_ds_list=path_msg.dK_ds_list)
+        for pose in path_msg.poses:
+            pose_s = PoseStamped(pose=pose, header=path_msg.header)
+            pose_t = tf2_geometry_msgs.do_transform_pose(pose_s, trans)
+            path_msg_transformed.poses.append( pose_t.pose )
+        
+        return path_msg_transformed
 
     def point_transform(self, point: PointStamped, target_frame: str='odom') -> PointStamped:
         ''' Transform a PointStamped to a new frame '''

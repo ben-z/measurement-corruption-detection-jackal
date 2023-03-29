@@ -3,6 +3,7 @@
 import rospy
 import math
 from geometry_msgs.msg import PoseArray
+from bcontrol.msg import Path as PathMsg
 from time import sleep
 from utils import Path, generate_figure_eight_approximation, generate_ellipse_approximation, rotate_points, lookahead_resample, generate_circle_approximation
 
@@ -16,12 +17,17 @@ PLANNER_BASE_PATH_CLOSED = True
 # Whether the path published by the planner is closed
 PLANNER_PATH_CLOSED = PLANNER_BASE_PATH_CLOSED
   
-def tick_planner(path_pub):
-    # path = Path(rotate_points(generate_figure_eight_approximation([0,0], 2, 100), 0), closed=PLANNER_BASE_PATH_CLOSED)
-    path = Path(generate_circle_approximation([0,0], RADIUS, 100), closed=PLANNER_BASE_PATH_CLOSED)
+def tick_planner(path_pub, pose_array_pub):
+    # Figure 8
+    points, headings, curvatures, dK_ds_list = generate_figure_eight_approximation([0,0], 4, 2, 100)
+    path = Path(points, headings, curvatures, dK_ds_list, velocities=[VELOCITY]*len(points), closed=PLANNER_BASE_PATH_CLOSED)
 
-    path_msg = path.to_pose_array()
-    path_pub.publish(path_msg)
+    # Circle
+    # points, headings, curvatures, dK_ds_list = generate_circle_approximation([0,0], RADIUS, 100)
+    # path = Path(points, headings, curvatures, dK_ds_list, velocities=[VELOCITY]*len(points), closed=PLANNER_BASE_PATH_CLOSED)
+
+    path_pub.publish(path.to_path_msg())
+    pose_array_pub.publish(path.to_pose_array())
   
 def main():
     # Initialize the node
@@ -30,7 +36,9 @@ def main():
     rospy.loginfo(f"Node {NODE_NAME} started. Ctrl-C to stop.")
 
     # Define subscribers and publishers
-    path_pub = rospy.Publisher('/bplan/path', PoseArray, queue_size=1)
+    path_pub = rospy.Publisher('/bplan/path', PathMsg, queue_size=1)
+    # for visualization
+    pose_array_pub = rospy.Publisher('/bplan/path/pose_array', PoseArray, queue_size=1)
 
     # Wait for a few seconds for the upstream nodes to start
     sleep(3)
@@ -39,7 +47,7 @@ def main():
     rate = rospy.Rate(PLANNER_HZ)
 
     while not rospy.is_shutdown():
-        tick_planner(path_pub)
+        tick_planner(path_pub, pose_array_pub)
 
         # Sleep for the desired period
         rate.sleep()

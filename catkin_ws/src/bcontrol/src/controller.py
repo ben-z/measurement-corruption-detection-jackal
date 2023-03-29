@@ -13,6 +13,7 @@ from typing import Optional, TypedDict
 from threading import Lock
 from planner import PLANNER_PATH_CLOSED
 from transform_frames import TransformFrames
+from bcontrol.msg import Path as PathMsg
 
 NODE_NAME = 'bcontrol'
 RADIUS = 2 # meters
@@ -35,7 +36,7 @@ class State(TypedDict):
     odom_msg: Optional[Odometry]
     path_id: int
     transformed_path_id: int
-    path_msg: Optional[PoseArray]
+    path_msg: Optional[PathMsg]
     path: Optional[Path]
     closest_path_point: Optional[PathPoint]
     transform_frames: Optional[TransformFrames]
@@ -56,7 +57,7 @@ def odom_callback(odom_msg: Odometry):
     with state['lock']:
         state['odom_msg'] = odom_msg
 
-def planner_path_callback(path_msg: PoseArray):
+def planner_path_callback(path_msg: PathMsg):
     with state['lock']:
         if state['path_msg'] and path_msg.poses == state['path_msg'].poses:
             rospy.logdebug("Received the same path as before. Ignoring it.")
@@ -78,7 +79,7 @@ def transform_path_callback(event: rospy.timer.TimerEvent):
 
     # Transform the path to the odom frame
     try:
-        path_msg_odom = transform_frames.pose_array_transform(path_msg, target_frame="odom")
+        path_msg_odom = transform_frames.path_msg_transform(path_msg, target_frame="odom")
     except Exception as e:
         rospy.logerr(f"Error transforming the path to the odom frame: {e}")
         return
@@ -181,7 +182,7 @@ def main():
 
     # Define subscribers and publishers
     rospy.Subscriber('/odometry/local_filtered', Odometry, odom_callback)
-    rospy.Subscriber('/bplan/path', PoseArray, planner_path_callback)
+    rospy.Subscriber('/bplan/path', PathMsg, planner_path_callback)
     rospy.Timer(rospy.Duration.from_sec(PATH_TRANSFORMATION_PERIOD), transform_path_callback)
     cmd_vel_pub = rospy.Publisher('/cmd_vel', Twist, queue_size=1)
     lookahead_pub = rospy.Publisher('/bcontrol/lookahead', PoseArray, queue_size=1)
