@@ -17,6 +17,7 @@ from transform_frames import TransformFrames
 from bcontrol.msg import Path as PathMsg
 from dynamic_reconfigure.server import Server as DynamicReconfigureServer
 from bcontrol.cfg import BControllerConfig
+from controller_utils import drive_to_target_point
 
 
 NODE_NAME = 'bcontrol'
@@ -274,6 +275,17 @@ def tick_controller(
     angvel_error = target_ang_vel - omega
     target_angular_velocity_pub.publish(target_ang_vel)
 
+    if abs(lateral_error) > 1.0:
+        # Fall back to pure pursuit
+        rospy.logwarn(f"Lateral error is too large: {lateral_error}. Falling back to pure pursuit.")
+
+        linear_accel_cmd, angular_accel_cmd = drive_to_target_point([x, y, heading], v, omega, closest.point, 0.1, MAX_LINEAR_ACCELERATION, 0.2, MAX_ANGULAR_ACCELERATION)
+    
+        with state['lock']:
+            state['cmd_accel'] = (linear_accel_cmd, angular_accel_cmd)
+        
+        return
+
     heading_contrib = Kp_heading * heading_error
     angular_accel_heading_pub.publish(heading_contrib)
     latdev_contrib = Kp_lateral_position * lateral_error
@@ -287,7 +299,6 @@ def tick_controller(
     dvel = target_v - v
     # Kp_vel = 1.0
     linear_accel_cmd = clamp(Kp_vel * dvel, -MAX_LINEAR_ACCELERATION, MAX_LINEAR_ACCELERATION)
-
 
     with state['lock']:
         state['cmd_accel'] = (linear_accel_cmd, angular_accel_cmd)
