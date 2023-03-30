@@ -24,7 +24,7 @@
     args="/vicon/ben_jackal2/ben_jackal2/odom/throttled /global_localization/robot/odom nav_msgs/Odometry 'm.child_frame_id=&quot;base_link&quot;; m.pose.covariance=[0.2, 0, 0, 0, 0, 0, 0, 0.2, 0, 0, 0, 0, 0, 0, 1e6, 0, 0, 0, 0, 0, 0, 1e6, 0, 0, 0, 0, 0, 0, 1e6, 0, 0, 0, 0, 0, 0, 0.09]; m'" />
 
   <!-- Relay IMU messages to our hardware-agnostic topic -->
-  <node name="imu_relay" pkg="topic_tools" type="relay" args="/imu_um7/data /bbase/imu/data" />
+  <node name="imu_relay" pkg="topic_tools" type="relay" args="/imu_um7/data_raw /bbase/imu/data_raw" />
 
   <!-- Telemetry -->
   <node name="foxglove_bridge" pkg="foxglove_bridge" type="foxglove_bridge" output="screen" respawn="true" />

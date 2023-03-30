@@ -24,6 +24,14 @@
     <param name="message_type" value="nav_msgs.msg.Odometry"/>
   </node>
 
+  <!-- Filter the IMU messages -->
+  <node pkg="imu_filter_madgwick" type="imu_filter_node" name="imu_magwick" required="true">
+    <param name="use_mag" type="bool" value="false"/>
+    <param name="publish_tf" type="bool" value="false"/>
+    <param name="angular_velocity_stddev" type="double" value="0.1"/>
+    <remap from="imu" to="bbase/imu" />
+  </node>
+
   <!--
     Publish the map->odom transform based on global position messages.
 

@@ -5,7 +5,7 @@ from typing import List, TypedDict, Union, Optional, Type
 from std_msgs.msg import Header
 from nav_msgs.msg import Odometry
 from sensor_msgs.msg import Imu
-from geometry_msgs.msg import Quaternion, AccelStamped, PoseWithCovariance, TwistWithCovariance, Pose, Twist, Point, Vector3
+from geometry_msgs.msg import Quaternion, AccelStamped, Accel, PoseWithCovariance, TwistWithCovariance, Pose, Twist, Point, Vector3
 from tf.transformations import euler_from_quaternion, quaternion_from_euler
 from utils import flatten
 import genpy
@@ -226,18 +226,27 @@ def accel_stamped_msg_to_input(accel_stamped_message: AccelStamped, model_type: 
     Converts an AccelStamped message to an input vector.
     UNMEASURED is used for inputs that are not measured.
     """
+    return accel_msg_to_input(accel_stamped_message.accel, model_type)
+
+
+def accel_msg_to_input(accel_message: Accel, model_type: ModelType) -> np.ndarray:
+    """
+    Converts an Accel message to an input vector.
+    UNMEASURED is used for inputs that are not measured.
+    """
     if model_type == ModelType.DIFFERENTIAL_DRIVE:
         return np.array([
-            accel_stamped_message.accel.linear.x, # ACCELERATION
-            accel_stamped_message.accel.angular.z, # ANGULAR_ACCELERATION
+            accel_message.linear.x, # ACCELERATION
+            accel_message.angular.z, # ANGULAR_ACCELERATION
         ])
     elif model_type == ModelType.KINEMATIC_BICYCLE:
         return np.array([
-            accel_stamped_message.accel.linear.x, # ACCELERATION
+            accel_message.linear.x, # ACCELERATION
             UNMEASURED, # STEERING_ANGLE_VELOCITY
         ])
     else:
         raise Exception(f"Unknown model type {model_type}")
+
 
 MODEL_STATE = Union[DifferentialDriveStates,KinematicBicycleStates]
 
@@ -264,6 +273,7 @@ MODEL_INPUT = Union[DifferentialDriveInputs,KinematicBicycleInputs]
 
 class InputType(str, Enum):
     ACCEL_STAMPED = "ACCEL_STAMPED"
+    ACCEL = "ACCEL"
 
 class InputConfig(TypedDict):
     name: str

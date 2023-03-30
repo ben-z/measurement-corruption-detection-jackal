@@ -144,6 +144,26 @@ class Path:
             progress_m -= segment_length
         
         raise ValueError(f"Couldn't fine the point in path! This is impossible. {progress_m=}")
+    
+    def get_lateral_position(self, point: np.ndarray, closest_point: Optional[PathPoint] = None):
+        """
+        Returns the lateral error of the given point from the path at the given path point.
+        When the point is to the left of the path, the lateral position is positive.
+        When the point is to the right of the path, the lateral position is negative.
+        """
+        if closest_point is None:
+            closest_point = self.get_closest_point(point)
+        
+        assert closest_point.segment_idx is not None, f"{closest_point=} must have a valid segment_idx attribute."
+        
+        if not self.closed:
+            assert closest_point.segment_idx < len(self.points) - 1, f"segment_idx must be less than the number of path points - 1 for open paths. {closest_point.segment_idx=} {len(self.points)=}"
+        
+        x1, y1 = self.points[closest_point.segment_idx]
+        x2, y2 = self.points[(closest_point.segment_idx + 1) % len(self.points)]
+        x0, y0 = point
+
+        return calculate_signed_distance(x1, y1, x2, y2, x0, y0)
 
     def get_heading_at_point(self, path_point):
         """
@@ -633,13 +653,6 @@ def lookahead_resample(path, current_pos, lookahead_distance, num_subdivisions):
     # Return the slice of the resampled path from the closest point to the lookahead point
     return resampled_path[closest_idx:lookahead_idx]
 
-def deep_getattr(obj, attr, *args):
-    """
-    Gets an attribute of an object recursively. For example, deep_getattr(obj, "a.b.c") is equivalent to obj.a.b.c.
-    """
-    return functools.reduce(getattr, [obj] + attr.split("."), *args)
-
-
 def test_wrap_angle():
     """
     Test the implementation of the wrap_angle function
@@ -744,6 +757,7 @@ checker_lookup_functions.append(checker_lookup)
 # re-export typeguard so that users always import from this module.
 typeguard = _typeguard
 
+
 def deep_getattr(obj, attr):
     """
     Get a nested attribute from an object.
@@ -751,10 +765,51 @@ def deep_getattr(obj, attr):
     getattr(x, 'y') <==> x.y
     getattr(x, 'y.z') <==> x.y.z
     """
+    if not attr:
+        raise ValueError("Attribute name must not be empty")
+
     attributes = attr.split(".")
     for i in attributes:
         obj = getattr(obj, i)
     return obj
+
+def test_deep_getattr():
+    # Define a sample object with nested attributes for testing
+    class Sample:
+        class Inner:
+            class InnerInner:
+                value = 42
+            inner_inner = InnerInner()
+        inner = Inner()
+
+    # Test case: single attribute
+    obj = Sample()
+    result = deep_getattr(obj, 'inner')
+    assert isinstance(result, Sample.Inner), "Failed: single attribute"
+
+    # Test case: nested attribute
+    result = deep_getattr(obj, 'inner.inner_inner')
+    assert isinstance(result, Sample.Inner.InnerInner), "Failed: nested attribute"
+
+    # Test case: deeply nested attribute
+    result = deep_getattr(obj, 'inner.inner_inner.value')
+    assert result == 42, "Failed: deeply nested attribute"
+
+    # Test case: nonexistent attribute
+    try:
+        deep_getattr(obj, 'inner.nonexistent')
+    except AttributeError:
+        pass  # Expected exception
+    else:
+        assert False, "Failed: nonexistent attribute"
+
+    # Test case: empty attribute
+    try:
+        deep_getattr(obj, '')
+    except ValueError:
+        pass  # Expected exception
+    else:
+        assert False, "Failed: empty attribute"
 
 def add_timer_event_to_diag_status(diag_msg: DiagnosticStatus, event: rospy.timer.TimerEvent):
     """
@@ -800,8 +855,56 @@ def assert_and_remove_suffix(s, suffix):
     assert s.endswith(suffix), f"Expected {s} to end with {suffix}"
     return s[:-len(suffix)]
 
+def calculate_signed_distance(x1, y1, x2, y2, x0, y0):
+    """
+    Calculates the signed distance (lateral error) from point P(x0, y0) to the line defined by points A(x1, y1) and B(x2, y2).
+    When the point P lies above the line when looking left to right from A to B, the distance is positive.
+    When the point P lies below the line when looking left to right from A to B, the distance is negative.
+    
+    Parameters:
+        x1, y1: Coordinates of point A.
+        x2, y2: Coordinates of point B.
+        x0, y0: Coordinates of point P.
+        
+    Returns:
+        The signed distance (float) from point P to the line AB.
+    
+    Written by ChatGPT
+    """
+    # Coefficients of the line equation: Ax + By + C = 0
+    A = y2 - y1
+    B = x1 - x2
+    C = x2 * y1 - x1 * y2
+    
+    # Calculate the signed distance
+    d = -(A * x0 + B * y0 + C) / sqrt(A**2 + B**2)
+    return d
+
+
+def test_calculate_signed_distance():
+    # Test case 1: Point lies on the line
+    assert abs(calculate_signed_distance(0, 0, 1, 1, 2, 2) - 0.0) < 1e-9
+
+    # Test case 2: Point lies on the negative side of the line
+    assert abs(calculate_signed_distance(0, 0, 1, 1, 1, 0) + 0.7071067811865475) < 1e-9
+
+    # Test case 3: Point lies on the positive side of the line
+    assert abs(calculate_signed_distance(0, 0, 1, 1, 0, 1) - 0.7071067811865475) < 1e-9
+
+    # Test case 4: Vertical line
+    assert abs(calculate_signed_distance(0, 0, 0, 1, 1, 0) + 1.0) < 1e-9
+
+    # Test case 5: Horizontal line
+    assert abs(calculate_signed_distance(0, 0, 1, 0, 0, 1) - 1.0) < 1e-9
+
+    # Test case 6: Point is one of the defining points of the line
+    assert abs(calculate_signed_distance(0, 0, 1, 1, 0, 0) + 0.0) < 1e-9
+
+
 if __name__ == "__main__":
     test_wrap_angle()
     test_path()
+    test_calculate_signed_distance()
+    test_deep_getattr()
 
     print("All tests passed!")

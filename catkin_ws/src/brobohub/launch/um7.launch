@@ -10,12 +10,6 @@
 <remap from="imu/data" to="imu_um7/data_raw"/>
 </node>
 
-<node pkg="imu_filter_madgwick" type="imu_filter_node" name="um7_magwick">
-<param name="use_mag" type="bool" value="false"/>
-<param name="publish_tf" type="bool" value="false"/>
-<remap from="imu" to="imu_um7"/>
-</node>
-
 <!-- set transformations to UM7 with reference to jackal base link (centre bottom), X Y Z Yaw Pitch Roll-->
 <node pkg="tf" type="static_transform_publisher" name="um7_broadcaster" args="0 0 0 0 0 3.141592 um7 um7_imu_link 100" />
 

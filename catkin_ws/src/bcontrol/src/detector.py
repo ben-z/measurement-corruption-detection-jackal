@@ -5,7 +5,7 @@ import math
 import numpy as np
 from std_msgs.msg import UInt8MultiArray, Float32MultiArray
 from nav_msgs.msg import Odometry
-from geometry_msgs.msg import PoseArray, AccelStamped
+from geometry_msgs.msg import PoseArray, AccelStamped, Accel
 from sensor_msgs.msg import Imu
 from time import sleep
 from utils import Path, generate_figure_eight_approximation, generate_ellipse_approximation, rotate_points, lookahead_resample, typeguard, add_timer_event_to_diag_status, wrap_angle, make_srv_enum_lookup_dict
@@ -13,7 +13,7 @@ from typing import Optional, TypedDict, List, Any, Callable
 from threading import Lock
 from planner import PLANNER_PATH_CLOSED, RADIUS
 from enum import Enum
-from detector_utils import ModelConfig, SensorConfig, SensorType, InputConfig, ModelType, MODEL_STATE, DifferentialDriveStates, KinematicBicycleStates, DetectorData, imu_msg_to_state, odometry_msg_to_state, get_model_states, get_model_inputs, accel_stamped_msg_to_input, linearize_model, get_angular_mask, get_all_measured_states, state_to_pose_msg
+from detector_utils import ModelConfig, SensorConfig, SensorType, InputConfig, ModelType, MODEL_STATE, DifferentialDriveStates, KinematicBicycleStates, DetectorData, imu_msg_to_state, odometry_msg_to_state, get_model_states, get_model_inputs, accel_stamped_msg_to_input, accel_msg_to_input, linearize_model, get_angular_mask, get_all_measured_states, state_to_pose_msg
 from copy import deepcopy
 from diagnostic_msgs.msg import DiagnosticArray, DiagnosticStatus, KeyValue
 from solver_utils import get_evolution_matrices, optimize_l0, optimize_l1, get_l1_objective_fn, get_input_effect_on_state
@@ -174,6 +174,9 @@ def preprocess_input(model_type: ModelType, input_config: InputConfig):
     if input_config['type'] == 'ACCEL_STAMPED':
         data_class = AccelStamped
         extract_input_fn = accel_stamped_msg_to_input
+    elif input_config['type'] == 'ACCEL':
+        data_class = Accel
+        extract_input_fn = accel_msg_to_input
     else:
         raise Exception(f"Unknown input type {input_config['type']}")
 
