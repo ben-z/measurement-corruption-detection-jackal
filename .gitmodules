@@ -22,4 +22,6 @@
 [submodule "catkin_ws/src/robot_localization"]
 	path = catkin_ws/src/robot_localization
 	url = git@github.com:ben-z/robot_localization.git
-
+[submodule "catkin_ws/src/imu_tools"]
+	path = catkin_ws/src/imu_tools
+	url = git@github.com:ben-z/imu_tools.git

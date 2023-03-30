@@ -33,7 +33,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # them here speeds up the build process.
 RUN apt-get update && apt-get install -y --no-install-recommends \
     ros-noetic-serial ros-noetic-um7 ros-noetic-hector-localization \
-    ros-noetic-ros-numpy ros-noetic-roslint
+    ros-noetic-ros-numpy ros-noetic-roslint libceres-dev
 
 # Install development tools
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -112,7 +112,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # them here speeds up the build process.
 RUN apt-get update && apt-get install -y --no-install-recommends \
     ros-noetic-serial ros-noetic-um7 ros-noetic-hector-localization \
-    ros-noetic-ros-numpy ros-noetic-roslint
+    ros-noetic-ros-numpy ros-noetic-roslint libceres-dev
 
 # Install velodyne packages
 RUN apt-get update && apt-get install -y --no-install-recommends \

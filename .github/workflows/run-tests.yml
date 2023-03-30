@@ -23,8 +23,8 @@ jobs:
       - name: Run tests using the `robot` target
         run: |
           docker buildx build --cache-to=type=gha --cache-from=type=gha --target=robot -t benz/research-jackal --output type=docker .
-          docker run --rm -u $(id -u):$(id -g) -v $(pwd):/workspace benz/research-jackal bash -c "source /etc/local.bashrc && devsetup && rosdep_install_all && catkin build && devsetup && python3 ./src/bcontrol/src/utils.py"
+          docker run --rm -u $(id -u):$(id -g) -v $(pwd):/workspace benz/research-jackal bash -c "source /etc/local.bashrc && devsetup && rosdep_install_all && catkin build && devsetup && ../run_tests.sh"
       - name: Run tests using the `sim` target
         run: |
           docker buildx build --cache-to=type=gha --cache-from=type=gha --target=sim -t benz/research-jackal --output type=docker .
-          docker run --rm -u $(id -u):$(id -g) -v $(pwd):/workspace benz/research-jackal bash -c "source /etc/local.bashrc && devsetup && rosdep_install_all && catkin build && devsetup && python3 ./src/bcontrol/src/utils.py"
+          docker run --rm -u $(id -u):$(id -g) -v $(pwd):/workspace benz/research-jackal bash -c "source /etc/local.bashrc && devsetup && rosdep_install_all && catkin build && devsetup && ../run_tests.sh"
