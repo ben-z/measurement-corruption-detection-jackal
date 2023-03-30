@@ -548,7 +548,7 @@ def solve_loop(event: rospy.timer.TimerEvent):
         robot_circle_eps = [0.08,0.08,0.17,0.16,0.25,0.25]
         robot_figure8_eps = [0.5]
         resp = run_solver(n=n, q=q, N=N, Phi=Phi.ravel(order='F'), Y=Y, eps=robot_circle_eps,
-                          solver=RunSolverRequest.L1, max_num_corruptions=4, sensor_protection=[1,1,0,0,0,0],
+                          solver=RunSolverRequest.L1, max_num_corruptions=1, sensor_protection=[1,1,0,0,0,0],
                           x0_regularization_lambda=1)
 
         diag_msg.values.append(KeyValue(key="Solver status", value=RUN_SOLVER_RESPONSE_ENUM_TO_STR[resp.status]))
