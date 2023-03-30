@@ -495,9 +495,9 @@ def solve_loop(event: rospy.timer.TimerEvent):
     u_deviation = [u - np.array([desired_lin_accel[i], desired_ang_accel[i]]).reshape((2,1)) for i, u in enumerate(us)]
 
     # TODO: debug
-    rospy.logwarn(f"ud={np.vstack([desired_lin_accel, desired_ang_accel])}")
-    rospy.logwarn(f"us={np.hstack(us)}")
-    rospy.logwarn(f"du={np.hstack(u_deviation)}")
+    # rospy.logwarn(f"ud={np.vstack([desired_lin_accel, desired_ang_accel])}")
+    # rospy.logwarn(f"us={np.hstack(us)}")
+    # rospy.logwarn(f"du={np.hstack(u_deviation)}")
 
     # Linearize the model
     As = []
@@ -546,8 +546,8 @@ def solve_loop(event: rospy.timer.TimerEvent):
         # The eps values are generated from observing the maximum error for each sensor after the optimization
         sim_eps = [0.05,0.05,0.15,0.02,0.25,0.25]
         robot_circle_eps = [0.08,0.08,0.17,0.16,0.25,0.25]
-        robot_figure8_eps = [0.5]
-        resp = run_solver(n=n, q=q, N=N, Phi=Phi.ravel(order='F'), Y=Y, eps=robot_circle_eps,
+        sim_figure8_eps = [1.2]
+        resp = run_solver(n=n, q=q, N=N, Phi=Phi.ravel(order='F'), Y=Y, eps=sim_figure8_eps,
                           solver=RunSolverRequest.L1, max_num_corruptions=1, sensor_protection=[1,1,0,0,0,0],
                           x0_regularization_lambda=1)
 
@@ -566,6 +566,7 @@ def solve_loop(event: rospy.timer.TimerEvent):
         rospy.logerr(f"Service call failed: {e}")
         diag_msg.message += f"Service call failed: {e}"
         diag_msg.level = max(DiagnosticStatus.ERROR, diag_msg.level)
+        diag_msg.values.append(KeyValue(key="Solver status", value="Service call failed"))
         with state['diagnostics_lock']:
             state['diagnostics']['solve_loop'] = diag_msg
         return
@@ -573,6 +574,7 @@ def solve_loop(event: rospy.timer.TimerEvent):
         rospy.logerr(f"Error in optimization: {e}")
         diag_msg.message += f"Error in optimization: {e}"
         diag_msg.level = max(DiagnosticStatus.ERROR, diag_msg.level)
+        diag_msg.values.append(KeyValue(key="Solver status", value="Unknown error"))
         with state['diagnostics_lock']:
             state['diagnostics']['solve_loop'] = diag_msg
         return

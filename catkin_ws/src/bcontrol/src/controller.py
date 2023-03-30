@@ -172,7 +172,7 @@ def pub_cmd_vel(cmd_vel_pub, linear_vel, angular_vel):
     cmd_vel_pub.publish(twist_msg)
 
 
-def tick_controller(
+def tick_dynamics_controller(
     lookahead_pub,
     lateral_position_pub,
     target_heading_pub,
@@ -275,15 +275,15 @@ def tick_controller(
     angvel_error = target_ang_vel - omega
     target_angular_velocity_pub.publish(target_ang_vel)
 
-    if abs(lateral_error) > 1.0:
+    if abs(lateral_error) > 1.0 or abs(heading_error) > math.radians(90):
         # Fall back to pure pursuit
-        rospy.logwarn(f"Lateral error is too large: {lateral_error}. Falling back to pure pursuit.")
+        rospy.logwarn(f"Lateral error ({lateral_error:.2f} m) or heading error ({math.degrees(heading_error):.2f} deg) too large. Falling back to pure pursuit.")
 
-        linear_accel_cmd, angular_accel_cmd = drive_to_target_point([x, y, heading], v, omega, closest.point, 0.1, MAX_LINEAR_ACCELERATION, 0.2, MAX_ANGULAR_ACCELERATION)
+        assert closest.point is not None, "closest.point should not be None"
+        linear_accel_cmd, angular_accel_cmd = drive_to_target_point([x, y, heading], v, omega, [closest.point[0], closest.point[1], target_heading], 0.5, MAX_LINEAR_ACCELERATION, 1.0, MAX_ANGULAR_ACCELERATION)
     
         with state['lock']:
             state['cmd_accel'] = (linear_accel_cmd, angular_accel_cmd)
-        
         return
 
     heading_contrib = Kp_heading * heading_error
@@ -417,7 +417,7 @@ def main():
 
     while not rospy.is_shutdown():
         # tick_pure_pursuit(lookahead_pub, state['cmd_vel_pub'])
-        tick_controller(
+        tick_dynamics_controller(
             lookahead_pub,
             lateral_position_pub,
             target_heading_pub,
