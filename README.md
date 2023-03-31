@@ -148,8 +148,8 @@ Start the simulation and the stack:
 
 ```bash
 # Launch the simulation
-VGL_DISPLAY=egl0 DISPLAY=:1.0 ENABLE_EKF=false vglrun roslaunch bcontrol sim.launch # with GPU, or
-DISPLAY=:1.0 ENABLE_EKF=false roslaunch bcontrol sim.launch # without GPU
+VGL_DISPLAY=egl0 DISPLAY=:1.0 ENABLE_EKF=false vglrun roslaunch --sigint-timeout=2 bcontrol sim.launch # with GPU, or
+DISPLAY=:1.0 ENABLE_EKF=false roslaunch --sigint-timeout=2 bcontrol sim.launch # without GPU
 # Launch visualizations
 VGL_DISPLAY=egl0 DISPLAY=:1.0 vglrun roslaunch bcontrol visualization.launch # with GPU, or
 DISPLAY=:1.0 roslaunch bcontrol visualization.launch # without GPU
