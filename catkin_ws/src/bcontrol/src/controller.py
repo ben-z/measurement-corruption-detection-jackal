@@ -416,18 +416,18 @@ def main():
     rate = rospy.Rate(CONTROLLER_HZ)
 
     while not rospy.is_shutdown():
-        # tick_pure_pursuit(lookahead_pub, state['cmd_vel_pub'])
-        tick_dynamics_controller(
-            lookahead_pub,
-            lateral_position_pub,
-            target_heading_pub,
-            target_angular_velocity_pub,
-            actual_heading_pub,
-            angular_accel_feedforward_pub,
-            angular_accel_angvel_pub,
-            angular_accel_heading_pub,
-            angular_accel_latdev_pub,
-        )
+        tick_pure_pursuit(lookahead_pub, state['cmd_vel_pub'])
+        # tick_dynamics_controller(
+        #     lookahead_pub,
+        #     lateral_position_pub,
+        #     target_heading_pub,
+        #     target_angular_velocity_pub,
+        #     actual_heading_pub,
+        #     angular_accel_feedforward_pub,
+        #     angular_accel_angvel_pub,
+        #     angular_accel_heading_pub,
+        #     angular_accel_latdev_pub,
+        # )
 
         # Sleep for the desired period
         rate.sleep()

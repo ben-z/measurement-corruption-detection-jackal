@@ -28,9 +28,10 @@ bdetect:
       transform_to_solve_frame: false
   inputs:
     - name: "cmd_vel"
-      # topic: "/jackal_velocity_controller/cmd_accel_out"
-      topic: "/bcontrol/cmd_accel"
-      type: "ACCEL"
+      topic: "/jackal_velocity_controller/cmd_accel_out"
+      type: "ACCEL_STAMPED"
+      # topic: "/bcontrol/cmd_accel"
+      # type: "ACCEL"
       measured_inputs:
         - "ACCELERATION"
         - "ANGULAR_ACCELERATION"

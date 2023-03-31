@@ -547,7 +547,7 @@ def solve_loop(event: rospy.timer.TimerEvent):
         sim_eps = [0.05,0.05,0.15,0.02,0.25,0.25]
         robot_circle_eps = [0.08,0.08,0.17,0.16,0.25,0.25]
         sim_figure8_eps = [1.2]
-        resp = run_solver(n=n, q=q, N=N, Phi=Phi.ravel(order='F'), Y=Y, eps=sim_figure8_eps,
+        resp = run_solver(n=n, q=q, N=N, Phi=Phi.ravel(order='F'), Y=Y, eps=sim_eps,
                           solver=RunSolverRequest.L1, max_num_corruptions=1, sensor_protection=[1,1,0,0,0,0],
                           x0_regularization_lambda=1)
 
