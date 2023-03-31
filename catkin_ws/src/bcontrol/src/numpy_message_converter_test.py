@@ -32,8 +32,8 @@ def test_odometry_converter():
     
     # Test get_indices method
     assert OdometryConverter.get_indices(OdometryConverter.FIELD_ORIENTATION) == [0]
-    assert OdometryConverter.get_indices(OdometryConverter.FIELD_LINEAR_X_VEL) == [1]
-    assert OdometryConverter.get_indices(OdometryConverter.FIELD_ANGULAR_VEL) == [2]
+    assert OdometryConverter.get_indices(OdometryConverter.FIELD_LINEAR_VEL_X) == [1]
+    assert OdometryConverter.get_indices(OdometryConverter.FIELD_ANGULAR_VEL_Z) == [2]
 
 def test_imu_converter():
     # Test data for Imu message
