@@ -1,0 +1,97 @@
+#!/usr/bin/env python3
+
+import rospy
+import numpy as np
+import argparse
+from signal_generator import corrupt_array, SIGNAL_TYPE_STEP, SIGNAL_TYPE_RAMP, SIGNAL_TYPE_OSCILLATING
+from numpy_message_converter import OdometryConverter, ImuConverter
+from ros_utils import load_message_type
+import time
+from copy import deepcopy
+
+# Define message converters for supported message types
+MESSAGE_CONVERTERS = {
+    'nav_msgs/Odometry': OdometryConverter,
+    'sensor_msgs/Imu': ImuConverter,
+}
+
+
+class SignalGeneratorNode:
+    def __init__(self, output_topic, message_type, field, signal_type, magnitude, period=None):
+        self.signal_type = signal_type
+        self.magnitude = magnitude
+        self.period = period
+        self.shutting_down = False
+
+        # Determine the message converter based on the message type
+        if message_type in MESSAGE_CONVERTERS:
+            self.message_converter = MESSAGE_CONVERTERS[message_type]()
+        else:
+            raise ValueError(f"Unsupported message type '{message_type}'")
+
+        # Get indices for the specified field
+        self.indices = self.message_converter.get_indices(field)
+        self.corruption_specs = [{'signal_type': self.signal_type,
+                                  'magnitude': self.magnitude, 'indices': self.indices, 'period': self.period}]
+
+        # Resolve message type and create publisher
+        MessageType = load_message_type(message_type)
+        self.corrupted_pub = rospy.Publisher(
+            output_topic, MessageType, queue_size=10)
+
+        # Create message template
+        self.message_type = MessageType
+
+        self.init_time = rospy.get_time()
+
+    def generate_and_publish_signal(self, event):
+        if self.shutting_down:
+            return
+        t = rospy.get_time() - self.init_time
+        np_data = self.message_converter.to_numpy(self.message_type())
+        corrupted_data = corrupt_array(np_data, self.corruption_specs, t)
+        corrupted_msg = self.message_converter.from_numpy(
+            corrupted_data, self.message_type())
+        rospy.logwarn_once("Publishing corrupted message.")
+        self.corrupted_pub.publish(corrupted_msg)
+
+    def on_shutdown(self):
+        # Publish the template message when shutting down
+        rospy.logwarn("Shutting down, publishing template message.")
+        self.shutting_down = True
+        self.corrupted_pub.publish(self.message_type())
+        time.sleep(1.0)
+
+if __name__ == '__main__':
+    # Parse command-line arguments
+    parser = argparse.ArgumentParser(
+        description='Signal generator for corrupting messages')
+    parser.add_argument(
+        'output_topic', help='Output topic to publish corrupted messages')
+    parser.add_argument(
+        'message_type', help='Message type (e.g., nav_msgs/Odometry, sensor_msgs/Imu)')
+    parser.add_argument(
+        'field', help='Field to corrupt (e.g., orientation for Odometry)')
+    parser.add_argument('signal_type', choices=[SIGNAL_TYPE_STEP, SIGNAL_TYPE_RAMP, SIGNAL_TYPE_OSCILLATING],
+                        help='Type of signal to generate')
+    parser.add_argument('magnitude', type=float,
+                        help='Magnitude of the signal')
+    parser.add_argument('--period', type=float, default=None,
+                        help='Period of oscillating signal (optional)')
+    args = parser.parse_args()
+
+    # Initialize ROS node
+    rospy.init_node('signal_generator_node')
+
+    # Create SignalGeneratorNode instance
+    signal_generator_node = SignalGeneratorNode(
+        args.output_topic, args.message_type, args.field, args.signal_type, args.magnitude, args.period)
+
+    # Set up a timer to generate and publish signal at a fixed rate (e.g., 10 Hz)
+    rospy.Timer(rospy.Duration(0.1),
+                signal_generator_node.generate_and_publish_signal)
+
+    rospy.on_shutdown(signal_generator_node.on_shutdown)
+
+    # Keep node running
+    rospy.spin()

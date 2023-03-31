@@ -906,5 +906,3 @@ if __name__ == "__main__":
     test_path()
     test_calculate_signed_distance()
     test_deep_getattr()
-
-    print("All tests passed!")

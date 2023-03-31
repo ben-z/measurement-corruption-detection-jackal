@@ -286,7 +286,22 @@ This happened on 2023-03-13 on Jackal2 in the robohub. The wireless card appears
 
 I had to run `sudo modprobe -r iwlwifi && sudo modprobe iwlwifi` every time after startup now to recover the wifi connection.
 
-#### Corruption message examples
+#### Injecting corruption (new)
+
+The `corruption_generator.py` script can be used to inject corruption into a topic. The script publishes a message to a topic that is subscribed to by a node that corrupts the topic.
+
+```bash
+./src/bcontrol/src/corruption_generator.py /global_localization/robot/odom/corruption nav_msgs/Odometry orientation step 1.0
+./src/bcontrol/src/corruption_generator.py /global_localization/robot/odom/corruption nav_msgs/Odometry orientation oscillating 0.3 --period 15.0
+./src/bcontrol/src/corruption_generator.py /global_localization/robot/odom/corruption nav_msgs/Odometry orientation ramp 0.5
+./src/bcontrol/src/corruption_generator.py /jackal_velocity_controller/odom/corruption nav_msgs/Odometry linear_vel_x ramp 0.1
+./src/bcontrol/src/corruption_generator.py /bbase/imu/data/corruption sensor_msgs/Imu angular_vel step 0.5
+```
+
+When shutting down, the node automatically publishes a message to the corruption topic to reset the corruption to 0.
+
+
+#### Injecting corruption (old, deprecated)
 
 Add to the yaw of the robot's odometry message ([angle converter](https://www.andre-gaschler.com/rotationconverter/)):
 
