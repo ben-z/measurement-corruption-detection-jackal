@@ -9,7 +9,7 @@ from typing import Any
 import numpy as np
 from utils import wrap_angle
 
-NODE_NAME = "message_corruptor"
+NODE_NAME = "corruption_adder"
 
 state = {
     "corruption_msg": None,

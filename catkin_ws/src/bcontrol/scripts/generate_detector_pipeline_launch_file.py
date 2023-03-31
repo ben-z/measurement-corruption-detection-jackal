@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+!/usr/bin/env python3
 
 import yaml
 import argparse
@@ -95,7 +95,7 @@ def create_corruptor_nodes(sensor):
         {
             "name": f"{sensor['name']}_corruptor",
             "pkg": "bcontrol",
-            "type": "message_corruptor.py",
+            "type": "corruption_adder.py",
             "required": "true",
         },
     )
