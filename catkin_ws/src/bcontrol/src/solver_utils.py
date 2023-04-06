@@ -83,8 +83,9 @@ def optimize_l1(n, q, N, Phi, Y, eps: np.ndarray = 0.2, sensor_protection: np.nd
     for i in range(q):
         if sensor_protection[i]:
             # optimizer_final += cp.norm(optimizer_reshaped[i, :]) / eps[i]
-            constraints.append(optimizer_reshaped[i, :] <= eps[i])
-            constraints.append(optimizer_reshaped[i, :] >= -eps[i])
+            # The extra 1e-6 is to avoid numerical issues
+            constraints.append(optimizer_reshaped[i, :] <= eps[i] - 1e-6)
+            constraints.append(optimizer_reshaped[i, :] >= -eps[i] + 1e-6)
 
     obj = cp.Minimize(optimizer_final)
 
@@ -241,8 +242,8 @@ def optimize_l0_subproblem(n, q, N, Phi, Y, attacked_sensor_indices, eps, x0_reg
     for j in set(range(q)) - set(attacked_sensor_indices):
         for t in range(N):
             # constraints.append(cp.norm(optimizer[q*t+j]) <= eps)
-            constraints.append(optimizer_full[q*t+j] <= eps[j])
-            constraints.append(optimizer_full[q*t+j] >= -eps[j])
+            constraints.append(optimizer_full[q*t+j] <= eps[j] - 1e-6)
+            constraints.append(optimizer_full[q*t+j] >= -eps[j] + 1e-6)
 
     prob = cp.Problem(cp.Minimize(cp.norm(optimizer_final)), constraints)
     start = time.time()
