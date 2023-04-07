@@ -1,4 +1,6 @@
 <launch>
+  <!-- This file contains nodes and configuration that are specific to the simulation environment. -->
+
   <!-- 
     There are a few ways to feed global measurements to the system. Below will be a few methods and only one should be uncommented at a time.
   -->

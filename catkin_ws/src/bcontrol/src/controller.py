@@ -389,10 +389,6 @@ def main():
     sleep(6)
 
     # Define subscribers and publishers
-    rospy.Subscriber('/odometry/local_filtered', Odometry, odom_callback)
-    rospy.Subscriber('/bplan/path', PathMsg, planner_path_callback)
-    rospy.Timer(rospy.Duration.from_sec(PATH_TRANSFORMATION_PERIOD), transform_path_callback)
-    rospy.Timer(rospy.Duration.from_sec(1.0/CONTROLLER_PUBLISH_HZ), publish_cmd_vel_callback)
     state['cmd_vel_pub'] = rospy.Publisher('/cmd_vel', Twist, queue_size=1)
     state['cmd_accel_pub'] = rospy.Publisher('/bcontrol/cmd_accel', Accel, queue_size=1)
     lookahead_pub = rospy.Publisher('/bcontrol/lookahead', PoseArray, queue_size=1)
@@ -406,6 +402,11 @@ def main():
     angular_accel_latdev_pub = rospy.Publisher('/bcontrol/angular_accel_components/latdev', Float64, queue_size=1)
 
     reconfigure_server = DynamicReconfigureServer(BControllerConfig, reconfigure_callback)
+
+    rospy.Subscriber('/odometry/local_filtered', Odometry, odom_callback)
+    rospy.Subscriber('/bplan/path', PathMsg, planner_path_callback)
+    rospy.Timer(rospy.Duration.from_sec(PATH_TRANSFORMATION_PERIOD), transform_path_callback)
+    rospy.Timer(rospy.Duration.from_sec(1.0/CONTROLLER_PUBLISH_HZ), publish_cmd_vel_callback)
 
     # Wait for a few seconds for data to start coming in
     # This is not required and is only for reducing warnings

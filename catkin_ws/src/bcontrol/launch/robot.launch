@@ -1,5 +1,5 @@
 <launch>
-  <!-- This file contains nodes that form the base on which the robot stack can be run. -->
+  <!-- This file contains nodes and configuration that are specific to the robot environment. -->
 
   <arg name="launch_vicon" default="true" />
 
