@@ -28,4 +28,7 @@
 
   <!-- Telemetry -->
   <node name="foxglove_bridge" pkg="foxglove_bridge" type="foxglove_bridge" output="screen" respawn="true" />
+  <include file="$(find rosbridge_server)/launch/rosbridge_websocket.launch" > 
+    <arg name="port" value="8766"/>
+  </include>
 </launch>

@@ -286,6 +286,12 @@ This happened on 2023-03-13 on Jackal2 in the robohub. The wireless card appears
 
 I had to run `sudo modprobe -r iwlwifi && sudo modprobe iwlwifi` every time after startup now to recover the wifi connection.
 
+#### Running scenarios
+
+```bash
+./scripts/run-scenario.sh myexp ./scripts/scenario-playground.sh
+```
+
 #### Injecting corruption (new)
 
 The `corruption_generator.py` script can be used to inject corruption into a topic. The script publishes a message to a topic that is subscribed to by a node that corrupts the topic.

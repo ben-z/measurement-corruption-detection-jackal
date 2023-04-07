@@ -25,11 +25,19 @@ EXPERIMENTS_DIR="$SCRIPT_DIR"/../experiments
 
 __experiment_id=$(date --iso-8601=seconds)
 __experiment_suffix=${1:-experiment}
+__experiment_script=${2:-}
 __experiment_dir="$EXPERIMENTS_DIR"/"$__experiment_id"_"$__experiment_suffix"
 
 echo "Experiment ID: $__experiment_id"
 echo "Experiment suffix: $__experiment_suffix"
 echo "Experiment directory: $__experiment_dir"
+echo "Experiment script: $__experiment_script"
+
+if [ -z "$__experiment_script" ]; then
+    echo "No script specified. Using default (sleep 10)."
+    __experiment_script="sleep 10"
+fi
+
 mkdir -p "$__experiment_dir"
 
 __ros_log_dir="$__experiment_dir"/ros-logs
@@ -50,18 +58,23 @@ rosrun bcontrol generate_detector_pipeline_launch_file.py $(rospack find bcontro
 roslaunch bcontrol stack.launch enable_detector:=false 2>&1 | ts | tee "$__experiment_dir"/ros-stack-launch.log &
 
 # Scenario =======================
-sleep 5 # wait for the vehicle to reach steady state
+export EXPERIMENT_DIR="$__experiment_dir"
+export EXPERIMENT_ID="$__experiment_id"
+export EXPERIMENT_SUFFIX="$__experiment_suffix"
+echo "Running experiment script: $__experiment_script"
 
-roslaunch bcontrol detector.launch 2>&1 | ts | tee "$__experiment_dir"/ros-detector-launch.log &
+bash -c "$__experiment_script" 2>&1 | ts | tee "$__experiment_dir"/experiment-script.log
 
-sleep 5 # wait for the detector to start
+# sleep 5 # wait for the vehicle to reach steady state
 
-rrecord "$__experiment_dir/$__experiment_id-$__experiment_suffix.bag" __name:=my_rosbag_recorder 2>&1 | ts | tee "$__experiment_dir"/ros-record.log &
+# roslaunch bcontrol detector.launch 2>&1 | ts | tee "$__experiment_dir"/ros-detector-launch.log &
 
-sleep 3 # wait for the recorder to start
+# sleep 5 # wait for the detector to start
 
-sleep 10 # TODO replace with attacks, etc.
+# rrecord "$__experiment_dir/$__experiment_id-$__experiment_suffix.bag" __name:=my_rosbag_recorder 2>&1 | ts | tee "$__experiment_dir"/ros-record.log &
 
-rosnode kill /my_rosbag_recorder 2>&1 | ts | tee "$__experiment_dir"/ros-kill-rosbag-recorder.log || true
+# sleep 3 # wait for the recorder to start
+
+# rosnode kill /my_rosbag_recorder 2>&1 | ts | tee "$__experiment_dir"/ros-kill-rosbag-recorder.log || true
 
 # End scenario ===================
