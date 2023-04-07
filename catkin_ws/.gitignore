@@ -62,3 +62,5 @@ src/CMakeLists.txt
 .catkin_tools
 *.generated.launch
 /*.bag
+
+/experiments
