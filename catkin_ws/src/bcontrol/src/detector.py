@@ -21,6 +21,7 @@ from transform_frames import TransformFrames
 from scipy.linalg import block_diag
 from bcontrol.srv import RunSolver, RunSolverRequest, RunSolverResponse
 from bcontrol.msg import Path as PathMsg
+import contextlib
 
 RUN_SOLVER_RESPONSE_ENUM_TO_STR = make_srv_enum_lookup_dict(RunSolverResponse)
 
@@ -74,6 +75,31 @@ class State(TypedDict):
     solve_data_pub: Optional[rospy.Publisher]
     # used to keep track of the time debt of the update loop, because the difference between the expected and actual time does not go down.
     update_loop_time_debt: float # seconds
+
+@contextlib.contextmanager
+def diagnostics_context(diagnostics: Diagnostics, slug: str, name: str, lock: Lock, timer_event: Optional[rospy.timer.TimerEvent] = None):
+    """
+    Context manager for updating diagnostics.
+    """
+
+    # Initialize the diagnostics message
+    diag_msg = DiagnosticStatus()
+    diag_msg.name = name
+    diag_msg.level = DiagnosticStatus.OK
+    diag_msg.message = ""
+    diag_msg.values = []
+    if timer_event is not None:
+        add_timer_event_to_diag_status(diag_msg, timer_event)
+
+    try:
+        yield diag_msg
+    finally:
+        if diag_msg.message == "":
+            diag_msg.message = "ok"
+
+        with lock:
+            diagnostics[slug] = diag_msg
+
 
 state: State = {
     'estimate': None,
@@ -409,196 +435,177 @@ def solve_loop(event: rospy.timer.TimerEvent):
     assert state['sensor_malfunction_max_magnitude_pub'] is not None, "Sensor malfunction max magnitude publisher should be initialized before the loop starts"
     assert state['solve_data_pub'] is not None, "Solve data publisher should be initialized before the loop starts"
 
-    # Populate the diagnostics message
-    diag_msg = DiagnosticStatus()
-    diag_msg.name = "Detector Solve Loop"
-    diag_msg.level = DiagnosticStatus.OK
-    diag_msg.message = ""
-    diag_msg.values = []
-    add_timer_event_to_diag_status(diag_msg, event)
+    with diagnostics_context(state['diagnostics'], 'solve_loop', "Detector Solve Loop", state['diagnostics_lock'], event) as diag_msg:
+        # Check if the last loop took too long
+        if event.last_duration and event.last_duration > DETECTOR_SOLVE_PERIOD:
+            diag_msg.level = max(DiagnosticStatus.WARN, diag_msg.level)
+            diag_msg.message += "Last solve loop took longer than the update period\n"
 
-    # Check if the last loop took too long
-    if event.last_duration and event.last_duration > DETECTOR_SOLVE_PERIOD:
-        diag_msg.level = max(DiagnosticStatus.WARN, diag_msg.level)
-        diag_msg.message += "Last solve loop took longer than the update period\n"
+        # Get the data
+        with state['detector_data_lock']:
+            detector_data = deepcopy(state['detector_data'])
+            path_msg_original = state['path_msg']
+            transform_frames = state['transform_frames']
 
-    # Get the data
-    with state['detector_data_lock']:
-        detector_data = deepcopy(state['detector_data'])
-        path_msg_original = state['path_msg']
-        transform_frames = state['transform_frames']
-
-    if path_msg_original is None:
-        rospy.loginfo("Waiting for a path message in the solve loop. Skipping this iteration.")
-        return
-
-    publish_detector_data(state['solve_data_pub'], detector_data)
-
-    model_config = state['model_config']
-
-    # Prepare the path
-    try:
-        path_msg = transform_frames.path_msg_transform(path_msg_original, model_config['solve_frame'])
-    except Exception as e:
-        rospy.logerr(f"Failed to transform the path to the solve frame. Skipping this solve iteration. Error: {e}")
-        return
-    path = Path.from_path_msg(path_msg, closed=PLANNER_PATH_CLOSED)
-
-    # Prepare the data
-    q = sum([len(s['measured_states']) for s in model_config['sensors']])
-    p = len(get_model_inputs(model_config['model_type']))
-    n = len(get_model_states(model_config['model_type']))
-    N = model_config['N']
-
-    if detector_data is None or len(detector_data['C']) < N:
-        diag_msg.message += "Waiting for sufficient data\n"
-        with state['diagnostics_lock']:
-            state['diagnostics']['solve_loop'] = diag_msg
-        rospy.loginfo("Waiting for sufficient data in the solve loop")
-        return
-
-    # Sanity check the data
-    for data_name in ['C', 'Y', 'U', 'X']:
-        assert len(detector_data[data_name]) == N, f"The number of {data_name} blocks should be equal to the horizon length"
-
-    for data_name in ['C', 'Y']:
-        assert all([m.shape[0] == q for m in detector_data[data_name]]), f"The number of rows in each {data_name} should be equal to the number of measurements"
-
-    rospy.logwarn(f"Solving ===============================")
-
-    # Prepare inputs to the optimization problem
-    Cs = detector_data['C']
-    Ys = detector_data['Y']
-    Xs = detector_data['X']
-    us = detector_data['U']
-
-    measured_states = get_all_measured_states(model_config['sensors'])
-    angular_outputs_mask = get_angular_mask(model_config['model_type'], measured_states)
-
-    # Find the closest point on the path to the current state
-    closest_point = path.get_closest_point(detector_data['X'][-1][:2])
-    stride = VELOCITY * model_config['dt']
-    # populate the desired trajectory in terms of path points
-    desired_path_points = [closest_point]
-    for i in range(N-1):
-        desired_path_points.insert(0, path.walk(desired_path_points[0], -stride))
-    desired_positions = np.array([pp.point for pp in desired_path_points])
-    desired_headings = [path.get_heading_at_point(pp) for pp in desired_path_points]
-    desired_velocities = [path.get_velocity_at_point(pp) for pp in desired_path_points]
-    assert set(desired_velocities) == {VELOCITY}, "The desired velocities should be constant (for now)"
-    desired_angular_velocities = [path.get_curvature_at_point(pp) * path.get_velocity_at_point(pp) for pp in desired_path_points]
-    desired_state_trajectory = np.vstack([desired_positions.T, desired_headings, desired_velocities, desired_angular_velocities])
-    desired_trajectory = (block_diag(*Cs) @ desired_state_trajectory.reshape((n*N,),order='F')).reshape((q,N), order='F')
-    desired_lin_accel = [0] * N # because we currently assume constant velocity
-    desired_ang_accel = [path.get_dK_ds_at_point(pp) * path.get_velocity_at_point(pp) for pp in desired_path_points] # dK/dt
-
-    u_deviation = [u - np.array([desired_lin_accel[i], desired_ang_accel[i]]).reshape((2,1)) for i, u in enumerate(us)]
-
-    # TODO: debug
-    # rospy.logwarn(f"ud={np.vstack([desired_lin_accel, desired_ang_accel])}")
-    # rospy.logwarn(f"us={np.hstack(us)}")
-    # rospy.logwarn(f"du={np.hstack(u_deviation)}")
-
-    # Linearize the model
-    As = []
-    Bs = []
-    for i in range(N):
-        A, B = linearize_model(model_config['model_type'], detector_data['X'][i], detector_data['U'][i], model_config['dt'])
-
-        As.append(A)
-        Bs.append(B)
-    
-    # TODO: The inputs used here need to be the deviation from the nominal inputs
-    # When we linearize our model about a circular path, the nominal inputs are zero, so this is fine
-    input_effects = (block_diag(*Cs) @ get_input_effect_on_state(As, Bs, u_deviation).reshape((n*N,), order='F')).reshape((q, N), order='F')
-
-    print("Xs")
-    print(np.vstack(Xs).T)
-
-    print("desired_trajectory")
-    print(desired_trajectory)
-
-    print("input_effects")
-    print(input_effects)
-
-    corruption = np.zeros((q, N))
-    # corruption[3,:] = 5
-
-    # qxN matrix of measurements
-    measurements_raw = np.vstack(Ys).T + corruption
-    measurements = measurements_raw - input_effects - desired_trajectory
-    measurements[angular_outputs_mask, :] = wrap_angle(measurements[angular_outputs_mask, :])
-
-    print("measurements_raw")
-    print(measurements_raw)
-    print("measurements")
-    print(measurements)
-
-    Y = measurements.reshape((q*N,), order='F')
-    state_evolution_matrix, Phi = get_evolution_matrices(As[:-1], Cs)
-
-    # Solve the optimization problem
-    rospy.wait_for_service("run_solver")
-    try:
-        # prob, x0_hat = optimize_l0(n, q, N, Phi, Y)
-        run_solver = rospy.ServiceProxy("run_solver", RunSolver)
-        # TODO: generate eps and sensor_protection from configuration
-        # The eps values are generated from observing the maximum error for each sensor after the optimization
-        # sim_eps = [1.0] # for determining the eps values
-        sim_eps_circle = [0.08,0.08,0.15,0.02,0.25,0.25]
-        sim_eps_figure_8 = [0.1,0.1,0.35,0.3,0.5,0.6]
-        robot_circle_eps = [0.08,0.08,0.17,0.16,0.25,0.25]
-        sim_figure8_eps = [1.2]
-        resp = run_solver(n=n, q=q, N=N, Phi=Phi.ravel(order='F'), Y=Y, eps=sim_eps_figure_8,
-                          solver=RunSolverRequest.L1, max_num_corruptions=1, sensor_protection=[1,1,0,0,0,0],
-                          x0_regularization_lambda=1)
-
-        diag_msg.values.append(KeyValue(key="Solver status", value=RUN_SOLVER_RESPONSE_ENUM_TO_STR[resp.status]))
-
-        if resp.status != RunSolverResponse.SUCCESS:
-            msg = f"Solver failed: {RUN_SOLVER_RESPONSE_ENUM_TO_STR[resp.status]}"
-            rospy.logerr(msg)
-            diag_msg.message += msg
-            diag_msg.level = max(DiagnosticStatus.ERROR, diag_msg.level)
+        if path_msg_original is None:
+            rospy.loginfo("Waiting for a path message in the solve loop. Skipping this iteration.")
             return
-        x0_hat = np.array(resp.x0_hat)
-        sensor_validity = resp.sensor_validity
-        malfunction_max_magnitude = resp.malfunction_max_magnitude
-    except rospy.ServiceException as e:
-        rospy.logerr(f"Service call failed: {e}")
-        diag_msg.message += f"Service call failed: {e}"
-        diag_msg.level = max(DiagnosticStatus.ERROR, diag_msg.level)
-        diag_msg.values.append(KeyValue(key="Solver status", value="Service call failed"))
-        with state['diagnostics_lock']:
-            state['diagnostics']['solve_loop'] = diag_msg
-        return
-    except Exception as e:
-        rospy.logerr(f"Error in optimization: {e}")
-        diag_msg.message += f"Error in optimization: {e}"
-        diag_msg.level = max(DiagnosticStatus.ERROR, diag_msg.level)
-        diag_msg.values.append(KeyValue(key="Solver status", value="Unknown error"))
-        with state['diagnostics_lock']:
-            state['diagnostics']['solve_loop'] = diag_msg
-        return
-    # print(prob)
-    print(f"{x0_hat=}")
-    print("E")
-    print((Y - Phi@x0_hat).reshape((q, N), order='F'))
 
-    sensor_validity_msg = UInt8MultiArray()
-    sensor_validity_msg.data = sensor_validity
-    state['sensor_validity_pub'].publish(sensor_validity_msg)
-    sensor_malfunction_max_magnitude_msg = Float32MultiArray()
-    sensor_malfunction_max_magnitude_msg.data = malfunction_max_magnitude
-    state['sensor_malfunction_max_magnitude_pub'].publish(sensor_malfunction_max_magnitude_msg)
+        publish_detector_data(state['solve_data_pub'], detector_data)
 
-    rospy.logwarn(f"Solved (sensor_validity: {sensor_validity})===============================")
+        model_config = state['model_config']
 
-    if diag_msg.message == "":
-        diag_msg.message = "ok"
+        # Prepare the path
+        try:
+            path_msg = transform_frames.path_msg_transform(path_msg_original, model_config['solve_frame'])
+        except Exception as e:
+            rospy.logerr(f"Failed to transform the path to the solve frame. Skipping this solve iteration. Error: {e}")
+            return
+        path = Path.from_path_msg(path_msg, closed=PLANNER_PATH_CLOSED)
 
-    with state['diagnostics_lock']:
-        state['diagnostics']['solve_loop'] = diag_msg
+        # Prepare the data
+        q = sum([len(s['measured_states']) for s in model_config['sensors']])
+        p = len(get_model_inputs(model_config['model_type']))
+        n = len(get_model_states(model_config['model_type']))
+        N = model_config['N']
+
+        if detector_data is None or len(detector_data['C']) < N:
+            diag_msg.message += "Waiting for sufficient data\n"
+            rospy.loginfo("Waiting for sufficient data in the solve loop")
+            return
+
+        # Sanity check the data
+        for data_name in ['C', 'Y', 'U', 'X']:
+            assert len(detector_data[data_name]) == N, f"The number of {data_name} blocks should be equal to the horizon length"
+
+        for data_name in ['C', 'Y']:
+            assert all([m.shape[0] == q for m in detector_data[data_name]]), f"The number of rows in each {data_name} should be equal to the number of measurements"
+
+        rospy.logwarn(f"Solving ===============================")
+
+        # Prepare inputs to the optimization problem
+        Cs = detector_data['C']
+        Ys = detector_data['Y']
+        Xs = detector_data['X']
+        us = detector_data['U']
+
+        measured_states = get_all_measured_states(model_config['sensors'])
+        angular_outputs_mask = get_angular_mask(model_config['model_type'], measured_states)
+
+        # Find the closest point on the path to the current state
+        closest_point = path.get_closest_point(detector_data['X'][-1][:2])
+        stride = VELOCITY * model_config['dt']
+        # populate the desired trajectory in terms of path points
+        desired_path_points = [closest_point]
+        for i in range(N-1):
+            desired_path_points.insert(0, path.walk(desired_path_points[0], -stride))
+        desired_positions = np.array([pp.point for pp in desired_path_points])
+        desired_headings = [path.get_heading_at_point(pp) for pp in desired_path_points]
+        desired_velocities = [path.get_velocity_at_point(pp) for pp in desired_path_points]
+        assert set(desired_velocities) == {VELOCITY}, "The desired velocities should be constant (for now)"
+        desired_angular_velocities = [path.get_curvature_at_point(pp) * path.get_velocity_at_point(pp) for pp in desired_path_points]
+        desired_state_trajectory = np.vstack([desired_positions.T, desired_headings, desired_velocities, desired_angular_velocities])
+        desired_trajectory = (block_diag(*Cs) @ desired_state_trajectory.reshape((n*N,),order='F')).reshape((q,N), order='F')
+        desired_lin_accel = [0] * N # because we currently assume constant velocity
+        desired_ang_accel = [path.get_dK_ds_at_point(pp) * path.get_velocity_at_point(pp) for pp in desired_path_points] # dK/dt
+
+        u_deviation = [u - np.array([desired_lin_accel[i], desired_ang_accel[i]]).reshape((2,1)) for i, u in enumerate(us)]
+
+        # TODO: debug
+        # rospy.logwarn(f"ud={np.vstack([desired_lin_accel, desired_ang_accel])}")
+        # rospy.logwarn(f"us={np.hstack(us)}")
+        # rospy.logwarn(f"du={np.hstack(u_deviation)}")
+
+        # Linearize the model
+        As = []
+        Bs = []
+        for i in range(N):
+            A, B = linearize_model(model_config['model_type'], detector_data['X'][i], detector_data['U'][i], model_config['dt'])
+
+            As.append(A)
+            Bs.append(B)
+        
+        # TODO: The inputs used here need to be the deviation from the nominal inputs
+        # When we linearize our model about a circular path, the nominal inputs are zero, so this is fine
+        input_effects = (block_diag(*Cs) @ get_input_effect_on_state(As, Bs, u_deviation).reshape((n*N,), order='F')).reshape((q, N), order='F')
+
+        print("Xs")
+        print(np.vstack(Xs).T)
+
+        print("desired_trajectory")
+        print(desired_trajectory)
+
+        print("input_effects")
+        print(input_effects)
+
+        # qxN matrix of measurements
+        measurements_raw = np.vstack(Ys).T
+        measurements = measurements_raw - input_effects - desired_trajectory
+        measurements[angular_outputs_mask, :] = wrap_angle(measurements[angular_outputs_mask, :])
+
+        print("measurements_raw")
+        print(measurements_raw)
+        print("measurements")
+        print(measurements)
+
+        Y = measurements.reshape((q*N,), order='F')
+        state_evolution_matrix, Phi = get_evolution_matrices(As[:-1], Cs)
+
+        # Solve the optimization problem
+        rospy.wait_for_service("run_solver")
+        try:
+            # prob, x0_hat = optimize_l0(n, q, N, Phi, Y)
+            run_solver = rospy.ServiceProxy("run_solver", RunSolver)
+            # TODO: generate eps and sensor_protection from configuration
+            # The eps values are generated from observing the maximum error for each sensor after the optimization
+            # sim_eps = [1.0] # for determining the eps values
+            sim_eps_circle = [0.08,0.08,0.15,0.02,0.25,0.25]
+            sim_eps_figure_8 = [0.1,0.1,0.35,0.3,0.5,0.6]
+            robot_circle_eps = [0.08,0.08,0.17,0.16,0.25,0.25]
+            sim_figure8_eps = [1.2]
+            resp = run_solver(n=n, q=q, N=N, Phi=Phi.ravel(order='F'), Y=Y, eps=sim_eps_figure_8,
+                            solver=RunSolverRequest.L1, max_num_corruptions=1, sensor_protection=[1,1,0,0,0,0],
+                            x0_regularization_lambda=1)
+
+            diag_msg.values.append(KeyValue(key="solver_status", value=f"{resp.status}"))
+            solver_status_str = RUN_SOLVER_RESPONSE_ENUM_TO_STR[resp.status]
+            diag_msg.values.append(KeyValue(key="solver_status_str", value=solver_status_str))
+
+            if resp.status != RunSolverResponse.SUCCESS:
+                msg = f"Solver failed: {solver_status_str} ({resp.status})"
+                rospy.logerr(msg)
+                diag_msg.message += msg
+                diag_msg.level = max(DiagnosticStatus.ERROR, diag_msg.level)
+                return
+            x0_hat = np.array(resp.x0_hat)
+            sensor_validity = resp.sensor_validity
+            malfunction_max_magnitude = resp.malfunction_max_magnitude
+        except rospy.ServiceException as e:
+            rospy.logerr(f"Service call failed: {e}")
+            diag_msg.message += f"Service call failed: {e}"
+            diag_msg.level = max(DiagnosticStatus.ERROR, diag_msg.level)
+            diag_msg.values.append(KeyValue(key="Solver status", value="Service call failed"))
+            return
+        except Exception as e:
+            rospy.logerr(f"Error in optimization: {e}")
+            diag_msg.message += f"Error in optimization: {e}"
+            diag_msg.level = max(DiagnosticStatus.ERROR, diag_msg.level)
+            diag_msg.values.append(KeyValue(key="Solver status", value="Unknown error"))
+            return
+        # print(prob)
+        print(f"{x0_hat=}")
+        print("E")
+        print((Y - Phi@x0_hat).reshape((q, N), order='F'))
+
+        sensor_validity_msg = UInt8MultiArray()
+        sensor_validity_msg.data = sensor_validity
+        state['sensor_validity_pub'].publish(sensor_validity_msg)
+        sensor_malfunction_max_magnitude_msg = Float32MultiArray()
+        sensor_malfunction_max_magnitude_msg.data = malfunction_max_magnitude
+        state['sensor_malfunction_max_magnitude_pub'].publish(sensor_malfunction_max_magnitude_msg)
+
+        rospy.logwarn(f"Solved (sensor_validity: {sensor_validity})===============================")
+
 
 def diagnostics_loop(event: rospy.timer.TimerEvent):
     """
