@@ -2,6 +2,7 @@ from sensor_msgs.msg import Imu
 from nav_msgs.msg import Odometry
 from tf.transformations import euler_from_quaternion, quaternion_from_euler
 import numpy as np
+import rospy
 
 class OdometryConverter:
     FIELD_ORIENTATION = 'orientation'

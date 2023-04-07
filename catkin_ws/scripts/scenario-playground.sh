@@ -27,11 +27,10 @@ roslaunch bcontrol detector.launch 2>&1 | ts | tee "$EXPERIMENT_DIR"/ros-detecto
 sleep 10 # wait for the detector to start
 
 echo "Performing attack"
-./src/bcontrol/src/corruption_generator.py /global_localization/robot/odom/corruption nav_msgs/Odometry orientation step -0.5 2>&1 | ts | tee "$EXPERIMENT_DIR"/ros-corruption-generator.log &
-__gen_pid=$!
+rosrun bcontrol corruption_generator.py /global_localization/robot/odom/corruption nav_msgs/Odometry orientation step -1.0 __name:=my_corruption_generator 2>&1 | ts | tee "$EXPERIMENT_DIR"/ros-corruption-generator.log &
 
-sleep 10
-kill -SIGINT $__gen_pid
+sleep 15
+rosnode kill /my_corruption_generator 2>&1 | ts | tee "$EXPERIMENT_DIR"/ros-kill-corruption-generator.log
 
 echo "Done performing attack. Waiting for recovery..."
 sleep 20

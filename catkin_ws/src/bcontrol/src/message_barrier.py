@@ -11,8 +11,11 @@ from threading import Lock
 from robot_localization.srv import ClearTopicData, ClearTopicDataRequest, ClearTopicDataResponse
 from detector_utils import ModelConfig
 from utils import typeguard
+from detector import DETECTOR_SOLVE_HZ
 
 NODE_NAME = "message_barrier"
+
+BECOME_VALID_THRESHOLD = 3 * DETECTOR_SOLVE_HZ # Number of valid messages that must be received before the sensor is considered valid again
 
 state = {
     "pub": None,
@@ -25,6 +28,7 @@ state = {
     "enable_ekf_rollback": None,
     "last_change_time": None,
     "cooldown_duration": None,
+    "became_valid_counter": None,
 }
 
 def msg_callback(msg: Any):
@@ -52,6 +56,8 @@ def sensor_validity_callback(msg: UInt8MultiArray):
     now = rospy.Time.now()
     with state['sensor_validity_lock']:
         old_msg = state["sensor_validity_msg"]
+    # we are the only users of this state variable, so we don't need a lock
+    became_valid_counter = state["became_valid_counter"]
 
     validity = np.array(list(msg.data), dtype=bool)
 
@@ -62,7 +68,18 @@ def sensor_validity_callback(msg: UInt8MultiArray):
 
     # Check to see which sensors have changed from valid to invalid
     became_invalid = np.logical_and(old_validity, np.logical_not(validity))
-    became_valid = np.logical_and(np.logical_not(old_validity), validity)
+    became_valid_raw = np.logical_and(np.logical_not(old_validity), validity)
+
+    # if a sensor became valid, increment the counter
+    became_valid_counter = became_valid_raw + (became_valid_counter if became_valid_counter is not None else np.zeros_like(became_valid_raw, dtype=int))
+
+    # if a sensor didn't become valid, reset the counter
+    became_valid_counter[~became_valid_raw] = 0
+
+    became_valid = became_valid_counter >= BECOME_VALID_THRESHOLD
+    # reset the counter for the sensors that became valid
+    became_valid_counter[became_valid] = 0
+    state["became_valid_counter"] = became_valid_counter
 
     if np.sum(became_invalid) + np.sum(became_valid) == 0:
         rospy.logdebug("No sensor_validity change detected.")
