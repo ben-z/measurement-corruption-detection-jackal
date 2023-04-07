@@ -34,6 +34,10 @@ function slugify() {
     echo "$1" | iconv -t ascii//TRANSLIT | sed -r s/[~\^]+//g | sed -r s/[^a-zA-Z0-9]+/-/g | sed -r s/^-+\|-+$//g | tr A-Z a-z
 }
 
+function find_bags() {
+    find . -name '*.bag'
+}
+
 alias ds='devsetup'
 
 export ROSCONSOLE_FORMAT='[${severity}] - ${node}: [${time}] ${message}'
