@@ -15,8 +15,23 @@ function source_devel() {
 function devsetup() { cd /workspace/catkin_ws && source_devel; }
 
 function rrecord() {
-    __prefix=${1:-unnamed}
-    rosbag record -j -a -o "${__prefix}"
+    __name_or_path="${1:-unnamed}"
+    shift
+
+    # if the argument ends with .bag, then it is a full path
+    if [[ "$__name_or_path" == *.bag ]]; then
+        __output_bag_path="$__name_or_path"
+    else
+        __output_bag_path="./$(date --iso-8601=seconds)-$__name_or_path.bag"
+    fi
+
+    echo "Recording to \"$__output_bag_path\""
+
+    rosbag record -j -a -O "$__output_bag_path" $@
+}
+
+function slugify() {
+    echo "$1" | iconv -t ascii//TRANSLIT | sed -r s/[~\^]+//g | sed -r s/[^a-zA-Z0-9]+/-/g | sed -r s/^-+\|-+$//g | tr A-Z a-z
 }
 
 alias ds='devsetup'

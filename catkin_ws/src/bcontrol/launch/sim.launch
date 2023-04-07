@@ -1,6 +1,8 @@
 <launch>
   <!-- This file contains nodes and configuration that are specific to the simulation environment. -->
 
+  <arg name="enable_foxglove" default="true"/>
+
   <!-- 
     There are a few ways to feed global measurements to the system. Below will be a few methods and only one should be uncommented at a time.
   -->
@@ -68,5 +70,5 @@
   </group>
 
   <!-- Plotting and visualization -->
-  <node name="foxglove_bridge" pkg="foxglove_bridge" type="foxglove_bridge" output="screen" respawn="True"/>
+  <node name="foxglove_bridge" pkg="foxglove_bridge" type="foxglove_bridge" output="screen" respawn="True" if="$(arg enable_foxglove)" />
 </launch>

@@ -2,6 +2,24 @@
 
 set -o errexit -o nounset -o pipefail
 
+source /etc/local.bashrc
+
+function __onexit() {
+    echo "Killing background processes..."
+    pkill -SIGINT -P $$ || true # $$ is the PID of the current process. pkill will send SIGINT to all child processes of the specified PID
+
+    sleep 5
+
+    echo "Killing any remaining background processes using SIGTERM..."
+    pkill -SIGTERM -P $$ || true
+
+    wait
+
+    echo "All child processes exited."
+}
+
+trap __onexit EXIT
+
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 EXPERIMENTS_DIR="$SCRIPT_DIR"/../experiments
 
@@ -20,22 +38,30 @@ mkdir -p "$__ros_log_dir"
 export ROS_LOG_DIR="$__ros_log_dir"
 
 # pipe stderr to stdout, add a timestamp using ts, then tee to a log file
-ENABLE_EKF=false roslaunch --sigint-timeout=2 bcontrol sim.launch  2>&1 | ts | tee "$__experiment_dir"/ros-sim-launch.log &
+ENABLE_EKF=false roslaunch --sigint-timeout=2 bcontrol sim.launch enable_foxglove:=false 2>&1 | ts | tee "$__experiment_dir"/ros-sim-launch.log &
 
 sleep 3 # wait for roscore to start
 
-DISPLAY=:1.0 roslaunch bcontrol visualization.launch 2>&1 | ts | tee "$__experiment_dir"/ros-visualization-launch.log &
+# For debugging
+# DISPLAY=:1.0 roslaunch bcontrol visualization.launch 2>&1 | ts | tee "$__experiment_dir"/ros-visualization-launch.log &
 
 rosrun bcontrol generate_detector_pipeline_launch_file.py $(rospack find bcontrol)/config/bdetect.yaml $(rospack find bcontrol)/launch/detector_pipeline.generated.launch 2>&1 | ts | tee "$__experiment_dir"/ros-generate-detector-pipeline-launch-file.log
 
 roslaunch bcontrol stack.launch enable_detector:=false 2>&1 | ts | tee "$__experiment_dir"/ros-stack-launch.log &
 
-# Wait for the duration of the experiment
-sleep 5 # TODO: replace with an experiment script
+# Scenario =======================
+sleep 5 # wait for the vehicle to reach steady state
 
-echo "Experiment complete. Killing background processes..."
-pkill -SIGINT -P $$ # $$ is the PID of the current process. pkill will send SIGINT to all child processes of the specified PID
+roslaunch bcontrol detector.launch 2>&1 | ts | tee "$__experiment_dir"/ros-detector-launch.log &
 
-wait
+sleep 5 # wait for the detector to start
 
-echo "All child processes exited."
+rrecord "$__experiment_dir/$__experiment_id-$__experiment_suffix.bag" __name:=my_rosbag_recorder 2>&1 | ts | tee "$__experiment_dir"/ros-record.log &
+
+sleep 3 # wait for the recorder to start
+
+sleep 10 # TODO replace with attacks, etc.
+
+rosnode kill /my_rosbag_recorder 2>&1 | ts | tee "$__experiment_dir"/ros-kill-rosbag-recorder.log || true
+
+# End scenario ===================

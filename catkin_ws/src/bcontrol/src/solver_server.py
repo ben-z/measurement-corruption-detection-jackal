@@ -99,8 +99,6 @@ def run_solver(req, worker_pool):
     rospy.loginfo(f"sensor_validity={sensor_validity}")
     rospy.loginfo(f"sensor_malfunction_max_magnitude={np.array(sensor_malfunction_max_magnitude)}")
     
-    rospy.logwarn("==============================================================================================================")
-    
     return RunSolverResponse(status=status, x0_hat=x0_hat, sensor_validity=sensor_validity, malfunction_max_magnitude=sensor_malfunction_max_magnitude)
 
 def main():
