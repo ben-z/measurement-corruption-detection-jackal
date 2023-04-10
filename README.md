@@ -558,7 +558,7 @@ linear_acceleration_covariance: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]"
 Manually set the sensor validity:
   
 ```bash
-rostopic pub /message_barrier/sensor_validity_input std_msgs/UInt8MultiArray "data: [1,1,1,1,1,1]"
+rostopic pub /message_barrier/sensor_validity_input bcontrol/SensorValidity "data: [1,1,1,1,1,1]"
 ```
 
 View the current sensor validity:

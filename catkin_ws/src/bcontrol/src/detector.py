@@ -3,7 +3,7 @@
 import rospy
 import math
 import numpy as np
-from std_msgs.msg import UInt8MultiArray, Float32MultiArray
+from std_msgs.msg import Float32MultiArray
 from nav_msgs.msg import Odometry
 from geometry_msgs.msg import PoseArray, AccelStamped, Accel
 from sensor_msgs.msg import Imu
@@ -20,7 +20,7 @@ from solver_utils import get_evolution_matrices, optimize_l0, optimize_l1, get_l
 from transform_frames import TransformFrames
 from scipy.linalg import block_diag
 from bcontrol.srv import RunSolver, RunSolverRequest, RunSolverResponse
-from bcontrol.msg import Path as PathMsg
+from bcontrol.msg import Path as PathMsg, SensorValidity
 import contextlib
 
 RUN_SOLVER_RESPONSE_ENUM_TO_STR = make_srv_enum_lookup_dict(RunSolverResponse)
@@ -597,7 +597,8 @@ def solve_loop(event: rospy.timer.TimerEvent):
         print("E")
         print((Y - Phi@x0_hat).reshape((q, N), order='F'))
 
-        sensor_validity_msg = UInt8MultiArray()
+        sensor_validity_msg = SensorValidity()
+        sensor_validity_msg.header.stamp = rospy.Time.now()
         sensor_validity_msg.data = sensor_validity
         state['sensor_validity_pub'].publish(sensor_validity_msg)
         sensor_malfunction_max_magnitude_msg = Float32MultiArray()
@@ -637,7 +638,7 @@ def main():
     rospy.Subscriber('/odometry/global_filtered', Odometry, odom_callback)
     rospy.Subscriber('/bplan/path', PathMsg, planner_path_callback)
 
-    state['sensor_validity_pub'] = rospy.Publisher('/bdetect/sensor_validity', UInt8MultiArray, queue_size=1)
+    state['sensor_validity_pub'] = rospy.Publisher('/bdetect/sensor_validity', SensorValidity, queue_size=1)
     state['sensor_malfunction_max_magnitude_pub'] = rospy.Publisher('/bdetect/sensor_malfunction_max_magnitude', Float32MultiArray, queue_size=1)
     state['diagnostics_pub'] = rospy.Publisher('/diagnostics', DiagnosticArray, queue_size=10)
     state['data_pub'] = rospy.Publisher('/bdetect/data', PoseArray, queue_size=1)

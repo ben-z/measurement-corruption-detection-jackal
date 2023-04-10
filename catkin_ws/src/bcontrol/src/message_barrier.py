@@ -6,12 +6,13 @@ from nav_msgs.msg import Odometry
 from sensor_msgs.msg import Imu
 from typing import Any
 import numpy as np
-from std_msgs.msg import UInt8MultiArray
 from threading import Lock
 from robot_localization.srv import ClearTopicData, ClearTopicDataRequest, ClearTopicDataResponse
 from detector_utils import ModelConfig
 from utils import typeguard
 from detector import DETECTOR_SOLVE_HZ
+from bcontrol.msg import SensorValidity
+from copy import deepcopy
 
 NODE_NAME = "message_barrier"
 
@@ -49,7 +50,7 @@ def msg_callback(msg: Any):
     else:
         rospy.loginfo_throttle(1.0, f"sensor {state['sensor_idx']} is corrupted, not passing through.")
 
-def sensor_validity_callback(msg: UInt8MultiArray):
+def sensor_validity_callback(msg: SensorValidity):
     # if state['sensor_validity_msg']:
     #     # combine the two messages (take the logical AND)
     #     msg.data = [a and b for a,b in zip(msg.data, state['sensor_validity_msg'].data)]
@@ -119,10 +120,11 @@ def sensor_validity_callback(msg: UInt8MultiArray):
 
 def sensor_validity_final_pub_callback(event: rospy.timer.TimerEvent):
     with state['sensor_validity_lock']:
-        sensor_validity_msg = state["sensor_validity_msg"]
+        sensor_validity_msg = deepcopy(state["sensor_validity_msg"])
     if sensor_validity_msg is None:
         rospy.loginfo_throttle(1.0, "No sensor_validity_msg received yet. Publishing empty message")
-        sensor_validity_msg = UInt8MultiArray()
+        sensor_validity_msg = SensorValidity()
+    sensor_validity_msg.header.stamp = rospy.Time.now()
     state['sensor_validity_final_pub'].publish(sensor_validity_msg)
 
 def main():
@@ -142,9 +144,10 @@ def main():
     
     rospy.loginfo(f"{topic_name=} {message_type=}")
 
-    state['sensor_validity_final_pub'] = rospy.Publisher(f"/{NODE_NAME}/sensor_validity_final", UInt8MultiArray, queue_size=1)
+    state['sensor_validity_final_pub'] = rospy.Publisher(
+        f"/{NODE_NAME}/sensor_validity_final", SensorValidity, queue_size=1)
 
-    rospy.Subscriber(f"/{NODE_NAME}/sensor_validity_input", UInt8MultiArray, sensor_validity_callback)
+    rospy.Subscriber(f"/{NODE_NAME}/sensor_validity_input", SensorValidity, sensor_validity_callback)
     rospy.Timer(rospy.Duration.from_sec(1.0/5.0), sensor_validity_final_pub_callback)
 
     if message_type == "nav_msgs/Odometry":

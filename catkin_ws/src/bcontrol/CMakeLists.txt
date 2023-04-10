@@ -54,6 +54,7 @@ catkin_python_setup()
 add_message_files(
   FILES
   Path.msg
+  SensorValidity.msg
 )
 
 ## Generate services in the 'srv' folder

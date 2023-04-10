@@ -49,6 +49,8 @@ sleep_simtime 20
 echo "Shutting down..."
 unbuffer rosnode kill /my_rosbag_recorder 2>&1 | ts | tee "$EXPERIMENT_DIR"/ros-kill-rosbag-recorder.log || true
 pkill -SIGINT -P $$ || true
+sleep 5
+pkill -SIGTERM -P $$ || true
 wait
 
 echo "Exiting..."
