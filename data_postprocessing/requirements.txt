@@ -1,5 +1,6 @@
 matplotlib==3.7.1
-git+https://github.com/ben-z/rosbags.git@9f42cce
+git+https://github.com/ben-z/rosbags.git@71448535f9fe024190b4ad63aa84bfe272a6f535
 jupytext==1.14.5
 tqdm==4.65.0
 pandas==2.0.0
+transformations==2022.9.26
