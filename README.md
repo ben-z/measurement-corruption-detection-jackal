@@ -179,6 +179,25 @@ Useful VGL commands:
 sudo /opt/VirtualGL/bin/eglinfo -e # list available EGL devices
 ```
 
+## Tembo
+
+Useful commands on the [tembo](https://cs.uwaterloo.ca/twiki/view/CF/Tembo) cluster:
+
+```bash
+pdsh -S -F ./tembo-genders.txt -g all -l $USER 'cd ~/benz/research-jackal && ./bootstrap-tembo.sh'
+pdsh -S -F ./tembo-genders.txt -g all -l $USER 'cd ~/benz/research-jackal && source /hdd2/.host_profile && docker compose up -d --build sim'
+pdsh -S -F ./tembo-genders.txt -g all -l $USER 'cd ~/benz/research-jackal && source /hdd2/.host_profile && docker compose ps'
+pdsh -S -F ./tembo-genders.txt -g all -l $USER 'cd ~/benz/research-jackal && source /hdd2/.host_profile && docker compose exec sim bash -c "source /etc/local.bashrc && devsetup && rosdep_install_all"'
+
+# Set up the build environment to work around NFS nolock restrictions. In this setup,
+# every container has its own build/logs/devel directories on the host.
+pdsh -S -F ./tembo-genders.txt -g all -l $USER 'cd ~/benz/research-jackal && source /hdd2/.host_profile && docker compose exec sim bash -c "source /etc/local.bashrc && devsetup && rm -rf build logs devel && mkdir -p /tmp/catkin-{build,logs,devel} && ln -s /tmp/catkin-build build && ln -s /tmp/catkin-logs logs && ln -s /tmp/catkin-devel devel"'
+pdsh -S -F ./tembo-genders.txt -g all -l $USER 'cd ~/benz/research-jackal && source /hdd2/.host_profile && docker compose exec sim bash -c "source /etc/local.bashrc && devsetup && catkin build"'
+
+# Run experiments
+pdsh -S -F ./tembo-genders.txt -g all -l $USER 'cd ~/benz/research-jackal && source /hdd2/.host_profile && docker compose exec sim bash -c "source /etc/local.bashrc && devsetup && ./scripts/run-scenario.sh myexp-$(hostname) ./scripts/scenario-playground.sh"'
+```
+
 ## Development notes
 
 `cmd_vel` is the topic for sending velocity commands to the robot. The message type is `geometry_msgs/Twist`.

@@ -24,7 +24,10 @@ class RepublishMessageInDifferentFrame:
         self.transform_frames = TransformFrames()
 
     def odom_callback(self, msg: Odometry):
-        self.pub.publish(self.transform_frames.odom_transform(msg))
+        try:
+            self.pub.publish(self.transform_frames.odom_transform(msg))
+        except (LookupException, ConnectivityException, ExtrapolationException) as e:
+            rospy.logwarn("Could not transform message! " + str(e))
 
 if __name__ == '__main__':
     rospy.init_node('republish_message_in_different_frame')

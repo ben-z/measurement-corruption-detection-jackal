@@ -8,6 +8,9 @@ services:
     user: "${FIXUID:?}:${FIXGID:?}"
     volumes:
       - .:/workspace
+    tmpfs:
+      # Speed up build on HDD-backed filesystems (e.g. tembo)
+      - /tmp:exec
     devices:
       # Required for VirtualGL
       - /dev/dri:/dev/dri
