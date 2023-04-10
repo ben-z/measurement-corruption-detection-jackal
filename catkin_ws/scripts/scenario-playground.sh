@@ -14,6 +14,11 @@ if [ -z "$EXPERIMENT_DIR" ]; then
     exit 1
 fi
 
+if [[ $(type -t sleep_simtime) != "function" ]]; then
+    echo "sleep_simtime not defined. Exiting."
+    exit 1
+fi
+
 echo "Using experiment directory: $EXPERIMENT_DIR"
 
 # Start visualization (for debugging)

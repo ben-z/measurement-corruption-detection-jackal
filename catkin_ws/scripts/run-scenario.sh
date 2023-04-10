@@ -29,6 +29,7 @@ function sleep_simtime() {
     # Sleep for the specified number of seconds in simulation time
     sleep $(bc <<< "scale=2; $1 / $REAL_TIME_FACTOR")
 }
+export -f sleep_simtime # export the function so it can be used in subshells
 
 __experiment_id=$(date --iso-8601=seconds)
 __experiment_suffix=${1:-experiment}
