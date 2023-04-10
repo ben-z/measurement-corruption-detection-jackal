@@ -39,7 +39,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 RUN apt-get update && apt-get install -y --no-install-recommends \
     python3-catkin-tools python3-rosdep tmux ros-noetic-foxglove-bridge \
     ros-noetic-rosbridge-suite ros-noetic-tf2-tools lsof htop moreutils bc \
-    rsync
+    rsync expect
 
 USER docker
 
@@ -123,7 +123,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 RUN apt-get update && apt-get install -y --no-install-recommends \
     python3-catkin-tools python3-rosdep tmux ros-noetic-foxglove-bridge \
     ros-noetic-rosbridge-suite ros-noetic-tf2-tools lsof htop moreutils bc \
-    rsync
+    rsync expect
 
 USER docker
 

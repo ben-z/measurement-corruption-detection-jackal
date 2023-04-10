@@ -29,7 +29,6 @@ function sleep_simtime() {
     # Sleep for the specified number of seconds in simulation time
     sleep $(bc <<< "scale=2; $1 / $REAL_TIME_FACTOR")
 }
-export -f sleep_simtime # export the function so it can be used in subshells
 
 __experiment_id=$(date --iso-8601=seconds)
 __experiment_suffix=${1:-experiment}
@@ -54,13 +53,13 @@ mkdir -p "$__ros_log_dir"
 export ROS_LOG_DIR="$__ros_log_dir"
 
 # pipe stderr to stdout, add a timestamp using ts, then tee to a log file
-ENABLE_EKF=false roslaunch --sigint-timeout=2 bcontrol sim.launch enable_foxglove:=false gazebo_world:="$GAZEBO_WORLD" 2>&1 | ts | tee "$__experiment_dir"/ros-sim-launch.log &
+ENABLE_EKF=false unbuffer roslaunch --sigint-timeout=2 bcontrol sim.launch enable_foxglove:=false gazebo_world:="$GAZEBO_WORLD" 2>&1 | ts | tee "$__experiment_dir"/ros-sim-launch.log &
 sleep 3 # wait for roscore to start
 
 # Generate launch files
-rosrun bcontrol generate_detector_pipeline_launch_file.py $(rospack find bcontrol)/config/bdetect.yaml $(rospack find bcontrol)/launch/detector_pipeline.generated.launch 2>&1 | ts | tee "$__experiment_dir"/ros-generate-detector-pipeline-launch-file.log
+unbuffer rosrun bcontrol generate_detector_pipeline_launch_file.py $(rospack find bcontrol)/config/bdetect.yaml $(rospack find bcontrol)/launch/detector_pipeline.generated.launch 2>&1 | ts | tee "$__experiment_dir"/ros-generate-detector-pipeline-launch-file.log
 
-roslaunch bcontrol stack.launch enable_detector:=false 2>&1 | ts | tee "$__experiment_dir"/ros-stack-launch.log &
+unbuffer roslaunch bcontrol stack.launch enable_detector:=false 2>&1 | ts | tee "$__experiment_dir"/ros-stack-launch.log &
 sleep 5 # wait for the stack to start
 
 # Scenario =======================
@@ -69,5 +68,5 @@ export EXPERIMENT_ID="$__experiment_id"
 export EXPERIMENT_SUFFIX="$__experiment_suffix"
 
 echo "Running experiment script: $__experiment_script"
-bash -c "$__experiment_script" 2>&1 | ts | tee "$__experiment_dir"/experiment-script.log
-
+# declare -f sleep_simtime will print the definition of the sleep_simtime function so that it can be used in the experiment script
+unbuffer bash -c "$(declare -f sleep_simtime); export -f sleep_simtime; $__experiment_script" 2>&1 | ts | tee "$__experiment_dir"/experiment-script.log
