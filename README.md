@@ -185,17 +185,14 @@ Useful commands on the [tembo](https://cs.uwaterloo.ca/twiki/view/CF/Tembo) clus
 
 ```bash
 pdsh -S -F ./tembo-genders.txt -g all -l $USER 'cd ~/benz/research-jackal && ./bootstrap-tembo.sh'
-pdsh -S -F ./tembo-genders.txt -g all -l $USER 'cd ~/benz/research-jackal && source /hdd2/.host_profile && docker compose up -d --build sim'
-pdsh -S -F ./tembo-genders.txt -g all -l $USER 'cd ~/benz/research-jackal && source /hdd2/.host_profile && docker compose ps'
-pdsh -S -F ./tembo-genders.txt -g all -l $USER 'cd ~/benz/research-jackal && source /hdd2/.host_profile && docker compose exec sim bash -c "source /etc/local.bashrc && devsetup && rosdep_install_all"'
+pdsh -S -F ./tembo-genders.txt -g all -l $USER 'cd ~/benz/research-jackal && source /hdd2/.host_profile && docker compose up -d --build sim_headless'
+pdsh -S -F ./tembo-genders.txt -g all -l $USER 'cd ~/benz/research-jackal && source /hdd2/.host_profile && docker compose exec sim_headless bash -c "source /etc/local.bashrc && devsetup && rosdep_install_all"'
 
-# Set up the build environment to work around NFS nolock restrictions. In this setup,
-# every container has its own build/logs/devel directories on the host.
-pdsh -S -F ./tembo-genders.txt -g all -l $USER 'cd ~/benz/research-jackal && source /hdd2/.host_profile && docker compose exec sim bash -c "source /etc/local.bashrc && devsetup && rm -rf build logs devel && mkdir -p /tmp/catkin-{build,logs,devel} && ln -s /tmp/catkin-build build && ln -s /tmp/catkin-logs logs && ln -s /tmp/catkin-devel devel"'
-pdsh -S -F ./tembo-genders.txt -g all -l $USER 'cd ~/benz/research-jackal && source /hdd2/.host_profile && docker compose exec sim bash -c "source /etc/local.bashrc && devsetup && catkin build"'
+# Copy the workspace to the container, do a clean build 
+pdsh -S -F ./tembo-genders.txt -g all -l $USER 'cd ~/benz/research-jackal && source /hdd2/.host_profile && docker compose exec sim_headless bash -c "sudo rsync -a /workspace_ro/. /workspace && rm -rf build install logs && source /etc/local.bashrc && catkin build"'
 
 # Run experiments
-pdsh -S -F ./tembo-genders.txt -g all -l $USER 'cd ~/benz/research-jackal && source /hdd2/.host_profile && docker compose exec sim bash -c "source /etc/local.bashrc && devsetup && ./scripts/run-scenario.sh myexp-$(hostname) ./scripts/scenario-playground.sh"'
+pdsh -S -F ./tembo-genders.txt -g all -l $USER 'cd ~/benz/research-jackal && source /hdd2/.host_profile && docker compose exec sim_headless bash -c "sudo rsync -a /workspace_ro/. /workspace && source /etc/local.bashrc && catkin build && ./scripts/run-scenario.sh myexp-$(hostname) ./scripts/scenario-playground.sh"'
 ```
 
 ## Development notes

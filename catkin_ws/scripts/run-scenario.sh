@@ -21,7 +21,14 @@ function __onexit() {
 trap __onexit EXIT
 
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-EXPERIMENTS_DIR="$SCRIPT_DIR"/../experiments
+EXPERIMENTS_DIR=/experiments
+
+export GAZEBO_WORLD=/workspace/gazebo-worlds/empty-rate_200.world
+export REAL_TIME_FACTOR=0.2 # Need to be consistent with the real_time_update_rate in GAZEBO_WORLD
+function sleep_simtime() {
+    # Sleep for the specified number of seconds in simulation time
+    sleep $(bc <<< "scale=2; $1 / $REAL_TIME_FACTOR")
+}
 
 __experiment_id=$(date --iso-8601=seconds)
 __experiment_suffix=${1:-experiment}
@@ -46,35 +53,20 @@ mkdir -p "$__ros_log_dir"
 export ROS_LOG_DIR="$__ros_log_dir"
 
 # pipe stderr to stdout, add a timestamp using ts, then tee to a log file
-ENABLE_EKF=false roslaunch --sigint-timeout=2 bcontrol sim.launch enable_foxglove:=false 2>&1 | ts | tee "$__experiment_dir"/ros-sim-launch.log &
-
+ENABLE_EKF=false roslaunch --sigint-timeout=2 bcontrol sim.launch enable_foxglove:=false gazebo_world:="$GAZEBO_WORLD" 2>&1 | ts | tee "$__experiment_dir"/ros-sim-launch.log &
 sleep 3 # wait for roscore to start
 
-# For debugging
-# DISPLAY=:1.0 roslaunch bcontrol visualization.launch 2>&1 | ts | tee "$__experiment_dir"/ros-visualization-launch.log &
-
+# Generate launch files
 rosrun bcontrol generate_detector_pipeline_launch_file.py $(rospack find bcontrol)/config/bdetect.yaml $(rospack find bcontrol)/launch/detector_pipeline.generated.launch 2>&1 | ts | tee "$__experiment_dir"/ros-generate-detector-pipeline-launch-file.log
 
 roslaunch bcontrol stack.launch enable_detector:=false 2>&1 | ts | tee "$__experiment_dir"/ros-stack-launch.log &
+sleep 5 # wait for the stack to start
 
 # Scenario =======================
 export EXPERIMENT_DIR="$__experiment_dir"
 export EXPERIMENT_ID="$__experiment_id"
 export EXPERIMENT_SUFFIX="$__experiment_suffix"
-echo "Running experiment script: $__experiment_script"
 
+echo "Running experiment script: $__experiment_script"
 bash -c "$__experiment_script" 2>&1 | ts | tee "$__experiment_dir"/experiment-script.log
 
-# sleep 5 # wait for the vehicle to reach steady state
-
-# roslaunch bcontrol detector.launch 2>&1 | ts | tee "$__experiment_dir"/ros-detector-launch.log &
-
-# sleep 5 # wait for the detector to start
-
-# rrecord "$__experiment_dir/$__experiment_id-$__experiment_suffix.bag" __name:=my_rosbag_recorder 2>&1 | ts | tee "$__experiment_dir"/ros-record.log &
-
-# sleep 3 # wait for the recorder to start
-
-# rosnode kill /my_rosbag_recorder 2>&1 | ts | tee "$__experiment_dir"/ros-kill-rosbag-recorder.log || true
-
-# End scenario ===================

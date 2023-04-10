@@ -38,7 +38,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # Install development tools
 RUN apt-get update && apt-get install -y --no-install-recommends \
     python3-catkin-tools python3-rosdep tmux ros-noetic-foxglove-bridge \
-    ros-noetic-rosbridge-suite ros-noetic-tf2-tools lsof htop moreutils
+    ros-noetic-rosbridge-suite ros-noetic-tf2-tools lsof htop moreutils bc \
+    rsync
 
 USER docker
 
@@ -121,7 +122,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # Install development tools
 RUN apt-get update && apt-get install -y --no-install-recommends \
     python3-catkin-tools python3-rosdep tmux ros-noetic-foxglove-bridge \
-    ros-noetic-rosbridge-suite ros-noetic-tf2-tools lsof htop moreutils
+    ros-noetic-rosbridge-suite ros-noetic-tf2-tools lsof htop moreutils bc \
+    rsync
 
 USER docker
 

@@ -1,6 +1,6 @@
 version: "3.9"
 services:
-  sim:
+  sim: &sim
     build:
       context: .
       dockerfile: Dockerfile
@@ -8,9 +8,7 @@ services:
     user: "${FIXUID:?}:${FIXGID:?}"
     volumes:
       - .:/workspace
-    tmpfs:
-      # Speed up build on HDD-backed filesystems (e.g. tembo)
-      - /tmp:exec
+      - ./experiments:/experiments
     devices:
       # Required for VirtualGL
       - /dev/dri:/dev/dri
@@ -19,6 +17,14 @@ services:
       - "18765:8765" # Foxglove
       - "18766:8766" # Webviz
       - "5678:5678" # Debugpy
+  sim_headless:
+    <<: *sim
+    volumes:
+      - .:/workspace_ro:ro
+      - ./experiments:/experiments
+    tmpfs:
+      # Make /workspace a tmpfs to speed up builds
+      - /workspace:exec
   robot:
     build:
       context: .
