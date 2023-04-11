@@ -22,7 +22,7 @@ function rrecord() {
     if [[ "$__name_or_path" == *.bag ]]; then
         __output_bag_path="$__name_or_path"
     else
-        __output_bag_path="./$(date --iso-8601=seconds)-$__name_or_path.bag"
+        __output_bag_path="./$(date --iso-8601=seconds | slugify)-$__name_or_path.bag"
     fi
 
     echo "Recording to \"$__output_bag_path\""
@@ -31,7 +31,7 @@ function rrecord() {
 }
 
 function slugify() {
-    echo "$1" | iconv -t ascii//TRANSLIT | sed -r s/[~\^]+//g | sed -r s/[^a-zA-Z0-9]+/-/g | sed -r s/^-+\|-+$//g | tr A-Z a-z
+    iconv -t ascii//TRANSLIT | sed -r s/[~\^]+//g | sed -r s/[^a-zA-Z0-9]+/-/g | sed -r s/^-+\|-+$//g | tr A-Z a-z
 }
 
 function find_bags() {

@@ -30,7 +30,7 @@ function sleep_simtime() {
     sleep $(bc <<< "scale=2; $1 / $REAL_TIME_FACTOR")
 }
 
-__experiment_id=$(date --iso-8601=seconds)
+__experiment_id=$(date --iso-8601=seconds | slugify)
 __experiment_suffix=${1:-experiment}
 __experiment_script=${2:-}
 __experiment_dir="$EXPERIMENTS_DIR"/"$__experiment_id"_"$__experiment_suffix"
