@@ -52,7 +52,20 @@ def main(rosbag_path: Path, output_path: Path):
         print(f"Start time (s): {start_time_s}, end time (s): {end_time_s}, duration (s): {duration_s}")
 
         # copy connections from reader to writer
-        writer.connections = reader.connections
+        writer_connections = {}
+        for connection in reader.connections:
+            assert isinstance(connection.ext, ConnectionExtRosbag1), "Only rosbag1 connections are supported"
+            wconn = writer.add_connection(
+                topic=connection.topic,
+                msgtype=connection.msgtype,
+                msgdef=connection.msgdef,
+                md5sum=connection.md5sum,
+                callerid=connection.ext.callerid,
+                latching=connection.ext.latching,
+            )
+            writer_connections[(connection.topic, connection.msgtype)] = wconn
+
+        all_topics = {x.topic for x in reader.connections}
 
         # Quaternion to RPY
         odometry_connections = [x for x in reader.connections if x.msgtype == 'nav_msgs/msg/Odometry']
@@ -93,7 +106,8 @@ def main(rosbag_path: Path, output_path: Path):
                 else:
                     pass
 
-                writer.write(connection, timestamp, rawdata)
+                wconn = writer_connections[(connection.topic, connection.msgtype)]
+                writer.write(wconn, timestamp, rawdata)
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
