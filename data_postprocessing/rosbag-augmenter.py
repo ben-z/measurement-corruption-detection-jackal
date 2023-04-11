@@ -22,6 +22,7 @@ for msgpath in BCONTROL_MSG_DIR.glob('*.msg'):
 register_types(add_types)
 
 from rosbags.rosbag1 import Writer
+from rosbags.interfaces import ConnectionExtRosbag1
 from rosbags.serde import deserialize_cdr, ros1_to_cdr, cdr_to_ros1, serialize_cdr
 from rosbags.highlevel import AnyReader as Reader
 from pathlib import Path
@@ -33,6 +34,10 @@ from rosbags.typesys.types import \
 import transformations as tf
 from tqdm import tqdm
 import argparse
+import os
+import sys
+
+is_interactive = os.isatty(sys.stdout.fileno()) and os.environ.get('SHOW_PROGRESS', 'true') == 'true'
 
 S_TO_NS = 1e9
 
@@ -42,14 +47,17 @@ def orientation_to_rpy_vec3(orientation) -> Vector3:
     return Vector3(x=roll, y=pitch, z=yaw)
 
 def main(rosbag_path: Path, output_path: Path):
+    print(f"Augmenting {rosbag_path}... Output path: {output_path}")
+
     # delete augmented bag if it exists
     output_path.unlink(missing_ok=True)
 
     with Reader([rosbag_path]) as reader, Writer(output_path) as writer:
-        start_time_s = reader.start_time / S_TO_NS
+        start_time = reader.start_time
+        start_time_s = start_time / S_TO_NS
         end_time_s = reader.end_time / S_TO_NS
         duration_s = end_time_s - start_time_s
-        print(f"Start time (s): {start_time_s}, end time (s): {end_time_s}, duration (s): {duration_s}")
+        print(f"Start time (s): {start_time_s:.4f}, end time (s): {end_time_s:.4f}, duration (s): {duration_s:.4f}")
 
         # copy connections from reader to writer
         writer_connections = {}
@@ -91,10 +99,18 @@ def main(rosbag_path: Path, output_path: Path):
             new_connection = writer.add_connection(topic, msgtype)
             path_to_navpath_connection_mapping[connection.topic] = (new_connection, msgtype)
 
-        with tqdm(total=round(duration_s,4), desc="Processing rosbag", unit="s") as pbar:
+        with tqdm(total=round(duration_s,4), desc="Processing rosbag", unit="s", disable=not is_interactive) as pbar:
+            last_progress_update_ns_from_start = -1
+
             # iterate over messages
             for connection, timestamp, rawdata in reader.messages():
-                pbar.update(round(timestamp / S_TO_NS - pbar.n - start_time_s, 4))
+                ns_from_start = timestamp - start_time
+
+                pbar.update(round(ns_from_start / S_TO_NS - pbar.n, 4))
+
+                if not is_interactive and ns_from_start % (10 * S_TO_NS) == 0 and ns_from_start > last_progress_update_ns_from_start:
+                    print(f"Progress update [{rosbag_path.name}]: processing {ns_from_start / S_TO_NS:.4f}/{duration_s:.4f} seconds")
+                    last_progress_update_ns_from_start = ns_from_start
 
                 if quaternion_to_rpy_connection_mapping.get(connection.topic):
                     out_connection, out_msgtype = quaternion_to_rpy_connection_mapping[connection.topic]

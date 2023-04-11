@@ -209,7 +209,21 @@ View the graph with `rosrun rqt_graph rqt_graph`.
 
 View the tf tree with `rosrun rqt_tf_tree rqt_tf_tree`. Or `rosrun tf2_tools view_frames.py`.
 
-#### Serving ROS bags
+### Converting ROS bags for visualization
+
+We have a script to augment rosbags with useful information for visualization:
+
+```bash
+python ./data_postprocessing/rosbag-augmenter.py path_to_rosbag.bag
+```
+
+To batch process all rosbags in the experiments directory:
+
+```bash
+export SHOW_PROGRESS=false; find experiments/ -maxdepth 2 -name '*[!.augmented].bag' -print0 | xargs -n1 -0 -P8 -I {} python ./data_postprocessing/rosbag-augmenter.py {}
+```
+
+### Serving ROS bags
 
 ```bash
 npx 'https://github.com/ben-z/http-server#8aa6a8f' --cors='ETag,Content-Type,Accept-Ranges,Content-Length' -p 18090
