@@ -9,6 +9,8 @@ from ros_utils import load_message_type
 import time
 from copy import deepcopy
 import sys
+from bcontrol.msg import Metadata
+import json
 
 # Define message converters for supported message types
 MESSAGE_CONVERTERS = {
@@ -17,10 +19,13 @@ MESSAGE_CONVERTERS = {
 }
 
 class SignalGeneratorNode:
-    def __init__(self, output_topic, message_type, field, signal_type, magnitude, period, corruption_start_sec):
+    def __init__(self, output_topic, message_type, field, signal_type, magnitude, period, corruption_start_sec, on_start=None, on_stop=None):
         self.signal_type = signal_type
         self.magnitude = magnitude
         self.period = period
+        self.called_start_callback = False
+        self.on_start = on_start
+        self.on_stop = on_stop
         self.shutting_down = False
 
         # Determine the message converter based on the message type
@@ -57,6 +62,11 @@ class SignalGeneratorNode:
         corrupted_msg = self.message_converter.from_numpy(
             corrupted_data, self.message_type())
         
+        if not self.called_start_callback:
+            if self.on_start is not None:
+                self.on_start(self)
+            self.called_start_callback = True
+        
         rospy.logwarn_once("Publishing corrupted message.")
         self.publish_msg(corrupted_msg)
 
@@ -72,6 +82,10 @@ class SignalGeneratorNode:
         rospy.logwarn("Shutting down, publishing template message.")
         self.shutting_down = True
         self.publish_msg(self.message_type())
+        
+        if self.on_stop is not None:
+            self.on_stop(self)
+        
         time.sleep(1.0)
 
 if __name__ == '__main__':
@@ -98,6 +112,27 @@ if __name__ == '__main__':
     # Initialize ROS node
     rospy.init_node('signal_generator_node')
 
+    now = rospy.Time.now()
+
+    corruption_id = f"{now.secs}_{now.nsecs}_{args.field}_{args.signal_type}_{args.magnitude}"
+
+    metadata_pub = rospy.Publisher('metadata', Metadata, queue_size=10)
+
+    def publish_event(event_name, extra_metadata={}):
+        """
+        Publishes a metadata message with the given event name and extra metadata.
+        """
+        start_metadata = Metadata()
+        start_metadata.header.stamp = rospy.Time.now()
+        start_metadata.metadata = json.dumps({
+            'metadata_type': event_name,
+            'corruption_id': corruption_id,
+            **extra_metadata
+        })
+        metadata_pub.publish(start_metadata)
+    
+    publish_event('corruption_init', {'args': vars(args)})
+    
     # Create SignalGeneratorNode instance
     signal_generator_node = SignalGeneratorNode(
         args.output_topic,
@@ -107,6 +142,8 @@ if __name__ == '__main__':
         args.magnitude,
         args.period,
         args.corruption_start_sec,
+        on_start=lambda _node: publish_event('corruption_start'),
+        on_stop=lambda _node: publish_event('corruption_stop'),
     )
 
     # Set up a timer to generate and publish signal at a fixed rate (e.g., 10 Hz)

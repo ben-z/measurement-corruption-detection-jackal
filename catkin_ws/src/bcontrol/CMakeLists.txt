@@ -56,6 +56,7 @@ add_message_files(
   Path.msg
   SensorValidity.msg
   Float64Stamped.msg
+  Metadata.msg
 )
 
 ## Generate services in the 'srv' folder
