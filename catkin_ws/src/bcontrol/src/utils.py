@@ -855,7 +855,7 @@ def assert_and_remove_suffix(s, suffix):
     assert s.endswith(suffix), f"Expected {s} to end with {suffix}"
     return s[:-len(suffix)]
 
-def calculate_signed_distance(x1, y1, x2, y2, x0, y0):
+def calculate_signed_distance(x1: float, y1: float, x2: float, y2: float, x0: float, y0: float):
     """
     Calculates the signed distance (lateral error) from point P(x0, y0) to the line defined by points A(x1, y1) and B(x2, y2).
     When the point P lies above the line when looking left to right from A to B, the distance is positive.

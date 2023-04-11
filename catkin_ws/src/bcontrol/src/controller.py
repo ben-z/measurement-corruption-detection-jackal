@@ -14,7 +14,7 @@ from typing import Optional, TypedDict, Tuple
 from threading import Lock
 from planner import PLANNER_PATH_CLOSED
 from transform_frames import TransformFrames
-from bcontrol.msg import Path as PathMsg
+from bcontrol.msg import Path as PathMsg, Float64Stamped
 from dynamic_reconfigure.server import Server as DynamicReconfigureServer
 from bcontrol.cfg import BControllerConfig
 from controller_utils import drive_to_target_point
@@ -183,6 +183,7 @@ def tick_dynamics_controller(
     angular_accel_heading_pub,
     angular_accel_latdev_pub,  
 ):
+    now = rospy.Time.now()
     # Extract the state variables atomically
     # ote: we never mutate state variables (only replace them) so we don't need to
     # worry about the state changing while we're using it.
@@ -270,7 +271,10 @@ def tick_dynamics_controller(
     heading_error = wrap_angle(target_heading - heading)
     target_heading_pub.publish(target_heading)
     lateral_position = path.get_lateral_position([x,y], closest)
-    lateral_position_pub.publish(lateral_position)
+    lateral_position_msg = Float64Stamped()
+    lateral_position_msg.header.stamp = now
+    lateral_position_msg.data = lateral_position
+    lateral_position_pub.publish(lateral_position_msg)
     lateral_error = -lateral_position
     angvel_error = target_ang_vel - omega
     target_angular_velocity_pub.publish(target_ang_vel)
@@ -303,7 +307,9 @@ def tick_dynamics_controller(
     with state['lock']:
         state['cmd_accel'] = (linear_accel_cmd, angular_accel_cmd)
 
-def tick_pure_pursuit(lookahead_pub, cmd_vel_pub):
+def tick_pure_pursuit(lookahead_pub, cmd_vel_pub, lateral_position_pub):
+    now = rospy.Time.now()
+
     # Extract the state variables atomically
     # ote: we never mutate state variables (only replace them) so we don't need to
     # worry about the state changing while we're using it.
@@ -344,6 +350,11 @@ def tick_pure_pursuit(lookahead_pub, cmd_vel_pub):
         closest = path.get_local_closest_point([x,y], state['closest_path_point'])
 
     state['closest_path_point'] = closest
+    lateral_position = path.get_lateral_position([x, y], closest)
+    lateral_position_msg = Float64Stamped()
+    lateral_position_msg.header.stamp = now
+    lateral_position_msg.data = lateral_position
+    lateral_position_pub.publish(lateral_position_msg)
 
     lookahead = path.walk(closest, 0.5)
     target_heading = path.get_heading_at_point(lookahead)
@@ -392,7 +403,7 @@ def main():
     state['cmd_vel_pub'] = rospy.Publisher('/cmd_vel', Twist, queue_size=1)
     state['cmd_accel_pub'] = rospy.Publisher('/bcontrol/cmd_accel', Accel, queue_size=1)
     lookahead_pub = rospy.Publisher('/bcontrol/lookahead', PoseArray, queue_size=1)
-    lateral_position_pub = rospy.Publisher('/bcontrol/lateral_position', Float64, queue_size=1)
+    lateral_position_pub = rospy.Publisher('/bcontrol/lateral_position', Float64Stamped, queue_size=1)
     target_heading_pub = rospy.Publisher('/bcontrol/target_heading', Float64, queue_size=1)
     actual_heading_pub = rospy.Publisher('/bcontrol/actual_heading', Float64, queue_size=1)
     target_angular_velocity_pub = rospy.Publisher('/bcontrol/target_angular_velocity', Float64, queue_size=1)
@@ -417,7 +428,7 @@ def main():
     rate = rospy.Rate(CONTROLLER_HZ)
 
     while not rospy.is_shutdown():
-        tick_pure_pursuit(lookahead_pub, state['cmd_vel_pub'])
+        tick_pure_pursuit(lookahead_pub, state['cmd_vel_pub'], lateral_position_pub)
         # tick_dynamics_controller(
         #     lookahead_pub,
         #     lateral_position_pub,
