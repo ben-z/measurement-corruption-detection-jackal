@@ -1,0 +1,19 @@
+#!/bin/bash
+
+# Script to set up environment in tembo. Assuming the project directory is $HOME/benz
+# 
+# 1. Clone shell-conf and conda-conf to $HOME/benz
+# 2. Install conda to $HOME/benz/miniconda3
+# 3. Add the following to `~/.bashrc`:
+#    ```bash
+#    function benz() {
+#        echo "Activating environment for benz"
+#        [ -f $HOME/benz/research-jackal/tembo-bashrc ] && source $HOME/benz/research-jackal/tembo-bashrc
+#    }
+#    ```
+# This ensures that we don't pollute the bash environment when not needed. When needed, activate the environment with `benz`
+
+SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+
+[ -f "$SCRIPT_DIR"/../shell-conf/commonrc ] && source "$SCRIPT_DIR"/../shell-conf/commonrc
+
