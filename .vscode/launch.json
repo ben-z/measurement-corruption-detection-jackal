@@ -5,6 +5,17 @@
     "version": "0.2.0",
     "configurations": [
         {
+            "name": "rosbag-augmenter",
+            "type": "python",
+            "request": "launch",
+            "program": "${file}",
+            "args": [
+                "experiments/2023-04-11t16-23-19-00-00_myexp/2023-04-11t16-23-19-00-00-myexp.bag",
+            ],
+            "console": "integratedTerminal",
+            "justMyCode": true
+        },
+        {
             "name": "Python: Current File",
             "type": "python",
             "request": "launch",
