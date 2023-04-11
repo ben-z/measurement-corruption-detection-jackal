@@ -79,7 +79,7 @@ class SignalGeneratorNode:
 
     def on_shutdown(self):
         # Publish the template message when shutting down
-        rospy.logwarn("Shutting down, publishing template message.")
+        rospy.logwarn("Shutting down, clearing corruption.")
         self.shutting_down = True
         self.publish_msg(self.message_type())
         
