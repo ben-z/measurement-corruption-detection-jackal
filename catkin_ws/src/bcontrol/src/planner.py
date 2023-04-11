@@ -21,12 +21,12 @@ def tick_planner(path_pub, pose_array_pub):
     # Figure 8
     # points, headings, curvatures, dK_ds_list = generate_figure_eight_approximation([0,0], 4, 2, 100)
     # points, headings, curvatures, dK_ds_list = generate_figure_eight_approximation([0,0], 5, 2.6, 100)
-    # points, headings, curvatures, dK_ds_list = generate_figure_eight_approximation([0,0], 10, 5, 100)
-    # path = Path(points, headings, curvatures, dK_ds_list, velocities=[VELOCITY]*len(points), closed=PLANNER_BASE_PATH_CLOSED)
+    points, headings, curvatures, dK_ds_list = generate_figure_eight_approximation([0,0], 10, 5, 100)
+    path = Path(points, headings, curvatures, dK_ds_list, velocities=[VELOCITY]*len(points), closed=PLANNER_BASE_PATH_CLOSED)
 
     # Circle
-    points, headings, curvatures, dK_ds_list = generate_circle_approximation([0,0], RADIUS, 100)
-    path = Path(points, headings, curvatures, dK_ds_list, velocities=[VELOCITY]*len(points), closed=PLANNER_BASE_PATH_CLOSED)
+    # points, headings, curvatures, dK_ds_list = generate_circle_approximation([0,0], RADIUS, 100)
+    # path = Path(points, headings, curvatures, dK_ds_list, velocities=[VELOCITY]*len(points), closed=PLANNER_BASE_PATH_CLOSED)
 
     path_pub.publish(path.to_path_msg())
     pose_array_pub.publish(path.to_pose_array())
