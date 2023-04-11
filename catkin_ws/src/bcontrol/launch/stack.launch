@@ -16,13 +16,21 @@
   <!-- Publish a zero odometry message. This is useful for setting the lateral velocity to 0 in robot_localization. -->
   <node name="zero_odom_publisher" pkg="topic_tools" type="transform" required="true" args="/jackal_velocity_controller/odom /zero_odom nav_msgs/Odometry 'nav_msgs.msg.Odometry(header=m.header,child_frame_id=m.child_frame_id)' --import nav_msgs" />
 
-  <!-- Publish the global localization message in the odom frame. -->
+  <!-- Publish the global localization message in the odom frame. For debugging -->
   <node name="global_localization_odom_republisher" pkg="bcontrol" type="tf_republish.py" required="true" output="screen">
     <param name="topic" value="/global_localization/robot/odom/vulnerable"/>
     <param name="output_topic" value="/global_localization/robot/odom/vulnerable/odom_frame"/>
     <param name="target_frame" value="odom"/>
     <param name="message_type" value="nav_msgs.msg.Odometry"/>
   </node>
+
+  <!-- Publish the global localization's orientation in RPY for easy visualization -->
+  <node name="global_localization_orientation_rpy_publisher" pkg="topic_tools" type="transform" required="true"
+    args="/global_localization/robot/odom /global_localization/robot/odom/orientation_rpy geometry_msgs/Vector3 'tf.transformations.euler_from_quaternion([m.pose.pose.orientation.x, m.pose.pose.orientation.y, m.pose.pose.orientation.z, m.pose.pose.orientation.w])' --import tf" />
+  <node name="global_localization_vulnerable_orientation_rpy_publisher" pkg="topic_tools" type="transform" required="true"
+    args="/global_localization/robot/odom/vulnerable /global_localization/robot/odom/vulnerable/orientation_rpy geometry_msgs/Vector3 'tf.transformations.euler_from_quaternion([m.pose.pose.orientation.x, m.pose.pose.orientation.y, m.pose.pose.orientation.z, m.pose.pose.orientation.w])' --import tf" />
+  <node name="global_localization_corruption_orientation_rpy_publisher" pkg="topic_tools" type="transform" required="true"
+    args="/global_localization/robot/odom/corruption /global_localization/robot/odom/corruption/orientation_rpy geometry_msgs/Vector3 'tf.transformations.euler_from_quaternion([m.pose.pose.orientation.x, m.pose.pose.orientation.y, m.pose.pose.orientation.z, m.pose.pose.orientation.w])' --import tf" />
 
   <!-- Filter the IMU messages -->
   <node pkg="imu_filter_madgwick" type="imu_filter_node" name="imu_magwick" required="true">

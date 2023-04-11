@@ -72,6 +72,9 @@ def main(rosbag_path: Path, output_path: Path):
         quaternion_to_rpy_connection_mapping = {}
         for connection in odometry_connections:
             topic = connection.topic + '/orientation_rpy'
+            if topic in all_topics:
+                print(f"Topic {topic} already exists, skipping this transformation")
+                continue
             msgtype = Vector3.__msgtype__
             new_connection = writer.add_connection(topic, msgtype)
             quaternion_to_rpy_connection_mapping[connection.topic] = (new_connection, msgtype)
@@ -81,6 +84,9 @@ def main(rosbag_path: Path, output_path: Path):
         path_to_navpath_connection_mapping = {}
         for connection in path_connections:
             topic = connection.topic + '/nav_path'
+            if topic in all_topics:
+                print(f"Topic {topic} already exists, skipping this transformation")
+                continue
             msgtype = NavPathMsg.__msgtype__
             new_connection = writer.add_connection(topic, msgtype)
             path_to_navpath_connection_mapping[connection.topic] = (new_connection, msgtype)
