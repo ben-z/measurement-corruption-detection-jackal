@@ -209,6 +209,14 @@ View the graph with `rosrun rqt_graph rqt_graph`.
 
 View the tf tree with `rosrun rqt_tf_tree rqt_tf_tree`. Or `rosrun tf2_tools view_frames.py`.
 
+#### Serving ROS bags
+
+```bash
+npx 'https://github.com/ben-z/http-server#8aa6a8f' --cors='ETag,Content-Type,Accept-Ranges,Content-Length' -p 18090
+```
+
+I couldn't find an off-the-shelf 1-line solution that is compatible with the webviz remote bag CORS requirements. So I had to patch the `http-server` package to add `Access-Control-Expose-Headers` support. [Here's more information](https://github.com/cruise-automation/webviz/issues/247#issuecomment-1503808676).
+
 ### Robot
 
 The configuration for the Jackal (startup scripts, etc.) is in /etc/ros.
@@ -296,19 +304,22 @@ ethtool -T <interface> # check if the interface supports hardware timestamping
 ptp4l -i <interface> -m -S # -i is the interface to use, -m outputs messages to stdout, -S uses software timestamping
 ```
 
+### Networking
+
 #### Wireless card no-carrier
 
 This happened on 2023-03-13 on Jackal2 in the robohub. The wireless card appears to be missing (no-carrier in `ip a`, link detected: no in `ethtool`) but shows up in `sudo lspci -vvv | grep -i -A 44 wireless` and `lshw -C network`.
 
 I had to run `sudo modprobe -r iwlwifi && sudo modprobe iwlwifi` every time after startup now to recover the wifi connection.
 
-#### Running scenarios
+
+### Running scenarios
 
 ```bash
 ./scripts/run-scenario.sh myexp ./scripts/scenario-playground.sh
 ```
 
-#### Injecting corruption (new)
+### Injecting corruptions (new)
 
 The `corruption_generator.py` script can be used to inject corruption into a topic. The script publishes a message to a topic that is subscribed to by a node that corrupts the topic.
 
@@ -323,7 +334,7 @@ The `corruption_generator.py` script can be used to inject corruption into a top
 When shutting down, the node automatically publishes a message to the corruption topic to reset the corruption to 0.
 
 
-#### Injecting corruption (old, deprecated)
+### Injecting corruptions (old, deprecated)
 
 Add to the yaw of the robot's odometry message ([angle converter](https://www.andre-gaschler.com/rotationconverter/)):
 
