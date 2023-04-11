@@ -62,13 +62,13 @@ class SignalGeneratorNode:
         corrupted_msg = self.message_converter.from_numpy(
             corrupted_data, self.message_type())
         
+        rospy.logwarn_once("Publishing corrupted message.")
+        self.publish_msg(corrupted_msg)
+        
         if not self.called_start_callback:
             if self.on_start is not None:
                 self.on_start(self)
             self.called_start_callback = True
-        
-        rospy.logwarn_once("Publishing corrupted message.")
-        self.publish_msg(corrupted_msg)
 
     def publish_msg(self, msg):
         # If a header is present, set the timestamp
@@ -112,24 +112,30 @@ if __name__ == '__main__':
     # Initialize ROS node
     rospy.init_node('signal_generator_node')
 
+    # Wait for time to be non-zero
+    while rospy.Time.now().to_sec() == 0:
+        time.sleep(0.1)
+        rospy.logwarn_throttle(1.0, "Initializing... for time to be non-zero.")
+        pass
+
     now = rospy.Time.now()
 
     corruption_id = f"{now.secs}_{now.nsecs}_{args.field}_{args.signal_type}_{args.magnitude}"
 
-    metadata_pub = rospy.Publisher('metadata', Metadata, queue_size=10)
+    metadata_pub = rospy.Publisher('/metadata', Metadata, queue_size=10, latch=True)
 
     def publish_event(event_name, extra_metadata={}):
         """
         Publishes a metadata message with the given event name and extra metadata.
         """
-        start_metadata = Metadata()
-        start_metadata.header.stamp = rospy.Time.now()
-        start_metadata.metadata = json.dumps({
+        metadata = Metadata()
+        metadata.header.stamp = rospy.Time.now()
+        metadata.metadata = json.dumps({
             'metadata_type': event_name,
             'corruption_id': corruption_id,
             **extra_metadata
         })
-        metadata_pub.publish(start_metadata)
+        metadata_pub.publish(metadata)
     
     publish_event('corruption_init', {'args': vars(args)})
     
