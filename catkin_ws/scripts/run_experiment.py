@@ -21,7 +21,7 @@ def ros_prerun(nodes):
     try:
         prerun_launch.start()
 
-        rospy.init_node('scenario_runner_prerun_node')
+        rospy.init_node('experiment_runner_prerun_node')
 
         rospy.loginfo("Starting nodes: %s", [n.name or f"{n.package}/{n.type}" for n in nodes])
 
@@ -118,7 +118,7 @@ def main(args, unknown_args):
 
     # Launch the base stack
     base_launch = roslaunch.parent.ROSLaunchParent(
-        "scenario_runner",
+        "experiment_runner",
         [
             (
                 bcontrol_path + "/launch/sim.launch",
