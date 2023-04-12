@@ -1,3 +1,5 @@
 tem[117-118] all
+tem03 all
+tem[41-45] all
 tem117 t0
 tem118 t1
