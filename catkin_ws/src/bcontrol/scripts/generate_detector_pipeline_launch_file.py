@@ -7,6 +7,7 @@ from xml.dom import minidom
 import sys
 import os
 from pathlib import Path
+import rospy
 
 # Add the src directory to the path so we can import utilities
 dir_path = os.path.dirname(os.path.realpath(__file__))
@@ -162,7 +163,7 @@ if __name__ == "__main__":
     parser.add_argument("input", help="YAML configuration file")
     parser.add_argument("output", help="ROS launch file")
 
-    args = parser.parse_args()
+    args = parser.parse_args(rospy.myargv(sys.argv)[1:])
 
     raw_config = Path(args.input).read_text()
     yaml_config = yaml.safe_load(raw_config)
