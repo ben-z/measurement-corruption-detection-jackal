@@ -62,6 +62,6 @@ done
 
 echo "Running $(wc -l $__commands_file | awk '{print $1}') command(s) on $(wc -l $__machines_file | awk '{print $1}') machine(s)..."
 # For debugging
-# parallel --retrie 2 -t --jobs 1 --joblog $__joblog_file --sshloginfile $__machines_file --workdir $(pwd) --line-buffer -a $__commands_file
+# parallel --retries 2 -t --jobs 1 --joblog $__joblog_file --sshloginfile $__machines_file --workdir $(pwd) --line-buffer -a $__commands_file
 # For monitoring progress
-parallel --retrie 2 -t --jobs 1 --joblog $__joblog_file --sshloginfile $__machines_file --workdir $(pwd) --progress -a $__commands_file
+parallel --retries 2 -t --jobs 1 --joblog $__joblog_file --sshloginfile $__machines_file --workdir $(pwd) --progress -a $__commands_file
