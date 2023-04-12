@@ -184,6 +184,18 @@ sudo /opt/VirtualGL/bin/eglinfo -e # list available EGL devices
 Useful commands on the [tembo](https://cs.uwaterloo.ca/twiki/view/CF/Tembo) cluster:
 
 ```bash
+# Install parallel
+mkdir tmp
+pushd tmp
+wget http://ftp.gnu.org/gnu/parallel/parallel-latest.tar.bz2
+tar xjf parallel-latest.tar.bz2
+cd parallel-*
+./configure --prefix=$HOME/benz/local/
+make
+make install
+popd
+echo 'will cite' | parallel --citation
+
 pdsh -S -F ./tembo-genders.txt -g all -l $USER 'cd ~/benz/research-jackal && ./bootstrap-tembo.sh'
 pdsh -S -F ./tembo-genders.txt -g all -l $USER 'cd ~/benz/research-jackal && source /hdd2/.host_profile && docker compose up -d --build sim_headless'
 pdsh -S -F ./tembo-genders.txt -g all -l $USER 'cd ~/benz/research-jackal && source /hdd2/.host_profile && docker compose exec sim_headless bash -c "source /etc/local.bashrc && devsetup && rosdep_install_all"'
