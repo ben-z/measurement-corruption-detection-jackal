@@ -9,7 +9,7 @@ __gender=$1
 
 __bias=-1.0
 
-for delay in $(loop_with_step 0.0 10.0 1.0); do
+for delay in $(loop_with_step 0.0 20.0 0.5); do
   echo "current delay: $delay"
 
   pdsh -S -F ./tembo-genders.txt -g $__gender -l $USER 'cd ~/benz/research-jackal && source /hdd2/.host_profile && docker compose down'
