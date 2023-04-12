@@ -63,5 +63,7 @@ install_docker
 # ====================================================
 echo "========================================"
 echo "Installing development tools"
-sudo apt-get update
-sudo apt-get install -y moreutils
+if ! command -v ts &> /dev/null; then
+    sudo apt-get update
+    sudo apt-get install -y moreutils
+fi

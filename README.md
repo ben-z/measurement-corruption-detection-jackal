@@ -201,10 +201,10 @@ pdsh -S -F ./tembo-genders.txt -g all -l $USER 'cd ~/benz/research-jackal && sou
 pdsh -S -F ./tembo-genders.txt -g all -l $USER 'cd ~/benz/research-jackal && source /hdd2/.host_profile && docker compose exec sim_headless bash -c "source /etc/local.bashrc && devsetup && rosdep_install_all"'
 
 # Copy the workspace to the container, do a clean build 
-pdsh -S -F ./tembo-genders.txt -g all -l $USER 'cd ~/benz/research-jackal && source /hdd2/.host_profile && docker compose exec sim_headless bash -c "sudo rsync -a /workspace_ro/. /workspace && rm -rf build install logs && source /etc/local.bashrc && catkin build"'
+pdsh -S -F ./tembo-genders.txt -g all -l $USER 'cd ~/benz/research-jackal && source /hdd2/.host_profile && docker compose exec sim_headless bash -c "sudo rsync -a /workspace{_ro/catkin_ws,/.} && rm -rf build install logs && source /etc/local.bashrc && catkin build"'
 
 # Run experiments
-pdsh -S -F ./tembo-genders.txt -g all -l $USER 'cd ~/benz/research-jackal && source /hdd2/.host_profile && docker compose exec sim_headless bash -c "sudo rsync -a /workspace_ro/. /workspace && source /etc/local.bashrc && catkin build && ./scripts/run-scenario.sh myexp-$(hostname) ./scripts/scenario-playground.sh"'
+pdsh -S -F ./tembo-genders.txt -g all -l $USER 'cd ~/benz/research-jackal && source /hdd2/.host_profile && docker compose exec sim_headless bash -c "sudo rsync -a /workspace{_ro/catkin_ws,/.} && source /etc/local.bashrc && catkin build && ./scripts/run-scenario.sh myexp-$(hostname) ./scripts/scenario-playground.sh"'
 ```
 
 ## Development notes

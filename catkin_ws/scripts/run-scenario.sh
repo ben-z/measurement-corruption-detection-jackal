@@ -21,7 +21,7 @@ function __onexit() {
 trap __onexit EXIT
 
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-EXPERIMENTS_DIR=/experiments
+EXPERIMENTS_DIR=${EXPERIMENTS_DIR:-/experiments}
 
 export GAZEBO_WORLD=/workspace/gazebo-worlds/empty-rate_200.world
 export REAL_TIME_FACTOR=0.2 # Need to be consistent with the real_time_update_rate in GAZEBO_WORLD
