@@ -3,7 +3,7 @@
 import rospy
 import numpy as np
 import argparse
-from signal_generator import corrupt_array, SIGNAL_TYPE_STEP, SIGNAL_TYPE_RAMP, SIGNAL_TYPE_OSCILLATING
+from signal_generator import corrupt_array, SignalType, SIGNAL_TYPE_STRS
 from numpy_message_converter import OdometryConverter, ImuConverter
 from ros_utils import load_message_type
 import time
@@ -11,6 +11,16 @@ from copy import deepcopy
 import sys
 from bcontrol.msg import Metadata
 import json
+from typing import NamedTuple, List, Optional, Callable
+
+class CorruptionGeneratorSpec(NamedTuple):
+    signal_type: SignalType
+    magnitude: float
+    period: Optional[float]
+    output_topic: str
+    message_type: str
+    field: str
+    corruption_start_sec: float
 
 # Define message converters for supported message types
 MESSAGE_CONVERTERS = {
@@ -18,15 +28,29 @@ MESSAGE_CONVERTERS = {
     'sensor_msgs/Imu': ImuConverter,
 }
 
+CallbackType = Callable[['SignalGeneratorNode'], None]
+
 class SignalGeneratorNode:
-    def __init__(self, output_topic, message_type, field, signal_type, magnitude, period, corruption_start_sec, on_start=None, on_stop=None):
-        self.signal_type = signal_type
-        self.magnitude = magnitude
-        self.period = period
+    def __init__(self, spec: CorruptionGeneratorSpec, on_start: Optional[CallbackType] = None, on_stop: Optional[CallbackType] = None):
+        self.spec = spec
         self.called_start_callback = False
         self.on_start = on_start
         self.on_stop = on_stop
         self.shutting_down = False
+
+        # Wait for time to be non-zero
+        while rospy.Time.now().to_sec() == 0:
+            time.sleep(0.1)
+            rospy.logwarn_throttle(1.0, "Initializing... waiting for time to be non-zero.")
+            pass
+
+        now = rospy.Time.now()
+        self.corruption_id = f"{now.secs}_{now.nsecs}_{spec.field}_{spec.signal_type}_{spec.magnitude}"
+
+        message_type = spec.message_type
+        field = spec.field
+        output_topic = spec.output_topic
+        corruption_start_sec = spec.corruption_start_sec
 
         # Determine the message converter based on the message type
         if message_type in MESSAGE_CONVERTERS:
@@ -36,18 +60,27 @@ class SignalGeneratorNode:
 
         # Get indices for the specified field
         self.indices = self.message_converter.get_indices(field)
-        self.corruption_specs = [{'signal_type': self.signal_type,
-                                  'magnitude': self.magnitude, 'indices': self.indices, 'period': self.period}]
+        self.signal_specs = [{'signal_type': self.spec.signal_type,
+                                  'magnitude': self.spec.magnitude, 'indices': self.indices, 'period': self.spec.period}]
 
         # Resolve message type and create publisher
         MessageType = load_message_type(message_type)
-        self.corrupted_pub = rospy.Publisher(
-            output_topic, MessageType, queue_size=10)
+        self.corrupted_pub = rospy.Publisher(output_topic, MessageType, queue_size=10)
+        
+        # Create metadata publisher
+        self.metadata_pub = rospy.Publisher('/metadata', Metadata, queue_size=10, latch=True)
 
         # Create message template
         self.message_type = MessageType
 
         self.init_time = rospy.get_time() + corruption_start_sec
+
+        self.publish_event('corruption_init')
+
+        # Set up a timer to generate and publish signal at a fixed rate (e.g., 10 Hz)
+        self.timer = rospy.Timer(rospy.Duration(0.1), self.generate_and_publish_signal)
+
+        rospy.on_shutdown(self.on_shutdown)
 
     def generate_and_publish_signal(self, event):
         if self.shutting_down:
@@ -58,7 +91,7 @@ class SignalGeneratorNode:
             self.publish_msg(self.message_type())
             return
         np_data = self.message_converter.to_numpy(self.message_type())
-        corrupted_data = corrupt_array(np_data, self.corruption_specs, t)
+        corrupted_data = corrupt_array(np_data, self.signal_specs, t)
         corrupted_msg = self.message_converter.from_numpy(
             corrupted_data, self.message_type())
         
@@ -66,6 +99,7 @@ class SignalGeneratorNode:
         self.publish_msg(corrupted_msg)
         
         if not self.called_start_callback:
+            self.publish_event('corruption_start')
             if self.on_start is not None:
                 self.on_start(self)
             self.called_start_callback = True
@@ -83,14 +117,27 @@ class SignalGeneratorNode:
         self.shutting_down = True
         self.publish_msg(self.message_type())
         
+        self.publish_event('corruption_stop')
         if self.on_stop is not None:
             self.on_stop(self)
         
         time.sleep(1.0)
+    
+    def publish_event(self, event_name, extra_metadata={}):
+        """
+        Publishes a metadata message with the given event name and extra metadata.
+        """
+        metadata = Metadata()
+        metadata.header.stamp = rospy.Time.now()
+        metadata.metadata = json.dumps({
+            'metadata_type': event_name,
+            'corruption_id': self.corruption_id,
+            'spec': self.spec._asdict(),
+            **extra_metadata
+        })
+        self.metadata_pub.publish(metadata)
 
-if __name__ == '__main__':
-    myargv = rospy.myargv(argv=sys.argv)
-
+def parse_cli_args(argv):
     # Parse command-line arguments
     parser = argparse.ArgumentParser(
         description='Signal generator for corrupting messages')
@@ -100,63 +147,34 @@ if __name__ == '__main__':
         'message_type', help='Message type (e.g., nav_msgs/Odometry, sensor_msgs/Imu)')
     parser.add_argument(
         'field', help='Field to corrupt (e.g., orientation for Odometry)')
-    parser.add_argument('signal_type', choices=[SIGNAL_TYPE_STEP, SIGNAL_TYPE_RAMP, SIGNAL_TYPE_OSCILLATING],
+    parser.add_argument('signal_type', choices=SIGNAL_TYPE_STRS,
                         help='Type of signal to generate')
     parser.add_argument('magnitude', type=float,
                         help='Magnitude of the signal')
     parser.add_argument('--period', type=float, default=None,
                         help='Period of oscillating signal (optional)')
     parser.add_argument('--corruption_start_sec', type=float, default=2.0, help="Number of seconds to wait before starting to corrupt the message")
-    args = parser.parse_args(myargv[1:])
+    args = parser.parse_args(argv)
+
+    return CorruptionGeneratorSpec(
+        output_topic=args.output_topic,
+        message_type=args.message_type,
+        field=args.field,
+        signal_type=args.signal_type,
+        magnitude=args.magnitude,
+        period=args.period,
+        corruption_start_sec=args.corruption_start_sec,
+    )
+
+if __name__ == '__main__':
+    myargv = rospy.myargv(argv=sys.argv)
+    spec = parse_cli_args(myargv[1:])
 
     # Initialize ROS node
     rospy.init_node('signal_generator_node')
 
-    # Wait for time to be non-zero
-    while rospy.Time.now().to_sec() == 0:
-        time.sleep(0.1)
-        rospy.logwarn_throttle(1.0, "Initializing... for time to be non-zero.")
-        pass
-
-    now = rospy.Time.now()
-
-    corruption_id = f"{now.secs}_{now.nsecs}_{args.field}_{args.signal_type}_{args.magnitude}"
-
-    metadata_pub = rospy.Publisher('/metadata', Metadata, queue_size=10, latch=True)
-
-    def publish_event(event_name, extra_metadata={}):
-        """
-        Publishes a metadata message with the given event name and extra metadata.
-        """
-        metadata = Metadata()
-        metadata.header.stamp = rospy.Time.now()
-        metadata.metadata = json.dumps({
-            'metadata_type': event_name,
-            'corruption_id': corruption_id,
-            **extra_metadata
-        })
-        metadata_pub.publish(metadata)
-    
-    publish_event('corruption_init', {'args': vars(args)})
-    
-    # Create SignalGeneratorNode instance
-    signal_generator_node = SignalGeneratorNode(
-        args.output_topic,
-        args.message_type,
-        args.field,
-        args.signal_type,
-        args.magnitude,
-        args.period,
-        args.corruption_start_sec,
-        on_start=lambda _node: publish_event('corruption_start'),
-        on_stop=lambda _node: publish_event('corruption_stop'),
-    )
-
-    # Set up a timer to generate and publish signal at a fixed rate (e.g., 10 Hz)
-    rospy.Timer(rospy.Duration(0.1),
-                signal_generator_node.generate_and_publish_signal)
-
-    rospy.on_shutdown(signal_generator_node.on_shutdown)
+    # Create a SignalGeneratorNode instance
+    SignalGeneratorNode(spec)
 
     # Keep node running
     rospy.spin()

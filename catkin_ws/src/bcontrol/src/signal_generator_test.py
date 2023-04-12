@@ -6,7 +6,7 @@ def test_generate_step_signal_single_index():
     data = np.array([0.0, 0.0, 0.0, 0.0])
 
     # Specify corruption: apply step signal of magnitude 5.0 to index 2
-    corruption_specs = [{'signal_type': SIGNAL_TYPE_STEP,
+    corruption_specs = [{'signal_type': SignalType.SIGNAL_TYPE_STEP,
                          'magnitude': 5.0, 'indices': 2, 'period': None}]
 
     # Current time step
@@ -30,7 +30,7 @@ def test_generate_ramp_signal_multiple_indices():
     data = np.array([0.0, 0.0, 0.0, 0.0])
 
     # Specify corruption: apply ramp signal of magnitude 4.0 to indices 1 and 3
-    corruption_specs = [{'signal_type': SIGNAL_TYPE_RAMP,
+    corruption_specs = [{'signal_type': SignalType.SIGNAL_TYPE_RAMP,
                          'magnitude': 4.0, 'indices': [1, 3], 'period': None}]
 
     # Current time step
@@ -56,7 +56,7 @@ def test_generate_oscillating_signal_single_index_multiple_timesteps():
     data = np.array([0.0, 0.0])
 
     # Specify corruption: apply oscillating signal of magnitude 3.0 and period 2.0 to index 1
-    corruption_specs = [{'signal_type': SIGNAL_TYPE_OSCILLATING,
+    corruption_specs = [{'signal_type': SignalType.SIGNAL_TYPE_OSCILLATING,
                          'magnitude': 3.0, 'indices': 1, 'period': 2.0}]
 
     # Test for multiple time steps
@@ -93,7 +93,7 @@ test_invalid_signal_type()
 # Test case 5: Invalid indices type
 def test_invalid_indices_type():
     data = np.array([0.0, 0.0, 0.0, 0.0])
-    corruption_specs = [{'signal_type': SIGNAL_TYPE_STEP, 'magnitude': 5.0, 'indices': 'invalid', 'period': None}]
+    corruption_specs = [{'signal_type': SignalType.SIGNAL_TYPE_STEP, 'magnitude': 5.0, 'indices': 'invalid', 'period': None}]
     t = 0
     with np.testing.assert_raises(TypeError):
         corrupt_array(data, corruption_specs, t)
@@ -104,7 +104,7 @@ test_invalid_indices_type()
 # Test case 6: Missing period for oscillating signal
 def test_missing_period_for_oscillating_signal():
     data = np.array([0.0, 0.0])
-    corruption_specs = [{'signal_type': SIGNAL_TYPE_OSCILLATING, 'magnitude': 3.0, 'indices': 1}]
+    corruption_specs = [{'signal_type': SignalType.SIGNAL_TYPE_OSCILLATING, 'magnitude': 3.0, 'indices': 1}]
     t = 0
     with np.testing.assert_raises(ValueError):
         corrupt_array(data, corruption_specs, t)
