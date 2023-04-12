@@ -1,3 +1,5 @@
 /.env
 /experiments/*
 !/experiments/.gitkeep
+/logs/*
+!/logs/.gitkeep
