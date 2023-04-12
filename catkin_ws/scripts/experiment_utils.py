@@ -1,19 +1,15 @@
-from typing import NamedTuple, List
+from typing import NamedTuple, List, Optional, Any, Dict
 from enum import Enum
-from bcontrol.corruption_generator import CorruptionGeneratorSpec
+from pathlib import Path
+import sys
+from .scenarios.scenario_base import ScenarioConfig
 
-class ScenarioType(str, Enum):
-    CORRUPTION = 'corruption'
+# Add catkin_ws/src to PYTHONPATH
+catkin_ws_src_path = Path(__file__).parent.parent / 'src'
+if str(catkin_ws_src_path) not in sys.path:
+    sys.path.append(str(catkin_ws_src_path))
 
-class ScenarioConfig(NamedTuple):
-    args: List[str]
-    type: ScenarioType
-
-class CorruptionScenarioConfig(ScenarioConfig):
-    def __new__(cls, args: List[str], corruption_type: str, corruption_value: float):
-        return super().__new__(cls, args, ScenarioType.CORRUPTION)
-    
-    spec: CorruptionGeneratorSpec
+from bcontrol.src.corruption_generator import CorruptionGeneratorSpec
 
 class ExperimentConfig(NamedTuple):
     experiment_name: str
@@ -23,4 +19,4 @@ class ExperimentConfig(NamedTuple):
     gazebo_world: str
     gazebo_world_path: str
     real_time_factor: float
-    scenario_config: ScenarioConfig
+    scenario_config: Optional[ScenarioConfig]

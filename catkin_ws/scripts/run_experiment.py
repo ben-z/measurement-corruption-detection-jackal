@@ -12,7 +12,15 @@ import time
 from xml.etree import ElementTree
 import yaml
 import sys
+from .experiment_utils import ExperimentConfig
+from .utils import import_scenario_module, get_argument_names, dict_to_namedtuple
 
+def named_tuple_representer(self, data):
+    if hasattr(data, '_asdict'):
+        return self.represent_dict(data._asdict())
+    return self.represent_list(data)
+
+yaml.SafeDumper.add_multi_representer(tuple, named_tuple_representer)
 
 GAZEB_WORLDS_DIR = Path('/workspace/gazebo-worlds')
 
@@ -72,30 +80,43 @@ def sleep_simtime(duration, real_time_factor):
     """
     rospy.sleep(duration / real_time_factor)
 
-def main(args, unknown_args):
+def main(experiment_args, downstream_args):
     # Create experiment directory
-    experiments_dir = Path(args.experiments_dir)
-    experiment_full_name = f"{args.experiment_id}-{args.experiment_name}"
+    experiments_dir = Path(experiment_args.experiments_dir)
+    experiment_full_name = f"{experiment_args.experiment_id}-{experiment_args.experiment_name}"
     experiment_dir = experiments_dir / experiment_full_name
     print(f"Creating experiment directory: {experiment_dir}")
     experiment_dir.mkdir(parents=True)
 
     # Process argumetns
     gazebo_world_path = GAZEB_WORLDS_DIR / \
-        Path(args.gazebo_world).with_suffix('.world')
+        Path(experiment_args.gazebo_world).with_suffix('.world')
     if not gazebo_world_path.exists():
         raise Exception(f"Gazebo world not found: {gazebo_world_path}")
 
     real_time_factor = extract_gazebo_real_time_factor(gazebo_world_path)
     print(f"Using Gazebo real time factor: {real_time_factor} (from {gazebo_world_path})")
 
+    experiment_config = ExperimentConfig(
+        experiment_name=experiment_args.experiment_name,
+        experiment_id=experiment_args.experiment_id,
+        experiments_dir=experiment_args.experiments_dir,
+        experiment_dir=str(experiment_dir),
+        gazebo_world=experiment_args.gazebo_world,
+        gazebo_world_path=str(gazebo_world_path),
+        real_time_factor=real_time_factor,
+        scenario_config=None,
+    )
+
+    # Initialize the scenario
+    scenario_module = import_scenario_module(experiment_args.scenario)
+    scenario = scenario_module.Scenario(downstream_args, experiment_config)
+    print(f"Initialized scenario {scenario.__class__.__name__}")
+    experiment_config = experiment_config._replace(scenario_config=scenario.config)
+
     # Write configuration file to the experiment directory
     with open(experiment_dir / 'config.yaml', 'w') as f:
-        yaml.dump({
-            **vars(args),
-            'gazebo_world_path': str(gazebo_world_path),
-            'real_time_factor': real_time_factor,
-        }, f)
+        yaml.safe_dump(experiment_config._asdict(), f)
 
     # Set environment variables
     os.environ['ROS_LOG_DIR'] = str(experiment_dir / 'ros_logs')
@@ -137,14 +158,17 @@ def main(args, unknown_args):
         sigint_timeout=2,
         is_core=True,
     )
-    base_launch.start()
-
+    
     try:
-        base_launch.spin()
+        base_launch.start()
+        scenario.run()
     finally:
         base_launch.shutdown()
 
 if __name__ == '__main__':
+    scenario_files = list((Path(__file__).parent / 'scenarios').glob('*_scenario.py'))
+    scenarios = [f.stem.replace('_scenario', '') for f in scenario_files]
+
     parser = argparse.ArgumentParser()
     parser.add_argument('--experiment_name', type=str, default="experiment")
     parser.add_argument('--experiment_id', type=str,
@@ -152,5 +176,16 @@ if __name__ == '__main__':
     parser.add_argument('--experiments_dir', type=str, default='/experiments')
     parser.add_argument('--gazebo_world', type=str, default='empty-rate_200')
 
-    args, unknown_args = parser.parse_known_args()
-    main(args, unknown_args)
+    # Add scenario argument parsers
+    scenario_parser = parser.add_subparsers(title='scenario', dest='scenario', description='Scenario to run', required=True)
+    for scenario in scenarios:
+        scenario_module = import_scenario_module(scenario)
+        if getattr(scenario_module, 'SKIP', False):
+            continue
+        scenario_module.create_parser(scenario_parser.add_parser(scenario))
+
+    args = parser.parse_args()
+    experiment_args = {k: getattr(args, k) for k in get_argument_names(parser)}
+    downstream_args = {k: v for k, v in vars(args).items() if k not in experiment_args}
+
+    main(dict_to_namedtuple(experiment_args), dict_to_namedtuple(downstream_args))

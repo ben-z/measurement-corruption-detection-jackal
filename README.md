@@ -345,6 +345,7 @@ I had to run `sudo modprobe -r iwlwifi && sudo modprobe iwlwifi` every time afte
 
 ```bash
 ./scripts/run-scenario.sh myexp ./scripts/scenario-playground.sh
+python3 -m scripts.run_experiment empty
 ```
 
 ### Injecting corruptions (new)
