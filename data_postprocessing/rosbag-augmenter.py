@@ -46,11 +46,16 @@ def orientation_to_rpy_vec3(orientation) -> Vector3:
     roll, pitch, yaw = tf.euler_from_quaternion(quaternion, axes='xyzs')
     return Vector3(x=roll, y=pitch, z=yaw)
 
-def main(rosbag_path: Path, output_path: Path):
+def main(rosbag_path: Path, output_path: Path, overwrite: bool = False):
     print(f"Augmenting {rosbag_path}... Output path: {output_path}")
 
     # delete augmented bag if it exists
-    output_path.unlink(missing_ok=True)
+    if output_path.exists():
+        if overwrite:
+            print(f"Deleting existing output file {output_path}")
+            output_path.unlink()
+        else:
+            raise FileExistsError(f"Output file {output_path} already exists. Use --overwrite to overwrite it.")
 
     with Reader([rosbag_path]) as reader, Writer(output_path) as writer:
         start_time = reader.start_time
@@ -135,6 +140,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('rosbag_path', type=str, help='Path to the rosbag to augment')
     parser.add_argument('--output_path', type=str, required=False, help='Path to the augmented rosbag (default: <rosbag_path>.augmented.bag)')
+    parser.add_argument('--overwrite', action='store_true', help='Overwrite the augmented rosbag if it exists')
     args = parser.parse_args()
 
     rosbag_path = Path(args.rosbag_path)
@@ -146,4 +152,4 @@ if __name__ == '__main__':
     else:
         output_path = rosbag_path.with_suffix('.augmented.bag')
 
-    main(rosbag_path, output_path)
+    main(rosbag_path, output_path, overwrite=args.overwrite)

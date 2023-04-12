@@ -220,8 +220,10 @@ python ./data_postprocessing/rosbag-augmenter.py path_to_rosbag.bag
 To batch process all rosbags in the experiments directory:
 
 ```bash
-export SHOW_PROGRESS=false; find experiments/ -maxdepth 2 -name '*[!.augmented].bag' -print0 | xargs -n1 -0 -P8 -I {} python ./data_postprocessing/rosbag-augmenter.py {}
+export SHOW_PROGRESS=false; find experiments/ -maxdepth 2 -name '*[!.augmented].bag' -print0 | xargs -n1 -0 -P8 -I {} python ./data_postprocessing/rosbag-augmenter.py --overwrite {}
 ```
+
+To batch process unprocessed rosbags, remove the `--overwrite` flag.
 
 ### Serving ROS bags
 
