@@ -19,6 +19,7 @@ def create_parser(create_parser_fn=None):
     parser = create_parser_fn(parents=[corruption_generator_parser])
     parser.description = 'Corruption scenario'
     parser.add_argument('--corruption_duration', type=float, default=10.0, help='Duration of the corruption in seconds.')
+    parser.add_argument('--detector_solve_hz', type=float, help='Frequency at which the detector should solve.')
     return parser
 
 
@@ -50,7 +51,9 @@ class CorruptionScenario(BaseScenario):
             [
                 (
                     bcontrol_path + "/launch/detector.launch",
-                    [],
+                    [
+                        f"detector_solve_hz:={self.args.detector_solve_hz or ''}",
+                    ],
                 )
             ],
             sigint_timeout=2,

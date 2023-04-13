@@ -10,13 +10,12 @@ from threading import Lock
 from robot_localization.srv import ClearTopicData, ClearTopicDataRequest, ClearTopicDataResponse
 from detector_utils import ModelConfig
 from utils import typeguard
-from detector import DETECTOR_SOLVE_HZ
 from bcontrol.msg import SensorValidity
 from copy import deepcopy
 
 NODE_NAME = "message_barrier"
 
-BECOME_VALID_THRESHOLD = 3 * DETECTOR_SOLVE_HZ # Number of valid messages that must be received before the sensor is considered valid again
+BECOME_VALID_THRESHOLD = 10 # Number of valid messages that must be received before the sensor is considered valid again
 
 state = {
     "pub": None,

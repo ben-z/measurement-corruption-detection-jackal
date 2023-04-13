@@ -2,15 +2,18 @@
   <arg name="debug" default="false" doc="Enable debug mode" />
   <arg name="open_loop" default="false" doc="Keep the loop open (don't let detector results affect downstream modules)" />
   <arg name="launch_solver_server" default="true" doc="Launch the solver server" />
+  <arg name="detector_solve_hz" default="" doc="Override the solve rate for the detector" />
 
   <node pkg="bcontrol" type="solver_server.py" name="solver_server" if="$(eval arg('launch_solver_server'))" />
 
   <node pkg="bcontrol" type="detector_debug.py" name="bdetect_node" output="screen" if="$(eval arg('debug'))">
     <rosparam command="load" file="$(find bcontrol)/config/bdetect.yaml" />
+    <param name="solve_hz" value="$(eval arg('detector_solve_hz'))" if="$(eval arg('detector_solve_hz') != '')" />
   </node>
 
   <node pkg="bcontrol" type="detector.py" name="bdetect_node" unless="$(eval arg('debug'))">
     <rosparam command="load" file="$(find bcontrol)/config/bdetect.yaml" />
+    <param name="solve_hz" value="$(eval arg('detector_solve_hz'))" if="$(eval arg('detector_solve_hz') != '')" />
   </node>
 
   <node name="sensor_validity_relay" pkg="topic_tools" type="relay" args="/bdetect/sensor_validity /message_barrier/sensor_validity_input" unless="$(eval arg('open_loop'))" />

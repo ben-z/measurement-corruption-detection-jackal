@@ -26,8 +26,6 @@ import contextlib
 RUN_SOLVER_RESPONSE_ENUM_TO_STR = make_srv_enum_lookup_dict(RunSolverResponse)
 
 NODE_NAME = 'bdetect'
-DETECTOR_SOLVE_HZ = 5 # Hz
-DETECTOR_SOLVE_PERIOD = 1.0 / DETECTOR_SOLVE_HZ # seconds
 # TODO: this should be encoded in the target path
 VELOCITY = 0.5 # m/s
 
@@ -75,6 +73,7 @@ class State(TypedDict):
     solve_data_pub: Optional[rospy.Publisher]
     # used to keep track of the time debt of the update loop, because the difference between the expected and actual time does not go down.
     update_loop_time_debt: float # seconds
+    solve_period: Optional[float] # seconds
 
 @contextlib.contextmanager
 def diagnostics_context(diagnostics: Diagnostics, slug: str, name: str, lock: Lock, timer_event: Optional[rospy.timer.TimerEvent] = None):
@@ -122,6 +121,7 @@ state: State = {
     'solve_data_pub': None,
     'update_loop_time_debt': 0.0,
     'sensor_malfunction_max_magnitude_pub': None,
+    'solve_period': None,
 }
 
 def odom_callback(estimate: Odometry):
@@ -434,10 +434,11 @@ def solve_loop(event: rospy.timer.TimerEvent):
     assert state['sensor_validity_pub'] is not None, "Sensor validity publisher should be initialized before the loop starts"
     assert state['sensor_malfunction_max_magnitude_pub'] is not None, "Sensor malfunction max magnitude publisher should be initialized before the loop starts"
     assert state['solve_data_pub'] is not None, "Solve data publisher should be initialized before the loop starts"
+    assert state['solve_period'] is not None, "Solve period should be initialized before the loop starts"
 
     with diagnostics_context(state['diagnostics'], 'solve_loop', "Detector Solve Loop", state['diagnostics_lock'], event) as diag_msg:
         # Check if the last loop took too long
-        if event.last_duration and event.last_duration > DETECTOR_SOLVE_PERIOD:
+        if event.last_duration and event.last_duration > state['solve_period']:
             diag_msg.level = max(DiagnosticStatus.WARN, diag_msg.level)
             diag_msg.message += "Last solve loop took longer than the update period\n"
 
@@ -629,8 +630,10 @@ def diagnostics_loop(event: rospy.timer.TimerEvent):
 def main():
     # Initialize the node
     rospy.init_node(NODE_NAME, log_level=rospy.DEBUG)
-
     rospy.loginfo(f"Node {NODE_NAME} started. Ctrl-C to stop.")
+
+    solve_hz = float(rospy.get_param("~solve_hz", 5))
+    state['solve_period'] = 1.0 / solve_hz
 
     state['transform_frames'] = TransformFrames()
 
@@ -660,10 +663,10 @@ def main():
     # 1. Update: Gather data from the sensors and construct the C, Y, and U matrices
     rospy.Timer(rospy.Duration.from_sec(config['dt']), update_loop)
     # 2. Solve: Solve the optimization problem
-    rospy.Timer(rospy.Duration.from_sec(DETECTOR_SOLVE_PERIOD), solve_loop)
+    rospy.Timer(rospy.Duration.from_sec(state['solve_period']), solve_loop)
 
     # Publish the diagnostics messages
-    rospy.Timer(rospy.Duration.from_sec(min(config['dt'], DETECTOR_SOLVE_PERIOD)), diagnostics_loop)
+    rospy.Timer(rospy.Duration.from_sec(min(config['dt'], state['solve_period'])), diagnostics_loop)
 
     rospy.spin()
 

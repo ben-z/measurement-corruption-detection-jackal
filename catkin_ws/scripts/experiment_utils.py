@@ -19,4 +19,5 @@ class ExperimentConfig(NamedTuple):
     gazebo_world: str
     gazebo_world_path: str
     real_time_factor: float
+    planner_profile: str
     scenario_config: Optional[ScenarioConfig]
