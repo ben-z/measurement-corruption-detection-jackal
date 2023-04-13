@@ -30,7 +30,7 @@ cat $__machines_file
 # Populate the commands file
 
 for vel_bias in $(loop_with_step -0.5 0.5 0.25); do
-    __exp_name_prefix="circle-velocity-corruption-$vel_bias"
+    __exp_name_prefix="circle-velocity-corruption-bias-$vel_bias"
 
     # if the experiment is already done, skip it
     __existing_experiments=$(find_existing_experiments "$__experiments_dir" "$__exp_name_prefix")
