@@ -16,17 +16,58 @@ PLANNER_PERIOD = 1 / PLANNER_HZ # seconds
 PLANNER_BASE_PATH_CLOSED = True
 # Whether the path published by the planner is closed
 PLANNER_PATH_CLOSED = PLANNER_BASE_PATH_CLOSED
-  
-def tick_planner(path_pub, pose_array_pub):
+
+def str_to_obj(input_str):
+    # Initialize an empty dictionary to store the key-value pairs
+    obj = {}
+    
+    # Split the input string at each comma to get the key-value pairs
+    pairs = input_str.split(',')
+    
+    # Iterate over each key-value pair
+    for pair in pairs:
+        # Split the pair at the equal sign to separate the key and value
+        key, value = pair.split('=')
+        
+        # Store the key-value pair in the dictionary
+        obj[key] = value
+        
+    return obj
+
+def generate_path(path_profile):
+    num_points = int(path_profile.get("num_points", 100))
+
+    if path_profile.get("type") == "circle":
+        assert "radius" in path_profile, "Circle path profile must have a radius"
+        radius = float(path_profile["radius"])
+
+        points, headings, curvatures, dK_ds_list = generate_circle_approximation([0,0], radius, num_points)
+    elif path_profile.get("type") == "figure_eight":
+        assert "length" in path_profile, "Figure 8 path profile must have a length"
+        assert "width" in path_profile, "Figure 8 path profile must have a width"
+        length = float(path_profile["length"])
+        width = float(path_profile["width"])
+
+        points, headings, curvatures, dK_ds_list = generate_figure_eight_approximation([0,0], length, width, num_points)
+    else:
+        raise ValueError(f"Unknown path profile type: {path_profile.get('type')}")
+
+    path = Path(points, headings, curvatures, dK_ds_list, velocities=[VELOCITY]*len(points), closed=PLANNER_BASE_PATH_CLOSED)
+    return path
+
+
+def tick_planner(path_pub, pose_array_pub, path_profile):
     # Figure 8
     # points, headings, curvatures, dK_ds_list = generate_figure_eight_approximation([0,0], 4, 2, 100)
     # points, headings, curvatures, dK_ds_list = generate_figure_eight_approximation([0,0], 5, 2.6, 100)
-    points, headings, curvatures, dK_ds_list = generate_figure_eight_approximation([0,0], 10, 5, 100)
-    path = Path(points, headings, curvatures, dK_ds_list, velocities=[VELOCITY]*len(points), closed=PLANNER_BASE_PATH_CLOSED)
+    # points, headings, curvatures, dK_ds_list = generate_figure_eight_approximation([0,0], 10, 5, 100)
+    # path = Path(points, headings, curvatures, dK_ds_list, velocities=[VELOCITY]*len(points), closed=PLANNER_BASE_PATH_CLOSED)
 
     # Circle
     # points, headings, curvatures, dK_ds_list = generate_circle_approximation([0,0], RADIUS, 100)
     # path = Path(points, headings, curvatures, dK_ds_list, velocities=[VELOCITY]*len(points), closed=PLANNER_BASE_PATH_CLOSED)
+
+    path = generate_path(path_profile)
 
     path_pub.publish(path.to_path_msg())
     pose_array_pub.publish(path.to_pose_array())
@@ -34,8 +75,9 @@ def tick_planner(path_pub, pose_array_pub):
 def main():
     # Initialize the node
     rospy.init_node(NODE_NAME)
-
     rospy.loginfo(f"Node {NODE_NAME} started. Ctrl-C to stop.")
+
+    path_profile = str_to_obj(rospy.get_param("~path_profile", "type=circle,radius=2"))
 
     # Define subscribers and publishers
     path_pub = rospy.Publisher('/bplan/path', PathMsg, queue_size=1)
@@ -49,7 +91,7 @@ def main():
     rate = rospy.Rate(PLANNER_HZ)
 
     while not rospy.is_shutdown():
-        tick_planner(path_pub, pose_array_pub)
+        tick_planner(path_pub, pose_array_pub, path_profile)
 
         # Sleep for the desired period
         rate.sleep()
