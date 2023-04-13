@@ -29,22 +29,23 @@ def ros_prerun(nodes):
     try:
         prerun_launch.start()
 
-        rospy.init_node('experiment_runner_prerun_node')
-
-        rospy.loginfo("Starting nodes: %s", [n.name or f"{n.package}/{n.type}" for n in nodes])
+        print(f"Starting nodes: {[n.name or f'{n.package}/{n.type}' for n in nodes]}")
 
         node_launcher = roslaunch.scriptapi.ROSLaunch()
         node_launcher.start()
         processes = [node_launcher.launch(node) for node in nodes]
+        it = 0
         while any([p.is_alive() for p in processes]):
-            rospy.loginfo_throttle(1, f"Waiting for {[p.name for p in processes if p.is_alive]} to finish...")
-            node_launcher.spin_once()
+            if it % 10 == 0:
+                print(f"Waiting for {[p.name for p in processes if p.is_alive]} to finish...")
+            time.sleep(0.1)
+            it += 1
         node_launcher.stop()
     
         errored_processes = [p for p in processes if p.exit_code != 0]
         if errored_processes:
             error_msg = f"Prerun failed: {[f'{p.name} (code={p.exit_code})' for p in errored_processes]}"
-            rospy.logfatal(error_msg)
+            print(error_msg, file=sys.stderr)
             raise Exception(error_msg)
     finally:
         prerun_launch.shutdown()
@@ -139,7 +140,7 @@ def main(experiment_args, downstream_args):
 
     # Launch the base stack
     base_launch = roslaunch.parent.ROSLaunchParent(
-        "experiment_runner",
+        experiment_config.experiment_name,
         [
             (
                 bcontrol_path + "/launch/sim.launch",
@@ -161,8 +162,13 @@ def main(experiment_args, downstream_args):
     
     try:
         base_launch.start()
+        rospy.init_node('experiment_runner')
+        rospy.loginfo("Starting scenario")
         scenario.run()
+    except rospy.exceptions.ROSInterruptException:
+        rospy.loginfo("Scenario interrupted. Exiting...")
     finally:
+        scenario.cleanup()
         base_launch.shutdown()
 
 if __name__ == '__main__':
@@ -182,7 +188,7 @@ if __name__ == '__main__':
         scenario_module = import_scenario_module(scenario)
         if getattr(scenario_module, 'SKIP', False):
             continue
-        scenario_module.create_parser(scenario_parser.add_parser(scenario))
+        scenario_module.create_parser(lambda **kwargs: scenario_parser.add_parser(scenario, **kwargs))
 
     args = parser.parse_args()
     experiment_args = {k: getattr(args, k) for k in get_argument_names(parser)}

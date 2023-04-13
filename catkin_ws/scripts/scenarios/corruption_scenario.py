@@ -3,31 +3,92 @@ import time
 from .scenario_base import BaseScenario, ScenarioConfig
 from collections import namedtuple
 from ..utils import get_argument_names, dict_to_namedtuple
+from ..experiment_utils import ExperimentConfig
+import roslaunch
+from pathlib import Path
+import rospy
+import rospkg
+
+import bcontrol.src.corruption_generator as cg
 
 
-def create_parser(parser=None):
-    if parser is None:
-        parser = argparse.ArgumentParser()
-    parser.description = 'Corruption scenario for testing purposes.'
-    parser.add_argument('--run_duration', type=float, default=10.0)
+def create_parser(create_parser_fn=None):
+    if create_parser_fn is None:
+        create_parser_fn = argparse.ArgumentParser
+    corruption_generator_parser = cg.create_parser(add_help=False)
+    parser = create_parser_fn(parents=[corruption_generator_parser])
+    parser.description = 'Corruption scenario'
+    parser.add_argument('--corruption_duration', type=float, default=10.0, help='Duration of the corruption in seconds.')
     return parser
 
 
-class EmptyScenario(BaseScenario):
-    def __init__(self, args, experiment_config):
+class CorruptionScenario(BaseScenario):
+    def __init__(self, args, experiment_config: ExperimentConfig):
         parser = create_parser()
         my_args = {k: getattr(args, k) for k in get_argument_names(parser)}
         self.args = dict_to_namedtuple(my_args)
+        self.experiment_config = experiment_config
 
         self.config = ScenarioConfig(
             type='corruption',
             args=my_args,
         )
 
+        # Start recording
+        rosbag_path = Path(self.experiment_config.experiment_dir) / 'recording.bag'
+        self.rosbag_node = roslaunch.core.Node(
+            'rosbag', 'record',
+            name='rosbag_recorder',
+            args=f"-j -a -O {rosbag_path}",
+        )
+
+        rospack = rospkg.RosPack()
+        bcontrol_path = rospack.get_path('bcontrol')
+
+        self.detector_launch = roslaunch.parent.ROSLaunchParent(
+            self.experiment_config.experiment_name,
+            [
+                (
+                    bcontrol_path + "/launch/detector.launch",
+                    [],
+                )
+            ],
+            sigint_timeout=2,
+        )
+
+        self.corruption_generator_node = cg.CorruptionGeneratorNode(
+            spec=cg.create_spec(self.args),
+        )
+
     def run(self):
-        print("Running corruption scenario for {} seconds".format(
-            self.args.run_duration))
-        time.sleep(self.args.run_duration)
+        self.node_launcher = roslaunch.scriptapi.ROSLaunch()
+        self.node_launcher.start()
+
+        rospy.loginfo("Starting rosbag recorder...")
+        self.node_launcher.launch(self.rosbag_node)
+
+        rospy.loginfo("Waiting for steady state...")
+        rospy.sleep(15)
+
+        # Start detector
+        rospy.loginfo("Starting detector...")
+        self.detector_launch.start()
+        rospy.sleep(10) # wait for the detector to collect data
+
+        rospy.loginfo("Initializing corruption generator...")
+        self.corruption_generator_node.init()
+
+        rospy.sleep(self.args.corruption_duration)
+
+        rospy.loginfo("Done performing attack. Shutting down the corruption generator...")
+        self.corruption_generator_node.shutdown()
+
+        rospy.loginfo("Waiting for recovery...")
+        rospy.sleep(20)
+
+    def cleanup(self):
+        if self.node_launcher is not None:
+            self.node_launcher.stop()
 
 
-Scenario = EmptyScenario
+Scenario = CorruptionScenario

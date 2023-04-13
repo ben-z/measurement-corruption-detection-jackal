@@ -4,9 +4,10 @@ from .scenario_base import BaseScenario, ScenarioConfig
 from collections import namedtuple
 from ..utils import get_argument_names, dict_to_namedtuple
 
-def create_parser(parser=None):
-    if parser is None:
-        parser = argparse.ArgumentParser()
+def create_parser(create_parser_fn=None):
+    if create_parser_fn is None:
+        create_parser_fn = argparse.ArgumentParser
+    parser = create_parser_fn()
     parser.description = 'Empty scenario for testing purposes.'
     parser.add_argument('--run_duration', type=float, default=10.0)
     return parser

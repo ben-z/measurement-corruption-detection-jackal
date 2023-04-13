@@ -28,15 +28,18 @@ MESSAGE_CONVERTERS = {
     'sensor_msgs/Imu': ImuConverter,
 }
 
-CallbackType = Callable[['SignalGeneratorNode'], None]
+CallbackType = Callable[['CorruptionGeneratorNode'], None]
 
-class SignalGeneratorNode:
+class CorruptionGeneratorNode:
     def __init__(self, spec: CorruptionGeneratorSpec, on_start: Optional[CallbackType] = None, on_stop: Optional[CallbackType] = None):
         self.spec = spec
         self.called_start_callback = False
         self.on_start = on_start
         self.on_stop = on_stop
         self.shutting_down = False
+
+    def init(self):
+        spec = self.spec
 
         # Wait for time to be non-zero
         while rospy.Time.now().to_sec() == 0:
@@ -80,7 +83,7 @@ class SignalGeneratorNode:
         # Set up a timer to generate and publish signal at a fixed rate (e.g., 10 Hz)
         self.timer = rospy.Timer(rospy.Duration(0.1), self.generate_and_publish_signal)
 
-        rospy.on_shutdown(self.on_shutdown)
+        rospy.on_shutdown(self.shutdown)
 
     def generate_and_publish_signal(self, event):
         if self.shutting_down:
@@ -111,7 +114,12 @@ class SignalGeneratorNode:
 
         self.corrupted_pub.publish(msg)
 
-    def on_shutdown(self):
+    def shutdown(self):
+        if self.shutting_down:
+            return
+        self._shutdown()
+
+    def _shutdown(self):
         # Publish the template message when shutting down
         rospy.logwarn("Shutting down, clearing corruption.")
         self.shutting_down = True
@@ -137,10 +145,9 @@ class SignalGeneratorNode:
         })
         self.metadata_pub.publish(metadata)
 
-def parse_cli_args(argv):
-    # Parse command-line arguments
+def create_parser(**kwargs):
     parser = argparse.ArgumentParser(
-        description='Signal generator for corrupting messages')
+        description='Signal generator for corrupting messages', **kwargs)
     parser.add_argument(
         'output_topic', help='Output topic to publish corrupted messages')
     parser.add_argument(
@@ -154,8 +161,17 @@ def parse_cli_args(argv):
     parser.add_argument('--period', type=float, default=None,
                         help='Period of oscillating signal (optional)')
     parser.add_argument('--corruption_start_sec', type=float, default=2.0, help="Number of seconds to wait before starting to corrupt the message")
+
+    return parser
+
+def parse_cli_args(argv):
+    # Parse command-line arguments
+    parser = create_parser()
     args = parser.parse_args(argv)
 
+    return create_spec(args)
+
+def create_spec(args):
     return CorruptionGeneratorSpec(
         output_topic=args.output_topic,
         message_type=args.message_type,
@@ -173,8 +189,9 @@ if __name__ == '__main__':
     # Initialize ROS node
     rospy.init_node('signal_generator_node')
 
-    # Create a SignalGeneratorNode instance
-    SignalGeneratorNode(spec)
+    # Create a CorruptionGeneratorNode instance
+    node = CorruptionGeneratorNode(spec)
+    node.init()
 
     # Keep node running
     rospy.spin()

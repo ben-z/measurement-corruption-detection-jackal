@@ -12,3 +12,6 @@ class BaseScenario:
 
     def run(self):
         raise NotImplementedError
+    
+    def cleanup(self):
+        pass

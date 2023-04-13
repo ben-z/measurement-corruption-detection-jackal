@@ -346,6 +346,7 @@ I had to run `sudo modprobe -r iwlwifi && sudo modprobe iwlwifi` every time afte
 ```bash
 ./scripts/run-scenario.sh myexp ./scripts/scenario-playground.sh
 python3 -m scripts.run_experiment empty
+python3 -m scripts.run_experiment corruption /global_localization/robot/odom/corruption nav_msgs/Odometry orientation step 1.0
 ```
 
 ### Injecting corruptions (new)
