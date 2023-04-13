@@ -45,18 +45,18 @@ EOF
 
 # Construct the commands file
 
-bias=-1.0
-delay=0.0
-for detector_solve_hz in $(loop_with_step 1.0 20.0 1.0); do
-    generate_scenario \
-        --experiment_name "detector-solve-hz-$detector_solve_hz-\$(hostname)" \
-        --gazebo_world "empty-rate_100" \
-        corruption /global_localization/robot/odom/corruption nav_msgs/Odometry orientation step $bias --corruption_start_sec $delay \
-        --detector_solve_hz $detector_solve_hz \
-    >> $__commands_file
-done
+#bias=-1.0
+#delay=0.0
+#for detector_solve_hz in $(loop_with_step 1.0 20.0 1.0); do
+#    generate_scenario \
+#        --experiment_name "detector-solve-hz-$detector_solve_hz-\$(hostname)" \
+#        --gazebo_world "empty-rate_100" \
+#        corruption /global_localization/robot/odom/corruption nav_msgs/Odometry orientation step $bias --corruption_start_sec $delay \
+#        --detector_solve_hz $detector_solve_hz \
+#    >> $__commands_file
+#done
 
-for path_profile in \
+for planner_path_profile in \
     "type=circle,radius=2" \
     "type=circle,radius=5" \
     "type=circle,radius=1" \
@@ -69,7 +69,7 @@ for path_profile in \
             generate_scenario \
                 --experiment_name "heading-bias-$bias-with-delay-$delay-\$(hostname)" \
                 --gazebo_world "empty-rate_200" \
-                --path_profile "$path_profile" \
+                --planner_path_profile "$planner_path_profile" \
                 corruption /global_localization/robot/odom/corruption nav_msgs/Odometry orientation step $bias --corruption_start_sec $delay \
             >> $__commands_file
         done

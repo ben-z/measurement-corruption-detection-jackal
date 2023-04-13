@@ -59,9 +59,8 @@ class CorruptionScenario(BaseScenario):
             sigint_timeout=2,
         )
 
-        self.corruption_generator_node = cg.CorruptionGeneratorNode(
-            spec=cg.create_spec(self.args),
-        )
+        self.corruption_spec = cg.create_spec(self.args)
+        self.corruption_generator_node = cg.CorruptionGeneratorNode(spec=self.corruption_spec)
 
     def run(self):
         self.node_launcher = roslaunch.scriptapi.ROSLaunch()
@@ -81,7 +80,7 @@ class CorruptionScenario(BaseScenario):
         rospy.loginfo("Initializing corruption generator...")
         self.corruption_generator_node.init()
 
-        rospy.sleep(self.args.corruption_duration)
+        rospy.sleep(self.args.corruption_duration + self.corruption_spec.corruption_start_sec)
 
         rospy.loginfo("Done performing attack. Shutting down the corruption generator...")
         self.corruption_generator_node.shutdown()

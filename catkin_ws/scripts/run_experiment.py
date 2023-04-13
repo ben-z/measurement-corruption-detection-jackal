@@ -105,7 +105,7 @@ def main(experiment_args, downstream_args):
         gazebo_world=experiment_args.gazebo_world,
         gazebo_world_path=str(gazebo_world_path),
         real_time_factor=real_time_factor,
-        planner_profile=experiment_args.planner_profile,
+        planner_path_profile=experiment_args.planner_path_profile,
         scenario_config=None,
     )
 
@@ -157,7 +157,7 @@ def main(experiment_args, downstream_args):
                 bcontrol_path + "/launch/stack.launch",
                 [
                     "enable_detector:=false",
-                    f"planner_profile:={experiment_config.planner_profile}",
+                    f"planner_path_profile:={experiment_config.planner_path_profile}",
                 ]
             ),
         ],
@@ -186,7 +186,7 @@ if __name__ == '__main__':
                         default=slugify(datetime.now().isoformat()))
     parser.add_argument('--experiments_dir', type=str, default='/experiments')
     parser.add_argument('--gazebo_world', type=str, default='empty-rate_200')
-    parser.add_argument('--planner_profile', type=str, default='')
+    parser.add_argument('--planner_path_profile', type=str, default='')
 
     # Add scenario argument parsers
     scenario_parser = parser.add_subparsers(title='scenario', dest='scenario', description='Scenario to run', required=True)
