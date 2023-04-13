@@ -14,14 +14,17 @@ class RepublishMessageInDifferentFrame:
         self.message_type = message_type
         self.tf_buffer = Buffer()
         self.tf_listener = TransformListener(self.tf_buffer)
+        
+        self.pub = rospy.Publisher(output_topic, message_type, queue_size=10)
+        self.transform_frames = TransformFrames()
+
+        # Wait for transforms to be available
+        rospy.sleep(1.0)
 
         if message_type == Odometry:
             rospy.Subscriber(topic, message_type, self.odom_callback)
         else:
             raise Exception(f"Unsupported message type: {message_type}")
-        
-        self.pub = rospy.Publisher(output_topic, message_type, queue_size=10)
-        self.transform_frames = TransformFrames()
 
     def odom_callback(self, msg: Odometry):
         try:
