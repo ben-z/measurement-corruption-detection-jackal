@@ -14,6 +14,7 @@ import yaml
 import sys
 from .experiment_utils import ExperimentConfig
 from .utils import import_scenario_module, get_argument_names, dict_to_namedtuple
+from multiprocessing import Process
 
 def named_tuple_representer(self, data):
     if hasattr(data, '_asdict'):
@@ -25,27 +26,25 @@ yaml.SafeDumper.add_multi_representer(tuple, named_tuple_representer)
 GAZEB_WORLDS_DIR = Path('/workspace/gazebo-worlds')
 
 def ros_prerun(nodes):
-    prerun_launch = roslaunch.parent.ROSLaunchParent('prerun', [], is_core=True)
+    prerun_launch = roslaunch.parent.ROSLaunchParent('prerun', [], sigint_timeout=2, is_core=True)
     try:
         prerun_launch.start()
 
-        print(f"Starting nodes: {[n.name or f'{n.package}/{n.type}' for n in nodes]}")
+        rospy.init_node('run_experiment_prerun_node')
+        rospy.loginfo(f"Starting nodes: {[n.name or f'{n.package}/{n.type}' for n in nodes]}")
 
         node_launcher = roslaunch.scriptapi.ROSLaunch()
         node_launcher.start()
         processes = [node_launcher.launch(node) for node in nodes]
-        it = 0
         while any([p.is_alive() for p in processes]):
-            if it % 10 == 0:
-                print(f"Waiting for {[p.name for p in processes if p.is_alive]} to finish...")
-            time.sleep(0.1)
-            it += 1
+            rospy.loginfo_throttle(1.0, f"Waiting for {[p.name for p in processes if p.is_alive]} to finish...")
+            node_launcher.spin_once()
         node_launcher.stop()
     
         errored_processes = [p for p in processes if p.exit_code != 0]
         if errored_processes:
             error_msg = f"Prerun failed: {[f'{p.name} (code={p.exit_code})' for p in errored_processes]}"
-            print(error_msg, file=sys.stderr)
+            rospy.logfatal(error_msg, file=sys.stderr)
             raise Exception(error_msg)
     finally:
         prerun_launch.shutdown()
@@ -136,7 +135,11 @@ def main(experiment_args, downstream_args):
         name='detector_pipeline_generator',
         args=f"{bcontrol_path}/config/bdetect.yaml {detector_pipeline_launch_file}"
     )
-    ros_prerun([detector_pipeline_generator_node])
+    
+    # Run prerun in a separate process to not pollute the ROS global variables
+    p = Process(target=ros_prerun, args=([detector_pipeline_generator_node],))
+    p.start()
+    p.join()
     assert detector_pipeline_launch_file.exists(), f"Detector pipeline launch file not found: {detector_pipeline_launch_file}"
 
     # Launch the base stack
