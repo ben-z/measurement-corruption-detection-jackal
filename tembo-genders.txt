@@ -1,5 +1,8 @@
-tem[117-118] all
-tem03 all
-tem[41-45] all
-tem117 t0
-tem118 t1
+tem[117-118] all,b0
+tem03 all,b1
+tem[41-45] all,b1
+tem[46-55] all,b2
+
+tem[46-50] c0
+tem[51-55] c1
+

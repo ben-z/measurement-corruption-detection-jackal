@@ -29,8 +29,8 @@ cat $__machines_file
 
 # Populate the commands file
 
-for vel_bias in $(loop_with_step -0.5 0.5 0.25); do
-    __exp_name_prefix="circle-velocity-corruption-$vel_bias"
+for vel_bias in $(loop_with_step -2.0 2.0 0.25); do
+    __exp_name_prefix="circle-imu-angvel-corruption-$vel_bias"
 
     # if the experiment is already done, skip it
     __existing_experiments=$(find_existing_experiments "$__experiments_dir" "$__exp_name_prefix")
@@ -42,7 +42,7 @@ for vel_bias in $(loop_with_step -0.5 0.5 0.25); do
     generate_tembo_scenario \
         --experiment_name "$__exp_name_prefix-\$(hostname)" \
         --gazebo_world "empty-rate_200" \
-        corruption /jackal_velocity_controller/odom/corruption nav_msgs/Odometry linear_vel_x step $vel_bias \
+        corruption /bbase/imu/data/corruption sensor_msgs/Imu angular_vel_z step $vel_bias \
     >> $__commands_file
 done
 

@@ -1,7 +1,7 @@
 #!/bin/bash
 { # This ensures the entire script is read into memory before execution. Ref: https://stackoverflow.com/a/2358432/4527337
 
-# This script runs the experiment by corrupting the velocity on a circular path.
+# This script runs the experiment with varying detector_solve_hz values.
 
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
 source "$SCRIPT_DIR"/utils.sh
@@ -29,8 +29,8 @@ cat $__machines_file
 
 # Populate the commands file
 
-for vel_bias in $(loop_with_step -0.5 0.5 0.25); do
-    __exp_name_prefix="circle-velocity-corruption-$vel_bias"
+for ramp_slope in $(loop_with_step -2.0 2.0 0.2); do
+    __exp_name_prefix="heading-corruption-ramp-$ramp_slope"
 
     # if the experiment is already done, skip it
     __existing_experiments=$(find_existing_experiments "$__experiments_dir" "$__exp_name_prefix")
@@ -41,8 +41,8 @@ for vel_bias in $(loop_with_step -0.5 0.5 0.25); do
 
     generate_tembo_scenario \
         --experiment_name "$__exp_name_prefix-\$(hostname)" \
-        --gazebo_world "empty-rate_200" \
-        corruption /jackal_velocity_controller/odom/corruption nav_msgs/Odometry linear_vel_x step $vel_bias \
+        --gazebo_world "empty-rate_100" \
+        corruption /global_localization/robot/odom/corruption nav_msgs/Odometry orientation ramp $ramp_slope \
     >> $__commands_file
 done
 
