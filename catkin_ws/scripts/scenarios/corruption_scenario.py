@@ -87,11 +87,12 @@ class CorruptionScenario(BaseScenario):
         self.corruption_generator_node.shutdown()
 
         rospy.loginfo("Waiting for recovery...")
-        rospy.sleep(20)
+        rospy.sleep(15)
 
     def cleanup(self):
-        if self.node_launcher is not None:
-            self.node_launcher.stop()
+        node_launcher = getattr(self, 'node_launcher', None)
+        if node_launcher is not None:
+            node_launcher.stop()
 
 
 Scenario = CorruptionScenario

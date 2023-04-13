@@ -167,7 +167,7 @@ def main(experiment_args, downstream_args):
     
     try:
         base_launch.start()
-        rospy.init_node('experiment_runner')
+        rospy.init_node('experiment_runner', log_level=rospy.INFO)
         rospy.loginfo("Starting scenario")
         scenario.run()
     except rospy.exceptions.ROSInterruptException:

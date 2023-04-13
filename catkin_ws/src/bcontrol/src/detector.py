@@ -291,7 +291,7 @@ def update_loop(event: rospy.timer.TimerEvent):
 
     if event.last_duration and event.last_duration > state['model_config']['dt']:
         diag_msg.level = max(DiagnosticStatus.WARN, diag_msg.level)
-        diag_msg.message += "Last update loop took longer than the update period\n"
+        diag_msg.message += f"Last update loop took longer than the update period ({state['model_config']['dt']}s)\n"
 
     if event.current_real - event.current_expected > rospy.Duration.from_sec(state['model_config']['max_update_delay'] + state['update_loop_time_debt']):
         late_sec = (event.current_real - event.current_expected).to_sec()
@@ -440,7 +440,7 @@ def solve_loop(event: rospy.timer.TimerEvent):
         # Check if the last loop took too long
         if event.last_duration and event.last_duration > state['solve_period']:
             diag_msg.level = max(DiagnosticStatus.WARN, diag_msg.level)
-            diag_msg.message += "Last solve loop took longer than the update period\n"
+            diag_msg.message += f"Last solve loop took longer than the update period ({state['solve_period']:.4f})\n"
 
         # Get the data
         with state['detector_data_lock']:
