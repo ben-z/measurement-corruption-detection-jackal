@@ -8,36 +8,11 @@ from sensor_msgs.msg import Imu
 from geometry_msgs.msg import Quaternion, AccelStamped, Accel, PoseWithCovariance, TwistWithCovariance, Pose, Twist, Point, Vector3
 from tf.transformations import euler_from_quaternion, quaternion_from_euler
 from utils import flatten
+from detector_types import *
 import genpy
 
 # Value for states/inputs that are not measured
 UNMEASURED = 0
-
-class ModelType(str, Enum):
-    DIFFERENTIAL_DRIVE = "DIFFERENTIAL_DRIVE"
-    KINEMATIC_BICYCLE = "KINEMATIC_BICYCLE"
-
-class DifferentialDriveStates(str, Enum):
-    X = "X"
-    Y = "Y"
-    ORIENTATION = "ORIENTATION"
-    VELOCITY = "VELOCITY"
-    ANGULAR_VELOCITY = "ANGULAR_VELOCITY"
-
-class DifferentialDriveInputs(str, Enum):
-    ACCELERATION = "ACCELERATION"
-    ANGULAR_ACCELERATION = "ANGULAR_ACCELERATION"
-
-class KinematicBicycleStates(str, Enum):
-    X = "X"
-    Y = "Y"
-    ORIENTATION = "ORIENTATION"
-    VELOCITY = "VELOCITY"
-    STEERING_ANGLE = "STEERING_ANGLE"
-
-class KinematicBicycleInputs(str, Enum):
-    ACCELERATION = "ACCELERATION"
-    STEERING_ANGLE_VELOCITY = "STEERING_ANGLE_VELOCITY"
 
 def get_model_angular_states(model_type: ModelType) -> List[Union[DifferentialDriveStates, KinematicBicycleStates]]:
     if model_type == ModelType.DIFFERENTIAL_DRIVE:
@@ -248,19 +223,6 @@ def accel_msg_to_input(accel_message: Accel, model_type: ModelType) -> np.ndarra
         raise Exception(f"Unknown model type {model_type}")
 
 
-MODEL_STATE = Union[DifferentialDriveStates,KinematicBicycleStates]
-
-class SensorType(str, Enum):
-    ODOMETRY = "ODOMETRY"
-    IMU = "IMU"
-
-class SensorConfig(TypedDict):
-    name: str
-    topic: str
-    type: SensorType
-    measured_states: List[MODEL_STATE]
-    transform_to_solve_frame: Optional[bool]
-
 def sensor_type_to_msg_type(sensor_type: SensorType) -> Type[genpy.Message]:
     if sensor_type == SensorType.ODOMETRY:
         return Odometry
@@ -268,36 +230,6 @@ def sensor_type_to_msg_type(sensor_type: SensorType) -> Type[genpy.Message]:
         return Imu
     else:
         raise Exception(f"Unknown sensor type {sensor_type}")
-
-MODEL_INPUT = Union[DifferentialDriveInputs,KinematicBicycleInputs]
-
-class InputType(str, Enum):
-    ACCEL_STAMPED = "ACCEL_STAMPED"
-    ACCEL = "ACCEL"
-
-class InputConfig(TypedDict):
-    name: str
-    topic: str
-    type: InputType
-    measured_inputs: List[MODEL_INPUT]
-
-class ModelConfig(TypedDict):
-    model_type: ModelType
-    N: int
-    dt: float
-    max_update_delay: float
-    sensors: List[SensorConfig]
-    inputs: List[InputConfig]
-    solve_frame: str
-
-class DetectorData(TypedDict):
-    C: List[np.ndarray]
-    Y: List[np.ndarray]
-    U: List[np.ndarray]
-    X: List[np.ndarray]
-    # sensors and inputs are lists of lists, where the outer list is the time
-    sensors_present: List[List[SensorConfig]]
-    inputs_present: List[List[InputConfig]]
 
 def get_all_measured_states(sensors: List[SensorConfig]):
     return list(flatten([sensor["measured_states"] for sensor in sensors]))

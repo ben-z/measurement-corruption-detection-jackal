@@ -17,6 +17,7 @@ from itertools import chain, combinations
 from numpy import sin, cos
 from math import atan2, sqrt
 from bcontrol.msg import Path as PathMsg
+from type_utils import *
 
 @dataclass
 class PathPoint:
@@ -740,23 +741,6 @@ def test_path():
     assert path1 == path2
     assert path1 != path3
     assert path3 != path4
-
-# Add a checker for enum types
-def enum_checker(value: Any, origin_type: Any, args: Tuple[Any,...], memo: TypeCheckMemo) -> None:
-    if value not in [e.value for e in origin_type]:
-        raise TypeCheckError(f"Expected value of type {origin_type}, got {value}")
-
-def checker_lookup(origin_type: Any, args: Tuple[Any, ...], extras: Tuple[Any, ...]) -> Union[TypeCheckerCallable, None]:
-    if issubclass(origin_type, Enum):
-        return enum_checker
-    return None
-
-# patch the checker lookup functions with custom checkers
-checker_lookup_functions.append(checker_lookup)
-
-# re-export typeguard so that users always import from this module.
-typeguard = _typeguard
-
 
 def deep_getattr(obj, attr):
     """
