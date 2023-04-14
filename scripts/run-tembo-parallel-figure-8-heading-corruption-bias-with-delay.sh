@@ -34,31 +34,33 @@ for planner_path_profile in \
     "type=figure_eight,length=5,width=2" \
     "type=figure_eight,length=20,width=10" \
 ; do
-    for heading_bias in $(loop_with_step -1.5 1.5 0.2); do
-        __exp_name_prefix="heading-corruption-$heading_bias-$(echo "$planner_path_profile" | slugify)"
+    for delay in $(loop_with_step 2.0 30.0 2.0); do
+        for heading_bias in $(loop_with_step -1.5 1.5 0.2); do
+            __exp_name_prefix="delay-$delay-heading-bias-$heading_bias-$(echo "$planner_path_profile" | slugify)"
 
-        # if the experiment is already done, skip it
-        __existing_experiments=$(find_existing_experiments "$__experiments_dir" "$__exp_name_prefix")
-        if [ -n "$__existing_experiments" ]; then
-            echo "Skipping experiment '$__exp_name_prefix' because it already exists as $__existing_experiments"
-            continue
-        fi
+            # if the experiment is already done, skip it
+            __existing_experiments=$(find_existing_experiments "$__experiments_dir" "$__exp_name_prefix")
+            if [ -n "$__existing_experiments" ]; then
+                echo "Skipping experiment '$__exp_name_prefix' because it already exists as $__existing_experiments"
+                continue
+            fi
 
-        generate_tembo_scenario \
-            --experiment_name "$__exp_name_prefix-\$(hostname)" \
-            --gazebo_world "empty-rate_200" \
-            --planner_path_profile "$planner_path_profile" \
-            corruption /jackal_velocity_controller/odom/corruption nav_msgs/Odometry linear_vel_x step $heading_bias \
-        >> $__commands_file
+            generate_tembo_scenario \
+                --experiment_name "$__exp_name_prefix-\$(hostname)" \
+                --gazebo_world "empty-rate_200" \
+                --planner_path_profile "$planner_path_profile" \
+                corruption /jackal_velocity_controller/odom/corruption nav_msgs/Odometry linear_vel_x step $heading_bias --corruption_start_sec $delay \
+            >> $__commands_file
+        done
     done
 done
 
 echo "Running $(wc -l $__commands_file | awk '{print $1}') command(s) from '$__commands_file' on $(wc -l $__machines_file | awk '{print $1}') machine(s)..."
-sleep 5
 
 # For debugging
 # parallel --retries 2 --jobs 1 --joblog $__joblog_file --sshloginfile $__machines_file --workdir $(pwd) --line-buffer -a $__commands_file
 # For monitoring progress
+sleep 5
 parallel --retries 2 --jobs 1 --joblog $__joblog_file --sshloginfile $__machines_file --workdir $(pwd) --progress -a $__commands_file
 
 exit
