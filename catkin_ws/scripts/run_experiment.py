@@ -15,6 +15,8 @@ import sys
 from .experiment_utils import ExperimentConfig
 from .utils import import_scenario_module, get_argument_names, dict_to_namedtuple
 from multiprocessing import Process
+from bcontrol.src.detector_types import ModelConfig
+from bcontrol.src.type_utils import typeguard
 
 def named_tuple_representer(self, data):
     if hasattr(data, '_asdict'):
@@ -97,6 +99,39 @@ def main(experiment_args, downstream_args):
     real_time_factor = extract_gazebo_real_time_factor(gazebo_world_path)
     print(f"Using Gazebo real time factor: {real_time_factor} (from {gazebo_world_path})")
 
+    # Set environment variables
+    os.environ['ROS_LOG_DIR'] = str(experiment_dir / 'ros_logs')
+    # disable the built-in EKF in Jackal
+    os.environ['ENABLE_EKF'] = 'false'
+
+    # Find packages
+    rospack = rospkg.RosPack()
+    bcontrol_path = Path(rospack.get_path('bcontrol'))
+    
+    # Process bdetect config
+    bdetect_config_template_path = bcontrol_path / "config/bdetect.yaml"
+    if not bdetect_config_template_path.exists():
+        raise Exception(f"bdetect.yaml not found at {bdetect_config_template_path}")
+
+    with open(bdetect_config_template_path, 'r') as f:
+        bdetect_config_template = yaml.safe_load(f)
+    bdetect_config: ModelConfig = typeguard.check_type(bdetect_config_template['bdetect'], ModelConfig)
+
+    if experiment_args.detector_window_size > 0:
+        bdetect_config['N'] = experiment_args.detector_window_size
+
+    bdetect_config_path = experiment_dir / "bdetect.yaml"
+    with open(bdetect_config_path, 'w') as f:
+        yaml.safe_dump({'bdetect': bdetect_config}, f)
+
+    # Generate dynamic launch files 
+    detector_pipeline_launch_file = bcontrol_path / 'launch/detector_pipeline.generated.launch'
+    detector_pipeline_generator_node = roslaunch.core.Node(
+        'bcontrol', 'generate_detector_pipeline_launch_file.py',
+        name='detector_pipeline_generator',
+        args=f"{bdetect_config_path} {detector_pipeline_launch_file}"
+    )
+
     experiment_config = ExperimentConfig(
         experiment_name=experiment_args.experiment_name,
         experiment_id=experiment_args.experiment_id,
@@ -106,6 +141,7 @@ def main(experiment_args, downstream_args):
         gazebo_world_path=str(gazebo_world_path),
         real_time_factor=real_time_factor,
         planner_path_profile=experiment_args.planner_path_profile,
+        detector_window_size=experiment_args.detector_window_size,
         scenario_config=None,
     )
 
@@ -119,23 +155,6 @@ def main(experiment_args, downstream_args):
     with open(experiment_dir / 'config.yaml', 'w') as f:
         yaml.safe_dump(experiment_config._asdict(), f)
 
-    # Set environment variables
-    os.environ['ROS_LOG_DIR'] = str(experiment_dir / 'ros_logs')
-    # disable the built-in EKF in Jackal
-    os.environ['ENABLE_EKF'] = 'false'
-
-    # Find packages
-    rospack = rospkg.RosPack()
-    bcontrol_path = rospack.get_path('bcontrol')
-
-    # Generate dynamic launch files 
-    detector_pipeline_launch_file = Path(bcontrol_path) / 'launch/detector_pipeline.generated.launch'
-    detector_pipeline_generator_node = roslaunch.core.Node(
-        'bcontrol', 'generate_detector_pipeline_launch_file.py',
-        name='detector_pipeline_generator',
-        args=f"{bcontrol_path}/config/bdetect.yaml {detector_pipeline_launch_file}"
-    )
-    
     # Run prerun in a separate process to not pollute the ROS global variables
     p = Process(target=ros_prerun, args=([detector_pipeline_generator_node],))
     p.start()
@@ -147,14 +166,14 @@ def main(experiment_args, downstream_args):
         experiment_config.experiment_name,
         [
             (
-                bcontrol_path + "/launch/sim.launch",
+                str(bcontrol_path / "launch/sim.launch"),
                 [
                     "enable_foxglove:=false",
                     f"gazebo_world:={gazebo_world_path}",
                 ]
             ),
             (
-                bcontrol_path + "/launch/stack.launch",
+                str(bcontrol_path / "launch/stack.launch"),
                 [
                     "enable_detector:=false",
                     f"planner_path_profile:={experiment_config.planner_path_profile}",
@@ -187,6 +206,7 @@ if __name__ == '__main__':
     parser.add_argument('--experiments_dir', type=str, default='/experiments')
     parser.add_argument('--gazebo_world', type=str, default='empty-rate_200')
     parser.add_argument('--planner_path_profile', type=str, default='')
+    parser.add_argument('--detector_window_size', type=int, default=0, help='Detector window size in seconds. 0 for the default value in bdetect.yaml.')
 
     # Add scenario argument parsers
     scenario_parser = parser.add_subparsers(title='scenario', dest='scenario', description='Scenario to run', required=True)

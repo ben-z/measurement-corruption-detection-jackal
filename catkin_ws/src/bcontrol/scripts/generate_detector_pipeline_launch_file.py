@@ -109,7 +109,7 @@ def create_corruptor_nodes(sensor):
     ]
 
 
-def create_barrier_nodes(sensor, signal_idx_base: int):
+def create_barrier_nodes(sensor, signal_idx_base: int, bdetect_yaml_config_path: Path):
     topic = sensor['topic']
     message_type = sensor_type_to_msg_type(sensor['type'])._type
     message_package = message_type.split("/")[0]
@@ -133,7 +133,7 @@ def create_barrier_nodes(sensor, signal_idx_base: int):
         SubElement(node, "param", {"name": "topic_name", "value": f"{topic}/{state}"})
         SubElement(node, "param", {"name": "message_type", "value": message_type})
         SubElement(node, "param", {"name": "sensor_idx", "value": str(signal_idx_base + signal_idx)})
-        SubElement(node, "rosparam", {"command": "load", "file": "$(find bcontrol)/config/bdetect.yaml"})
+        SubElement(node, "rosparam", {"command": "load", "file": str(bdetect_yaml_config_path.resolve())})
         SubElement(node, "param", {"name": "enable_ekf_rollback", "value": "true"})
         SubElement(node, "param", {"name": "cooldown_duration", "value": "2.0"}) # seconds
 
@@ -141,7 +141,10 @@ def create_barrier_nodes(sensor, signal_idx_base: int):
 
     return nodes
 
-def generate_launch_file(config, raw_config):
+def generate_launch_file(bdetect_yaml_config_path: Path):
+    raw_config = bdetect_yaml_config_path.read_text()
+    config = yaml.safe_load(raw_config)
+
     launch = Element("launch")
     launch.append(Comment(f"This file is generated from the following configuration:\n{raw_config}"))
 
@@ -151,7 +154,7 @@ def generate_launch_file(config, raw_config):
         launch.append(Comment(f"Sensor: {sensor['name']}"))
         launch.extend(create_corruptor_nodes(sensor))
         launch.extend(create_extractor_nodes(sensor))
-        launch.extend(create_barrier_nodes(sensor, signal_idx_base))
+        launch.extend(create_barrier_nodes(sensor, signal_idx_base, bdetect_yaml_config_path))
 
         signal_idx_base += len(sensor['measured_states'])
 
@@ -159,16 +162,17 @@ def generate_launch_file(config, raw_config):
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Generate ROS launch file from a bdetect YAML config.")
-    parser.add_argument("input", help="YAML configuration file")
-    parser.add_argument("output", help="ROS launch file")
+    parser = argparse.ArgumentParser(description="Generate a ROS launch file from a bdetect YAML config.")
+    parser.add_argument("bdetect_yaml_config_path", help="YAML configuration file")
+    parser.add_argument("out_launch_file", help="ROS launch file")
 
     args = parser.parse_args(rospy.myargv(sys.argv)[1:])
 
-    raw_config = Path(args.input).read_text()
-    yaml_config = yaml.safe_load(raw_config)
+    bdetect_yaml_config_path = Path(args.bdetect_yaml_config_path)
+    if not bdetect_yaml_config_path.exists():
+        raise Exception(f"File {bdetect_yaml_config_path} does not exist")
 
-    launch_file_content = generate_launch_file(yaml_config, raw_config)
+    launch_file_content = generate_launch_file(bdetect_yaml_config_path)
 
-    with open(args.output, "w") as launch_file:
+    with open(args.out_launch_file, "w") as launch_file:
         launch_file.write(launch_file_content)

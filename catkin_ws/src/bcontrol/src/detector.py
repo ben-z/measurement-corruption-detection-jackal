@@ -241,36 +241,6 @@ def create_subscriptions(config: ModelConfig):
 
         rospy.Subscriber(input['topic'], data_class, input_callback)
 
-
-# def make_empty_C_Y_U(config: ModelConfig):
-#     """
-#     Creates empty C, Y, and U matrices for the given model config.
-#     """
-#     # number of time steps in the horizon
-#     N = config['N']
-#     # number of states
-#     n = len(get_model_states(config['model_type']))
-#     # number of control inputs
-#     p = len(get_model_inputs(config['model_type']))
-#     # number of sensor measurements
-#     q = sum([len(sensor['measured_states']) for sensor in config['sensors']])
-    
-#     C = np.zeros((N * q, n))
-#     Y = np.zeros((N * q, 1))
-#     U = np.zeros((N * p, 1))
-
-#     return C, Y, U
-
-
-# There should be a few loops here:
-# - [x] One loop for each sensor to subscribe to topics and write the latest message to the state
-# - [x] One loop for each control input to the plant
-# - [x] One loop running at the detector's update frequency to gather data and construct the C, Y, and U matrices
-        # TODO: Append C_block to C
-        # TODO: Append data from sensor_msg to Y
-        # TODO: Append metadata (which sensor) to metadata
-# - [ ] One loop running at the detector's solve frequency to solve the optimization problem and publish the results
-
 def has_valid_data(sensor: SensorState):
     return sensor['data'] is not None
 
@@ -649,7 +619,7 @@ def main():
 
     # Load the configuration and check its type
     config: ModelConfig = typeguard.check_type(rospy.get_param('~bdetect'), ModelConfig)
-    rospy.loginfo(f"{NODE_NAME}: loaded configuration {config}")
+    rospy.loginfo(f"Loaded configuration {config}")
 
     state['model_config'] = config
 

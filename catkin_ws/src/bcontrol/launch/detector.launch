@@ -3,16 +3,17 @@
   <arg name="open_loop" default="false" doc="Keep the loop open (don't let detector results affect downstream modules)" />
   <arg name="launch_solver_server" default="true" doc="Launch the solver server" />
   <arg name="detector_solve_hz" default="" doc="Override the solve rate for the detector" />
+  <arg name="bdetect_config_path" default="$(find bcontrol)/config/bdetect.yaml" doc="Path to the bdetect config file" />
 
   <node pkg="bcontrol" type="solver_server.py" name="solver_server" if="$(eval arg('launch_solver_server'))" />
 
   <node pkg="bcontrol" type="detector_debug.py" name="bdetect_node" output="screen" if="$(eval arg('debug'))">
-    <rosparam command="load" file="$(find bcontrol)/config/bdetect.yaml" />
+    <rosparam command="load" file="$(arg bdetect_config_path)" />
     <param name="solve_hz" value="$(eval arg('detector_solve_hz'))" if="$(eval arg('detector_solve_hz') != '')" />
   </node>
 
   <node pkg="bcontrol" type="detector.py" name="bdetect_node" unless="$(eval arg('debug'))">
-    <rosparam command="load" file="$(find bcontrol)/config/bdetect.yaml" />
+    <rosparam command="load" file="$(arg bdetect_config_path)" />
     <param name="solve_hz" value="$(eval arg('detector_solve_hz'))" if="$(eval arg('detector_solve_hz') != '')" />
   </node>
 

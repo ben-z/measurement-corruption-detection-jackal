@@ -240,7 +240,7 @@ if __name__ == '__main__':
         raise FileNotFoundError(f"Rosbag path {rosbag_path} does not exist")
     
     if args.bdetect_config_path is None:
-        bdetect_config_path = SCRIPT_DIR.parent / "catkin_ws/src/bcontrol/config/bdetect.yaml"
+        bdetect_config_path = rosbag_path.parent / "bdetect.yaml"
     else:
         bdetect_config_path = Path(args.bdetect_config_path)
     

@@ -46,6 +46,7 @@ class CorruptionScenario(BaseScenario):
         rospack = rospkg.RosPack()
         bcontrol_path = rospack.get_path('bcontrol')
 
+        bdetect_config_path = Path(self.experiment_config.experiment_dir) / 'bdetect.yaml'
         self.detector_launch = roslaunch.parent.ROSLaunchParent(
             self.experiment_config.experiment_name,
             [
@@ -53,6 +54,7 @@ class CorruptionScenario(BaseScenario):
                     bcontrol_path + "/launch/detector.launch",
                     [
                         f"detector_solve_hz:={self.args.detector_solve_hz or ''}",
+                        f"bdetect_config_path:={bdetect_config_path}",
                     ],
                 )
             ],
