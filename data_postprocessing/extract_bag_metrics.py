@@ -50,7 +50,7 @@ import os
 import yaml
 import json
 import numpy as np
-from typing import TypedDict, Optional, Dict, List
+from typing import TypedDict, Optional, Dict, List, Union
 from bcontrol.src.detector_types import ModelConfig
 from bcontrol.src.type_utils import typeguard
 
@@ -62,10 +62,12 @@ class Metrics(TypedDict):
     corruption_init_ns: Optional[int]
     corruption_start_ns: Optional[int]
     corruption_stop_ns: Optional[int]
-    first_sensor_timestamp_after_corruption: Optional[int]
+    first_sensor_measurement_after_corruption_ns: Optional[int]
     max_lateral_position_during_corruption: Optional[float]
-    detection_result: Optional[str]
+    detection_result: Optional[str] # detected, not detected, misattributed
     detection_ns: Optional[int]
+    # The tick at which the corruption was detected. The first tick after the corruption is reflected in the sensors is tick 1.
+    detection_tick: Optional[int]
     misattributed_indices: Optional[List[int]]
     corruption_topic_base: Optional[str]
     corruption_idx: Optional[int]
@@ -115,10 +117,11 @@ def main(rosbag_path: Path, bdetect_config: ModelConfig, output_path: Path, over
             'corruption_init_ns': None,
             'corruption_start_ns': None,
             'corruption_stop_ns': None,
-            'first_sensor_timestamp_after_corruption': None,
+            'first_sensor_measurement_after_corruption_ns': None,
             'max_lateral_position_during_corruption': None,
-            'detection_result': None, # detected, not detected, misattributed
+            'detection_result': None,
             'detection_ns': None,
+            'detection_tick': None,
             'misattributed_indices': None,
             'corruption_topic_base': None,
             'corruption_idx': None,
@@ -170,18 +173,23 @@ def main(rosbag_path: Path, bdetect_config: ModelConfig, output_path: Path, over
                 
                 if metrics['corruption_topic_base'] \
                     and connection.topic == metrics['corruption_topic_base'] + '/vulnerable' \
-                    and metrics['first_sensor_timestamp_after_corruption'] is None \
+                    and metrics['first_sensor_measurement_after_corruption_ns'] is None \
                 :
                     corrupted_msg = deserialize_cdr(ros1_to_cdr(rawdata, connection.msgtype), connection.msgtype)
                     if hasattr(corrupted_msg, 'header'):
-                        metrics['first_sensor_timestamp_after_corruption'] = ros_time_to_ns(corrupted_msg.header.stamp)
+                        metrics['first_sensor_measurement_after_corruption_ns'] = ros_time_to_ns(corrupted_msg.header.stamp)
                     else:
-                        metrics['first_sensor_timestamp_after_corruption'] = timestamp
+                        metrics['first_sensor_measurement_after_corruption_ns'] = timestamp
                 
                 if metrics['corruption_start_ns'] and metrics['detection_ns'] is None and connection.topic == '/message_barrier/sensor_validity_final':
                     sensor_validity_msg = deserialize_cdr(ros1_to_cdr(rawdata, connection.msgtype), connection.msgtype)
                     sensor_validity = np.array(sensor_validity_msg.data, dtype=bool)
                     invalid_sensors = np.where(sensor_validity == 0)[0]
+
+                    if metrics['first_sensor_measurement_after_corruption_ns'] is not None:
+                        # The corruption is reflected in the sensor measurements. Increment the tick counter
+                        metrics['detection_tick'] = (metrics['detection_tick'] or 0) + 1
+
                     if len(invalid_sensors) == 0:
                         # no corruption detected,
                         pass
@@ -195,6 +203,15 @@ def main(rosbag_path: Path, bdetect_config: ModelConfig, output_path: Path, over
                         assert len(invalid_sensors) == 1 and invalid_sensors[0] == metrics['corruption_idx'], f"Logic error: {invalid_sensors=}, {metrics['corruption_idx']=}"
                         metrics['detection_ns'] = timestamp
                         metrics['detection_result'] = 'detected'
+
+        # if we have corruption metadata but no detection, then the corruption was not detected
+        if (metrics['corruption_init_ns'] is not None \
+            or metrics['corruption_start_ns'] is not None \
+            or metrics['corruption_stop_ns'] is not None
+           ) \
+            and metrics['detection_result'] is None \
+        :
+            metrics['detection_result'] = 'not detected'
 
         try:
             if metrics['corruption_init_ns'] is not None \

@@ -4,5 +4,8 @@
     "files.associations": {
         "*.json": "jsonc",
         "chrono": "cpp"
+    },
+    "files.watcherExclude": {
+        "/experiments/**": true
     }
 }
