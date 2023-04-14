@@ -15,5 +15,7 @@
 
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
-[ -f "$SCRIPT_DIR"/../shell-conf/commonrc ] && source "$SCRIPT_DIR"/../shell-conf/commonrc
+if [ -f "$SCRIPT_DIR"/../shell-conf/commonrc ]; then
+    source "$SCRIPT_DIR"/../shell-conf/commonrc
+fi
 

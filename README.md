@@ -196,6 +196,12 @@ make install
 popd
 echo 'will cite' | parallel --citation
 
+pdsh -S -F ./tembo-genders.txt -g all -l $USER 'echo -e "MaxStartups 100:30:200\nMaxSessions 100" | sudo tee -a /etc/ssh/sshd_config'
+pdsh -S -F ./tembo-genders.txt -g all -l $USER 'sudo systemctl restart sshd.service'
+
+# Install parallel on all machines
+pdsh -S -F ./tembo-genders.txt -g all -l $USER 'mkdir -p /tmp/parallel && cd /tmp/parallel && wget -q http://ftp.gnu.org/gnu/parallel/parallel-latest.tar.bz2 && tar xjf parallel-latest.tar.bz2 && rm parallel-latest.tar.bz2 && cd parallel-* && sudo ./configure && make && sudo make install && echo "will cite" | parallel --citation'
+
 pdsh -S -F ./tembo-genders.txt -g all -l $USER 'cd ~/benz/research-jackal && ./bootstrap-tembo.sh'
 pdsh -S -F ./tembo-genders.txt -g all -l $USER 'cd ~/benz/research-jackal && source /hdd2/.host_profile && docker compose up -d --build sim_headless'
 pdsh -S -F ./tembo-genders.txt -g all -l $USER 'cd ~/benz/research-jackal && source /hdd2/.host_profile && docker compose exec sim_headless bash -c "source /etc/local.bashrc && devsetup && rosdep_install_all"'
