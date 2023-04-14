@@ -63,6 +63,7 @@ class Metrics(TypedDict):
     corruption_start_ns: Optional[int]
     corruption_stop_ns: Optional[int]
     first_sensor_measurement_after_corruption_ns: Optional[int]
+    first_detector_output_after_sensor_measurement_ns: Optional[int]
     max_lateral_position_during_corruption: Optional[float]
     detection_result: Optional[str] # detected, not detected, misattributed
     detection_ns: Optional[int]
@@ -118,6 +119,7 @@ def main(rosbag_path: Path, bdetect_config: ModelConfig, output_path: Path, over
             'corruption_start_ns': None,
             'corruption_stop_ns': None,
             'first_sensor_measurement_after_corruption_ns': None,
+            'first_detector_output_after_sensor_measurement_ns': None,
             'max_lateral_position_during_corruption': None,
             'detection_result': None,
             'detection_ns': None,
@@ -161,7 +163,6 @@ def main(rosbag_path: Path, bdetect_config: ModelConfig, output_path: Path, over
                     elif metadata['metadata_type'] == 'corruption_start':
                         assert metrics['corruption_start_ns'] is None, "This bag has multiple corruption start messages. This is not supported."
                         metrics['corruption_start_ns'] = metadata_stamp
-                        # TODO: extract the field, map it to the position in the sensor validity array
                     elif metadata['metadata_type'] == 'corruption_stop':
                         assert metrics['corruption_stop_ns'] is None, "This bag has multiple corruption end messages. This is not supported."
                         metrics['corruption_stop_ns'] = metadata_stamp
@@ -171,7 +172,8 @@ def main(rosbag_path: Path, bdetect_config: ModelConfig, output_path: Path, over
                     if metrics['max_lateral_position_during_corruption'] is None or lateral_position > metrics['max_lateral_position_during_corruption']:
                         metrics['max_lateral_position_during_corruption'] = lateral_position
                 
-                if metrics['corruption_topic_base'] \
+                if metrics['corruption_start_ns'] is not None \
+                    and metrics['corruption_topic_base'] \
                     and connection.topic == metrics['corruption_topic_base'] + '/vulnerable' \
                     and metrics['first_sensor_measurement_after_corruption_ns'] is None \
                 :
@@ -180,6 +182,13 @@ def main(rosbag_path: Path, bdetect_config: ModelConfig, output_path: Path, over
                         metrics['first_sensor_measurement_after_corruption_ns'] = ros_time_to_ns(corrupted_msg.header.stamp)
                     else:
                         metrics['first_sensor_measurement_after_corruption_ns'] = timestamp
+                
+                if metrics['first_sensor_measurement_after_corruption_ns'] is not None \
+                    and metrics['first_detector_output_after_sensor_measurement_ns'] is None \
+                    and connection.topic == '/bdetect/sensor_validity' \
+                :
+                    sensor_validity_msg = deserialize_cdr(ros1_to_cdr(rawdata, connection.msgtype), connection.msgtype)
+                    metrics['first_detector_output_after_sensor_measurement_ns'] = ros_time_to_ns(sensor_validity_msg.header.stamp)
                 
                 if metrics['corruption_start_ns'] and metrics['detection_ns'] is None and connection.topic == '/message_barrier/sensor_validity_final':
                     sensor_validity_msg = deserialize_cdr(ros1_to_cdr(rawdata, connection.msgtype), connection.msgtype)
