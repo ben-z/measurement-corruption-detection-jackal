@@ -42,9 +42,13 @@ EOF
 }
 
 # Populate the commands file
-for bag_path in $(find $__experiments_dir -name '*.bag'); do
+for bag_path in $(find $__experiments_dir -name '*.bag' | grep -v '.augmented.bag$'); do
     if [ ! -f "$(dirname $bag_path)/config.yaml" ]; then
         echo "Skipping '$bag_path' because it doesn't have a config.yaml file"
+        continue
+    fi
+    if [ -f "$(dirname $bag_path)/metrics.yaml" ]; then
+        echo "Skipping '$bag_path' because it already has a metrics.yaml file"
         continue
     fi
     generate_extract_command --overwrite $bag_path >> $__commands_file
@@ -56,7 +60,9 @@ echo "Running $(wc -l $__commands_file | awk '{print $1}') command(s) from '$__c
 # parallel --retries 2 --jobs 1 --joblog $__joblog_file --sshloginfile $__machines_file --workdir $(pwd) --line-buffer -a $__commands_file
 # For monitoring progress
 sleep 5
-parallel --verbose --retries 2 --jobs 24 --joblog $__joblog_file --sshloginfile $__machines_file --workdir $(pwd) --progress -a $__commands_file
+parallel --retries 2 --jobs 24 --joblog $__joblog_file --sshloginfile $__machines_file --workdir $(pwd) --progress -a $__commands_file
+
+echo "Done! Job log is at '$__joblog_file', machines file is at '$__machines_file', commands file is at '$__commands_file'"
 
 exit
 }

@@ -6,6 +6,6 @@
         "chrono": "cpp"
     },
     "files.watcherExclude": {
-        "/experiments/**": true
+        "${workspaceFolder}/experiments/**": true
     }
 }

@@ -42,7 +42,8 @@ from rosbags.typesys.types import \
     bcontrol__msg__Path as PathMsg, \
     bcontrol__msg__Float64Stamped as Float64Stamped, \
     bcontrol__msg__Metadata as Metadata, \
-    nav_msgs__msg__Path as NavPathMsg
+    nav_msgs__msg__Path as NavPathMsg, \
+    nav_msgs__msg__Odometry as Odometry
 import transformations as tf
 from tqdm import tqdm
 import argparse
@@ -58,10 +59,30 @@ is_interactive = os.isatty(sys.stdout.fileno()) and os.environ.get('SHOW_PROGRES
 
 S_TO_NS: int = 1_000_000_000
 
+class SimplePose(TypedDict):
+    x: float
+    y: float
+    yaw: float
+
+def simple_pose_from_odometry_msg(msg: Odometry) -> SimplePose:
+    return {
+        'x': msg.pose.pose.position.x,
+        'y': msg.pose.pose.position.y,
+        'yaw': tf.euler_from_quaternion([
+            msg.pose.pose.orientation.x,
+            msg.pose.pose.orientation.y,
+            msg.pose.pose.orientation.z,
+            msg.pose.pose.orientation.w,
+        ])[2],
+    }
+
 class Metrics(TypedDict):
     corruption_init_ns: Optional[int]
     corruption_start_ns: Optional[int]
     corruption_stop_ns: Optional[int]
+    corruption_init_pose: Optional[SimplePose]
+    corruption_start_pose: Optional[SimplePose]
+    corruption_stop_pose: Optional[SimplePose]
     first_sensor_measurement_after_corruption_ns: Optional[int]
     first_detector_output_after_sensor_measurement_ns: Optional[int]
     max_lateral_position_during_corruption: Optional[float]
@@ -112,12 +133,13 @@ def main(rosbag_path: Path, bdetect_config: ModelConfig, output_path: Path, over
         duration_s = end_time_s - start_time_s
         print(f"Start time (s): {start_time_s:.4f}, end time (s): {end_time_s:.4f}, duration (s): {duration_s:.4f}")
 
-        all_topics = {x.topic for x in reader.connections}
-
         metrics: Metrics = {
             'corruption_init_ns': None,
             'corruption_start_ns': None,
             'corruption_stop_ns': None,
+            'corruption_init_pose': None,
+            'corruption_start_pose': None,
+            'corruption_stop_pose': None,
             'first_sensor_measurement_after_corruption_ns': None,
             'first_detector_output_after_sensor_measurement_ns': None,
             'max_lateral_position_during_corruption': None,
@@ -129,6 +151,8 @@ def main(rosbag_path: Path, bdetect_config: ModelConfig, output_path: Path, over
             'corruption_idx': None,
             'errors': [],
         }
+
+        latest_ground_truth_odom: Optional[Odometry] = None
 
         with tqdm(total=round(duration_s,4), desc="Processing rosbag", unit="s", disable=not is_interactive) as pbar:
             last_progress_update_ns_from_start = -1
@@ -143,6 +167,9 @@ def main(rosbag_path: Path, bdetect_config: ModelConfig, output_path: Path, over
                     print(f"Progress update [{rosbag_path.name}]: processing {ns_from_start / S_TO_NS:.4f}/{duration_s:.4f} seconds")
                     last_progress_update_ns_from_start = ns_from_start
 
+                if connection.topic == '/gazebo/odom_global':
+                    latest_ground_truth_odom = deserialize_cdr(ros1_to_cdr(rawdata, connection.msgtype), connection.msgtype)
+
                 if connection.topic == '/metadata':
                     metadata_msg= deserialize_cdr(ros1_to_cdr(rawdata, connection.msgtype), connection.msgtype)
                     metadata_stamp = ros_time_to_ns(metadata_msg.header.stamp)
@@ -150,6 +177,9 @@ def main(rosbag_path: Path, bdetect_config: ModelConfig, output_path: Path, over
                     if metadata['metadata_type'] == 'corruption_init':
                         assert metrics['corruption_init_ns'] is None, "This bag has multiple corruption init messages. This is not supported."
                         metrics['corruption_init_ns'] = metadata_stamp
+                        if latest_ground_truth_odom is not None:
+                            # TODO: make sure the ground truth odom is not too old
+                            metrics['corruption_init_pose'] = simple_pose_from_odometry_msg(latest_ground_truth_odom)
                         assert metadata['spec']['output_topic'].endswith('/corruption')
                         metrics['corruption_topic_base'] = metadata['spec']['output_topic'][:-len('/corruption')]
                         corruption_field = metadata['spec']['field']
@@ -163,9 +193,13 @@ def main(rosbag_path: Path, bdetect_config: ModelConfig, output_path: Path, over
                     elif metadata['metadata_type'] == 'corruption_start':
                         assert metrics['corruption_start_ns'] is None, "This bag has multiple corruption start messages. This is not supported."
                         metrics['corruption_start_ns'] = metadata_stamp
+                        if latest_ground_truth_odom is not None:
+                            metrics['corruption_start_pose'] = simple_pose_from_odometry_msg(latest_ground_truth_odom)
                     elif metadata['metadata_type'] == 'corruption_stop':
                         assert metrics['corruption_stop_ns'] is None, "This bag has multiple corruption end messages. This is not supported."
                         metrics['corruption_stop_ns'] = metadata_stamp
+                        if latest_ground_truth_odom is not None:
+                            metrics['corruption_stop_pose'] = simple_pose_from_odometry_msg(latest_ground_truth_odom)
 
                 if connection.topic == '/bcontrol/lateral_position' and metrics['corruption_start_ns'] is not None and metrics['corruption_stop_ns'] is None:
                     lateral_position = deserialize_cdr(ros1_to_cdr(rawdata, connection.msgtype), connection.msgtype).data
@@ -205,12 +239,12 @@ def main(rosbag_path: Path, bdetect_config: ModelConfig, output_path: Path, over
                     elif len(invalid_sensors) > 1 or invalid_sensors[0] != metrics['corruption_idx']:
                         # corruption detected, but not at the right sensor
                         metrics['misattributed_indices'] = invalid_sensors.tolist()
-                        metrics['detection_ns'] = timestamp
+                        metrics['detection_ns'] = ros_time_to_ns(sensor_validity_msg.header.stamp)
                         metrics['detection_result'] = 'misattributed'
                     else:
                         # corruption detected at the right sensor
                         assert len(invalid_sensors) == 1 and invalid_sensors[0] == metrics['corruption_idx'], f"Logic error: {invalid_sensors=}, {metrics['corruption_idx']=}"
-                        metrics['detection_ns'] = timestamp
+                        metrics['detection_ns'] = ros_time_to_ns(sensor_validity_msg.header.stamp)
                         metrics['detection_result'] = 'detected'
 
         # if we have corruption metadata but no detection, then the corruption was not detected
