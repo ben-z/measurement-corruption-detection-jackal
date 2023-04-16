@@ -1,12 +1,7 @@
-tem[117-118] all,b0,d0
+tem[117-118] all,a0
 
-#tem03 all,b1,d0
-#tem[41-45] all,b1,d0
-#
-#tem[46-55] all,b2,d1
-#
-#tem[46-50] c0
-#tem[51-55] c1
-
+tem33 all,a1
+tem[35-36] all,a1
+tem[38-54] all,a1
 
 tem117 t0

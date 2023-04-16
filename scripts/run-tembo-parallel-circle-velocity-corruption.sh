@@ -27,7 +27,6 @@ cat $__machines_file
 
 # Populate the commands file
 
-
 for planner_path_profile in \
     "type=circle,radius=0.5" \
     "type=circle,radius=1" \
@@ -37,7 +36,7 @@ for planner_path_profile in \
 ; do
     for magnitude in $(loop_with_step -2.0 2.0 0.2); do
         # step
-        __exp_name_prefix="imu-angvel-corruption-bias-$magnitude-$(echo "$planner_path_profile" | slugify)"
+        __exp_name_prefix="velocity-corruption-bias-$magnitude-$(echo "$planner_path_profile" | slugify)"
 
         # if the experiment is already done, skip it
         __existing_experiments=$(find_existing_experiments "$__experiments_dir" "$__exp_name_prefix")
@@ -47,13 +46,12 @@ for planner_path_profile in \
             generate_tembo_scenario \
                 --experiment_name "$__exp_name_prefix-\$(hostname)" \
                 --gazebo_world "empty-rate_200" \
-                --planner_path_profile "$planner_path_profile" \
-                corruption /bbase/imu/data/corruption sensor_msgs/Imu angular_vel_z step $magnitude \
+                corruption /jackal_velocity_controller/odom/corruption nav_msgs/Odometry linear_vel_x step $magnitude \
             >> $__commands_file
         fi
 
         # ramp
-        __exp_name_prefix="imu-angvel-corruption-ramp-$magnitude-$(echo "$planner_path_profile" | slugify)"
+        __exp_name_prefix="velocity-corruption-ramp-$magnitude-$(echo "$planner_path_profile" | slugify)"
 
         # if the experiment is already done, skip it
         __existing_experiments=$(find_existing_experiments "$__experiments_dir" "$__exp_name_prefix")
@@ -62,14 +60,14 @@ for planner_path_profile in \
         else
             generate_tembo_scenario \
                 --experiment_name "$__exp_name_prefix-\$(hostname)" \
-                --gazebo_world "empty-rate_100" \
-                corruption /bbase/imu/data/corruption sensor_msgs/Imu angular_vel_z ramp $magnitude \
+                --gazebo_world "empty-rate_200" \
+                corruption /jackal_velocity_controller/odom/corruption nav_msgs/Odometry linear_vel_x ramp $magnitude \
             >> $__commands_file
         fi
 
         # oscillating
         for period in $(loop_with_step -10.0 10.0 1.0); do
-            __exp_name_prefix="imu-angvel-corruption-oscillation-$magnitude-$period-$(echo "$planner_path_profile" | slugify)"
+            __exp_name_prefix="velocity-corruption-oscillation-$magnitude-$period-$(echo "$planner_path_profile" | slugify)"
 
             # if the experiment is already done, skip it
             __existing_experiments=$(find_existing_experiments "$__experiments_dir" "$__exp_name_prefix")
@@ -78,8 +76,8 @@ for planner_path_profile in \
             else
                 generate_tembo_scenario \
                     --experiment_name "$__exp_name_prefix-\$(hostname)" \
-                    --gazebo_world "empty-rate_100" \
-                    corruption /bbase/imu/data/corruption sensor_msgs/Imu angular_vel_z oscillating $magnitude --period $period \
+                    --gazebo_world "empty-rate_200" \
+                    corruption /jackal_velocity_controller/odom/corruption nav_msgs/Odometry linear_vel_x oscillating $magnitude --period $period \
                 >> $__commands_file
             fi
         done
