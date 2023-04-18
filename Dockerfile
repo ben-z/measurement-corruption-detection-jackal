@@ -22,8 +22,11 @@ RUN USER=docker && \
 
 # Add clearpath repo for jackal packages
 # http://wiki.ros.org/ClearpathRobotics/Packages
-RUN curl -s https://packages.clearpathrobotics.com/public.key | apt-key add - \
+COPY clearpath-public.key /tmp/
+RUN apt-key add /tmp/clearpath-public.key \
     && sh -c 'echo "deb https://packages.clearpathrobotics.com/stable/ubuntu $(lsb_release -cs) main" > /etc/apt/sources.list.d/clearpath-latest.list'
+#RUN curl -s https://packages.clearpathrobotics.com/public.key | apt-key add - \
+#    && sh -c 'echo "deb https://packages.clearpathrobotics.com/stable/ubuntu $(lsb_release -cs) main" > /etc/apt/sources.list.d/clearpath-latest.list'
 
 # Install Jackal packages
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -101,8 +104,11 @@ RUN USER=docker && \
 
 # Add clearpath repo for jackal packages
 # http://wiki.ros.org/ClearpathRobotics/Packages
-RUN curl -s https://packages.clearpathrobotics.com/public.key | apt-key add - \
+COPY clearpath-public.key /tmp/
+RUN apt-key add /tmp/clearpath-public.key \
     && sh -c 'echo "deb https://packages.clearpathrobotics.com/stable/ubuntu $(lsb_release -cs) main" > /etc/apt/sources.list.d/clearpath-latest.list'
+#RUN curl -s https://packages.clearpathrobotics.com/public.key | apt-key add - \
+#    && sh -c 'echo "deb https://packages.clearpathrobotics.com/stable/ubuntu $(lsb_release -cs) main" > /etc/apt/sources.list.d/clearpath-latest.list'
 
 # Install Jackal packages
 RUN apt-get update && apt-get install -y --no-install-recommends \
