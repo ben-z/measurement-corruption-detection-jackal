@@ -5,7 +5,7 @@ import numpy as np
 import argparse
 from .signal_generator import corrupt_array, SignalType, SIGNAL_TYPE_STRS
 from .numpy_message_converter import OdometryConverter, ImuConverter
-from ros_utils import load_message_type
+from .ros_utils import load_message_type
 import time
 from copy import deepcopy
 import sys
