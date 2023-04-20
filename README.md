@@ -352,7 +352,7 @@ I had to run `sudo modprobe -r iwlwifi && sudo modprobe iwlwifi` every time afte
 ```bash
 ./scripts/run-scenario.sh myexp ./scripts/scenario-playground.sh
 python3 -m scripts.run_experiment empty
-python3 -m scripts.run_experiment --gazebo_world empty corruption /global_localization/robot/odom/corruption nav_msgs/Odometry orientation step 1.0
+python3 -m scripts.run_experiment --gazebo_world empty corruption /global_localization/robot/odom/corruption nav_msgs/Odometry orientation step -1.0
 ```
 
 ### Injecting corruptions (new)
@@ -360,7 +360,7 @@ python3 -m scripts.run_experiment --gazebo_world empty corruption /global_locali
 The `corruption_generator.py` script can be used to inject corruption into a topic. The script publishes a message to a topic that is subscribed to by a node that corrupts the topic.
 
 ```bash
-python3 -m src.bcontrol.src.corruption_generator /global_localization/robot/odom/corruption nav_msgs/Odometry orientation step 1.0
+python3 -m src.bcontrol.src.corruption_generator /global_localization/robot/odom/corruption nav_msgs/Odometry orientation step -1.0
 python3 -m src.bcontrol.src.corruption_generator /global_localization/robot/odom/corruption nav_msgs/Odometry orientation oscillating 0.3 --period 15.0
 python3 -m src.bcontrol.src.corruption_generator /global_localization/robot/odom/corruption nav_msgs/Odometry orientation ramp 0.5
 python3 -m src.bcontrol.src.corruption_generator /jackal_velocity_controller/odom/corruption nav_msgs/Odometry linear_vel_x ramp 0.1
