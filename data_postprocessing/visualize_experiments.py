@@ -7,7 +7,10 @@ import yaml
 from pathlib import Path
 
 SCRIPT_DIR = Path(__file__).parent
-EXPERIMENTS_DIR = SCRIPT_DIR.parent / "experiments"
+# tembo
+# EXPERIMENTS_DIR = SCRIPT_DIR.parent / "experiments"
+# wato, scratch
+EXPERIMENTS_DIR = Path('/mnt/scratch/ben-tembo-experiments/tembo-experiments')
 print(f"{EXPERIMENTS_DIR=}")
 
 # %%
@@ -275,3 +278,4 @@ plt.xlabel('detector_solve_hz')
 plt.ylabel('Detection Result')
 plt.xlim(0, 1)
 plt.show()
+# %%
