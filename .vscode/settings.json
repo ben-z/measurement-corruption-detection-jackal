@@ -7,5 +7,6 @@
     },
     "files.watcherExclude": {
         "${workspaceFolder}/experiments/**": true
-    }
+    },
+    "cmake.ignoreCMakeListsMissing": true
 }
