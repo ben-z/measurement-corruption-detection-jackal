@@ -110,7 +110,7 @@ visualization_data = filter_data_for_visualization(data, visualization_start_ns,
 
 # plot BEV
 plt.figure()
-plt.plot(visualization_data["vicon_ground_truth_odom"]["x"], visualization_data["vicon_ground_truth_odom"]["y"], label="VICON")
+plt.plot(visualization_data["vicon_ground_truth_odom"]["x"], visualization_data["vicon_ground_truth_odom"]["y"], label="VICON GROUND TRUTH")
 plt.plot(visualization_data["vicon_odom"]["x"], visualization_data["vicon_odom"]["y"], label="VICON ODOM")
 plt.legend()
 plt.axis('equal')
