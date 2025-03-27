@@ -33,7 +33,7 @@ def linearize_model(model_type: ModelType, state: np.ndarray, input: np.ndarray,
 
 def get_linear_differential_drive_model(state: np.ndarray, input: np.ndarray, dt: float):
     """
-    Returns the A and B matrices for a discrete linear kinematic differential drive model.
+    Returns the A and B matrices for a discrete linear differential drive model.
     """
     # Unpack state and input
     # x, y, v, a are the position, velocity, and acceleration of the robot

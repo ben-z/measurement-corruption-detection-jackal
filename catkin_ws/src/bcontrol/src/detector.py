@@ -244,6 +244,7 @@ def create_subscriptions(config: ModelConfig):
 def has_valid_data(sensor: SensorState):
     return sensor['data'] is not None
 
+# MARK: Update loop
 def update_loop(event: rospy.timer.TimerEvent):
     """
     Gather data from the sensors for the C, Y, and U matrices
@@ -395,6 +396,7 @@ def publish_detector_data(pub: rospy.Publisher, detector_data: Optional[Detector
     pub.publish(msg)
 
 
+# MARK: Solve loop
 def solve_loop(event: rospy.timer.TimerEvent):
     """
     Solve the optimization problem to determine whether each sensor is corrupted.
@@ -487,6 +489,7 @@ def solve_loop(event: rospy.timer.TimerEvent):
         # rospy.logwarn(f"us={np.hstack(us)}")
         # rospy.logwarn(f"du={np.hstack(u_deviation)}")
 
+        # MARK: solve loop - linearization
         # Linearize the model
         As = []
         Bs = []
