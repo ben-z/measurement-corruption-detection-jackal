@@ -10,15 +10,19 @@ from rosbags.highlevel import AnyReader
 from typing import Dict, Optional, List, NamedTuple
 from enum import Enum
 
-DATA_PATH=Path('~/Downloads/masc-bags/').expanduser()
-# BAG_NAME='2023-03-27-15-28-54_attacks-closed-loop-video-sync.bag'
-BAG_NAME='2023-03-27-15-41-01_attacks-open-loop-video-sync.bag'
-BAG_PATH=DATA_PATH / BAG_NAME
+# DATA_PATH=Path('~/Downloads/masc-bags/').expanduser()
+# BAG_NAME='2023-03-27-15-41-01_attacks-open-loop-video-sync.bag'
+# # BAG_NAME='2023-03-27-15-28-54_attacks-closed-loop-video-sync.bag'
+# BAG_PATH=DATA_PATH / BAG_NAME
+BAG_PATH = Path(
+    # "/Users/ben/Library/CloudStorage/GoogleDrive-ben@benzhang.dev/Shared drives/MASc Data/MASc Data/attacks-open-loop-video-sync_2023-03-27-15-41-01.bag"
+    "/Users/ben/Library/CloudStorage/GoogleDrive-ben@benzhang.dev/Shared drives/MASc Data/MASc Data/attacks-closed-loop-video-sync_2023-03-27-15-28-54.bag"
+)
 
 S_TO_NS = 1e9
 
 # Define output CSV file name
-combined_csv = BAG_NAME + '.csv'
+combined_csv = BAG_PATH.stem + '.csv'
 
 # Create a dictionary to store data for each timestamp
 data_dict: Dict[int, Dict[str, str | float | None]] = defaultdict(lambda: {

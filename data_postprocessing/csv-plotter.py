@@ -1,4 +1,4 @@
-#%%
+# %%
 import pandas as pd
 import matplotlib.pyplot as plt
 from pathlib import Path
@@ -7,11 +7,12 @@ import math
 def get_notnull(df, column_name):
     return df[df[column_name].notnull()][column_name]
 
-#%%
-BAG_NAME='2023-03-27-15-28-54_attacks-closed-loop-video-sync.bag'
+# %%
+# BAG_NAME='2023-03-27-15-28-54_attacks-closed-loop-video-sync.bag'
 # BAG_NAME='2023-03-27-15-41-01_attacks-open-loop-video-sync.bag'
+BAG_NAME = "attacks-open-loop-video-sync_2023-03-27-15-41-01"
 # Load the CSV file into a Pandas DataFrame
-csv_file = Path(f'../{BAG_NAME}.csv')
+csv_file = Path(f'./{BAG_NAME}.csv')
 df_raw = pd.read_csv(csv_file)
 df = df_raw.copy()
 df['timestamp_s'] = df['timestamp'] / 1e9
@@ -42,7 +43,7 @@ plt.title('Bird\'s Eye View')
 plt.grid(True)
 plt.axis('equal')
 
-#%%
+# %%
 # Plot 2: Ground truth heading and corrupted heading (filtered)
 fig, axes = plt.subplots(3,1)
 ax = axes[0]
