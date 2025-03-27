@@ -30,11 +30,58 @@ messages = read_messages_by_topics(
         "/global_localization/robot/odom",
         "/global_localization/robot/odom/vulnerable/ORIENTATION",
         "/global_localization/robot/odom/corruption",
+        "/global_localization/robot/odom/vulnerable",
+        "/bdetect/data",
         "/bdetect/sensor_validity",
         "/message_barrier/sensor_validity_final",
         "/bdetect/sensor_malfunction_max_magnitude",
-    ]
+    ],
 )
+
+# %%
+# Pre-processing visualization
+
+bdetect_debug_posearray = messages["/bdetect/data"][-1]
+import matplotlib.pyplot as plt
+
+# Extract the data from the PoseArray message
+poses = bdetect_debug_posearray["msg"].poses
+timestamps = np.array([ns_to_s(bdetect_debug_posearray["timestamp"])] * len(poses))
+# # Create relative timestamps (0 to N-1) since these are historical poses
+relative_timestamps = np.arange(len(poses))
+
+# Extract x, y, and yaw from poses
+x_values = np.array([pose.position.x for pose in poses])
+y_values = np.array([pose.position.y for pose in poses])
+yaw_values = np.array([euler_from_quaternion(pose.orientation)[2] for pose in poses])
+# Unwrap yaw to avoid discontinuities
+yaw_values = np.unwrap(yaw_values)
+
+# Create a figure with 3 subplots
+fig, axs = plt.subplots(3, 1, figsize=(10, 12), sharex=True)
+
+# Plot x position over time
+axs[0].step(relative_timestamps, x_values, where='post', color='blue')
+axs[0].set_ylabel('X Position (m)')
+axs[0].set_title('X Position over Time')
+axs[0].grid(True)
+
+# Plot y position over time
+axs[1].step(relative_timestamps, y_values, where='post', color='green')
+axs[1].set_ylabel('Y Position (m)')
+axs[1].set_title('Y Position over Time')
+axs[1].grid(True)
+
+# Plot yaw over time
+axs[2].step(relative_timestamps, yaw_values, where='post', color='red')
+axs[2].set_ylabel('Yaw (rad)')
+axs[2].set_title('Yaw over Time')
+axs[2].set_xlabel('Time Steps')
+axs[2].grid(True)
+
+plt.tight_layout()
+plt.show()
+
 
 # %%
 # Construct data from messages
