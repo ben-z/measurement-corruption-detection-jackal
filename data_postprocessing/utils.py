@@ -28,6 +28,9 @@ def flatten_dict(d, parent_key="", sep="."):
             items.append((new_key, v))
     return dict(items)
 
+def get_topics(bag_path):
+    with AnyReader([bag_path]) as reader:
+        return [x.topic for x in reader.connections]
 
 def read_messages_by_topics(bag_path, topics, start_time_ns=None, end_time_ns=None, progress_bar=True):
     ret = {t: [] for t in topics}

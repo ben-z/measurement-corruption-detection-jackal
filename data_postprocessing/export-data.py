@@ -12,16 +12,22 @@ import transformations as tf
 from rosbags.highlevel import AnyReader
 from tqdm import tqdm
 from utils import (euler_from_quaternion, flatten_dict, ns_to_relative_s,
-                   ns_to_s, read_messages_by_topics, s_to_ns, stamp_to_ns)
+                   ns_to_s, read_messages_by_topics, s_to_ns, stamp_to_ns, get_topics)
 
 # %%
 # Load data
 
 BAG_PATH = Path(
-    # "/Users/ben/Library/CloudStorage/GoogleDrive-ben@benzhang.dev/Shared drives/MASc Data/MASc Data/attacks-open-loop-video-sync_2023-03-27-15-41-01.bag"
-    "/Users/ben/Library/CloudStorage/GoogleDrive-ben@benzhang.dev/Shared drives/MASc Data/MASc Data/attacks-closed-loop-video-sync_2023-03-27-15-28-54.bag"
+    "/Users/ben/Library/CloudStorage/GoogleDrive-ben@benzhang.dev/Shared drives/MASc Data/MASc Data/attacks-open-loop-video-sync_2023-03-27-15-41-01.bag"
+    # "/Users/ben/Library/CloudStorage/GoogleDrive-ben@benzhang.dev/Shared drives/MASc Data/MASc Data/attacks-closed-loop-video-sync_2023-03-27-15-28-54.bag"
 )
 S_TO_NS = 1e9
+
+topics = get_topics(BAG_PATH)
+print(f"Topics:")
+for topic in topics:
+    print(f"  {topic}")
+
 
 messages = read_messages_by_topics(
     BAG_PATH,
@@ -35,6 +41,7 @@ messages = read_messages_by_topics(
         "/bdetect/sensor_validity",
         "/message_barrier/sensor_validity_final",
         "/bdetect/sensor_malfunction_max_magnitude",
+        "/odometry/global_filtered",
     ],
 )
 
@@ -110,6 +117,12 @@ data = {
         "t": np.array([x["timestamp"] for x in messages["/global_localization/robot/odom/vulnerable/ORIENTATION"]]),
         "heading": np.array([euler_from_quaternion(x["msg"].pose.pose.orientation)[2] for x in messages["/global_localization/robot/odom/vulnerable/ORIENTATION"]]),
     },
+    "global_filtered_odom": {
+        "t": np.array([x["timestamp"] for x in messages["/odometry/global_filtered"]]),
+        "x": np.array([x["msg"].pose.pose.position.x for x in messages["/odometry/global_filtered"]]),
+        "y": np.array([x["msg"].pose.pose.position.y for x in messages["/odometry/global_filtered"]]),
+        "heading": np.array([euler_from_quaternion(x["msg"].pose.pose.orientation)[2] for x in messages["/odometry/global_filtered"]]),
+    },
     "sensor_validity": {
         "t": np.array([x["timestamp"] for x in messages["/bdetect/sensor_validity"]]),
         "validity": np.array([",".join(str(n) for n in x["msg"].data.tolist()) for x in messages["/bdetect/sensor_validity"]]),
@@ -135,8 +148,8 @@ np.savez_compressed(
 
 import matplotlib.pyplot as plt
 
-visualization_start_ns = heading_corruption_start_ns - s_to_ns(10)
-visualization_end_ns = heading_corruption_start_ns + s_to_ns(10)
+visualization_start_ns = heading_corruption_start_ns - s_to_ns(15)
+visualization_end_ns = heading_corruption_start_ns + s_to_ns(20)
 
 def filter_data_for_visualization(data, start_ns, end_ns):
     ret = {}
@@ -158,7 +171,14 @@ visualization_data = filter_data_for_visualization(data, visualization_start_ns,
 # plot BEV
 plt.figure()
 plt.plot(visualization_data["vicon_ground_truth_odom"]["x"], visualization_data["vicon_ground_truth_odom"]["y"], label="VICON GROUND TRUTH")
-plt.plot(visualization_data["vicon_odom"]["x"], visualization_data["vicon_odom"]["y"], label="VICON ODOM")
+# plt.plot(visualization_data["vicon_odom"]["x"], visualization_data["vicon_odom"]["y"], label="VICON ODOM")
+
+# Plot target path (circle with 2m radius)
+theta = np.linspace(0, 2*np.pi, 100)  # Create 100 points around the circle
+circle_x = 2 * np.cos(theta)
+circle_y = 2 * np.sin(theta)
+plt.plot(circle_x, circle_y, '--', label="Target Path")
+
 plt.legend()
 plt.axis('equal')
 plt.show()
@@ -172,6 +192,7 @@ ax1.plot(ns_to_relative_s(visualization_data["vicon_ground_truth_odom"]["t"], he
 ax1.plot(ns_to_relative_s(visualization_data["vicon_odom"]["t"], heading_corruption_start_ns), normalize_angle(visualization_data["vicon_odom"]["heading"]), label="VICON ODOM")
 ax1.plot(ns_to_relative_s(visualization_data["vicon_odom_vulnerable_orientation"]["t"], heading_corruption_start_ns), normalize_angle(visualization_data["vicon_odom_vulnerable_orientation"]["heading"]), label="VICON ODOM VULNERABLE ORIENTATION")
 ax1.plot(ns_to_relative_s(visualization_data["vicon_odom_corruption"]["t"], heading_corruption_start_ns), normalize_angle(visualization_data["vicon_odom_corruption"]["heading"]), '--', label="VICON ODOM CORRUPTION")
+ax1.plot(ns_to_relative_s(visualization_data["global_filtered_odom"]["t"], heading_corruption_start_ns), normalize_angle(visualization_data["global_filtered_odom"]["heading"]), label="GLOBAL FILTERED ODOM")
 ax1.legend()
 ax1.set_title("Heading Data")
 ax1.grid(True)
