@@ -1,4 +1,6 @@
-# Jackal Research
+# measurement-corruption-detection-jackal
+
+This repository contains the deployment code for the thesis "Optimal Sensor Protection and Measurement Corruption Detection in Safety-Critical Systems" to a Clearpath Jackal robot.
 
 There are a few components in this project. They include:
 1. `robot.launch`: Launches the basic services required for the robot to operate. This includes positioning services, transform publishers, etc.
@@ -178,3 +180,6 @@ Useful VGL commands:
 ```bash
 sudo /opt/VirtualGL/bin/eglinfo -e # list available EGL devices
 ```
+
+## Related Links
+- Simulation code for the same thesis: https://github.com/ben-z/measurement-corruption-detection-sim
